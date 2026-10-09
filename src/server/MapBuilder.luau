@@ -15,6 +15,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local Palette = require(game:GetService("ReplicatedStorage").Shared.Palette)
 local LookService = require(script.Parent.LookService)
+local WorldSlice = require(script.Parent.WorldSlice)
 
 local MapBuilder = {}
 
@@ -675,7 +676,7 @@ end
 -- StormService tweens toward the profile's storm look.
 local function setupEnvironment()
 	Lighting.GeographicLatitude = 35
-	LookService.apply("V2", false)
+	LookService.apply("V3", false)
 
 	-- Flash floods are muddy, not tropical (colour from the look profile).
 	local terrain = workspace.Terrain
@@ -1892,6 +1893,27 @@ function MapBuilder.build()
 		"Safe from storms · sell and upgrade here"
 	)
 	districts.Parent = map
+
+	-- V3 vertical slice: Scrapyard, departure road, Town Square and the world edge.
+	WorldSlice.build({
+		Map = map,
+		Roofs = roofs,
+		Yard = yard,
+		Part = part,
+		Prop = prop,
+		Wedge = wedge,
+		PlaceAsset = placeAsset,
+		TownAsset = townAsset,
+		Tree = tree,
+		Bush = bush,
+		SurfaceSign = surfaceSign,
+		StreetLight = streetLight,
+		PlateauTop = plateauTop,
+		RampStartZ = rampStartZ,
+	})
+
+	-- The look profile's palette applies once everything is built.
+	LookService.apply(LookService.active(), true)
 
 	return {
 		Zones = zones,

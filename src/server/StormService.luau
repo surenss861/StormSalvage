@@ -99,10 +99,10 @@ local function randomTownPoint(): Vector3
 	)
 end
 
-local function tweenSky(stormy: boolean, color: Color3?)
+-- Tweens the sky to the active look profile's goals for a storm-cycle phase (LookService).
+local function tweenSky(phase: string, storm: string?)
 	local info = TweenInfo.new(6, Enum.EasingStyle.Sine)
-	-- Goals come from the active look profile (LookService), calm or storm.
-	local goals = LookService.targets(stormy, color)
+	local goals = LookService.targetsFor(phase, storm, storm and Config.Storms[storm].Color or nil)
 	TweenService:Create(Lighting, info, goals.Lighting):Play()
 	local grade = Lighting:FindFirstChild("Grade")
 	if grade then
@@ -436,8 +436,13 @@ end
 local function cycle()
 	local stormNames = { "Wind", "Flood", "Lightning" }
 	local last: string? = nil
+	local first = true
 	while true do
 		state.Storm = nil
+		if not first then
+			tweenSky("Calm") -- out of the aftermath's golden light
+		end
+		first = false
 		setPhase("Calm", Config.Cycle.Calm)
 		waitPhase(Config.Cycle.Calm)
 
@@ -454,7 +459,7 @@ local function cycle()
 		state.Storm = storm
 		state.WindDir = Vector3.new(math.cos(angle), 0, math.sin(angle))
 		setPhase("Warning", Config.Cycle.Warning)
-		tweenSky(true, Config.Storms[storm].Color)
+		tweenSky("Warning", storm)
 		waitPhase(Config.Cycle.Warning)
 
 		stormToken += 1
@@ -480,7 +485,7 @@ local function cycle()
 		if storm == "Flood" then
 			recedeFlood()
 		end
-		tweenSky(false)
+		tweenSky("Aftermath")
 		setPhase("Aftermath", Config.Cycle.Aftermath)
 		LootService.refillAll()
 		waitPhase(Config.Cycle.Aftermath)
@@ -494,8 +499,11 @@ end
 
 -- Re-applies the sky for the current phase immediately (after a look profile change).
 function StormService.refreshSky()
-	local stormy = state.Phase == "Warning" or state.Phase == "Storm"
-	local goals = LookService.targets(stormy, state.Storm and Config.Storms[state.Storm].Color or nil)
+	local goals = LookService.targetsFor(
+		state.Phase,
+		state.Storm,
+		state.Storm and Config.Storms[state.Storm].Color or nil
+	)
 	for _, pair in
 		{ { Lighting, goals.Lighting }, { atmosphere, goals.Atmosphere }, { clouds, goals.Clouds } }
 	do

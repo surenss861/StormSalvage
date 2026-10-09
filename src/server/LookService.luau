@@ -1,8 +1,8 @@
 -- World look profiles: lighting, color grade, atmosphere, palette and material treatment for
 -- calm weather and storms. MapBuilder applies the active profile's calm look at startup and
--- StormService tweens between calm and storm with `targets()`.
+-- StormService tweens between cycle phases with `targetsFor()`.
 --
--- "V2" is the shipped look. "A", "B" and "C" are the V3 art-direction studies
+-- "V2" is the shipped look, "V3" the approved direction. "A", "B" and "C" are the art-direction studies
 -- (docs/art/V3-ART-DIRECTION.md); in Studio they can be switched live with
 -- StormSalvageDebug:Invoke("look", "A") for side-by-side screenshots.
 
@@ -24,7 +24,9 @@ export type Phase = {
 export type Profile = {
 	Name: string,
 	Calm: Phase,
-	Storm: Phase,
+	Storm: Phase, -- default storm look (warning and storm)
+	Storms: { [string]: Phase }?, -- per-storm looks (Wind, Flood, Lightning); fall back to Storm
+	Aftermath: Phase?, -- the 15 s after a storm; falls back to Calm
 	Bloom: { [string]: any },
 	SunRays: { [string]: any },
 	-- Swatch recolors, multiplied into Palette swatches: saturation and value scales.
@@ -130,6 +132,149 @@ local profiles: { [string]: Profile } = {
 			Grade = { Saturation = -0.15, Contrast = 0.22, TintColor = Color3.fromRGB(190, 220, 235) },
 			Atmosphere = { Density = 0.48, Haze = 2.2, Color = Color3.fromRGB(78, 104, 122) },
 			Clouds = { Cover = 0.95, Density = 0.85 },
+		},
+		Bloom = { Intensity = 0.5, Size = 24, Threshold = 1.2 },
+		SunRays = { Intensity = 0.09, Spread = 0.5 },
+		PaletteSaturation = 1.1,
+		PaletteValue = 1,
+		Materials = {
+			Metal = "V3A_PaintedMetal3",
+			CorrodedMetal = "V3A_RustedSheet1",
+			Concrete = "V3A_PatchedConcrete",
+			Asphalt = "V3A_PatchedAsphalt",
+			WoodPlanks = "V3A_WeatheredPlanks2",
+			Brick = "V3A_StylizedBrick3",
+		},
+		Water = { WaterColor = Color3.fromRGB(70, 92, 84), WaterTransparency = 0.3, WaterReflectance = 0.3 },
+	},
+
+	-- V3: the approved direction (Milestone A review). Study A's golden light and hand-painted
+	-- materials, Study B's distance haze for depth, and a distinct sky per storm plus a warm
+	-- aftermath. Storm phases override only what changes; the rest tweens from calm.
+	V3 = {
+		Name = "V3: Storm-Scarred Arcade",
+		Calm = {
+			Lighting = {
+				ClockTime = 17.05,
+				Brightness = 3.1,
+				Ambient = Color3.fromRGB(78, 70, 88),
+				OutdoorAmbient = Color3.fromRGB(150, 132, 128),
+				ColorShift_Top = Color3.fromRGB(255, 200, 140),
+				ColorShift_Bottom = Color3.fromRGB(70, 80, 130),
+				EnvironmentDiffuseScale = 0.75,
+				EnvironmentSpecularScale = 0.8,
+				ExposureCompensation = 0.05,
+				ShadowSoftness = 0.12,
+			},
+			Grade = {
+				Saturation = 0.24,
+				Contrast = 0.16,
+				Brightness = 0.01,
+				TintColor = Color3.fromRGB(255, 236, 212),
+			},
+			Atmosphere = {
+				-- Study B's depth: denser, offset haze so the town edge and backdrop fade out.
+				Density = 0.42,
+				Offset = 0.28,
+				Haze = 2,
+				Glare = 0.45,
+				Color = Color3.fromRGB(255, 220, 188),
+				Decay = Color3.fromRGB(140, 120, 150),
+			},
+			Clouds = { Cover = 0.55, Density = 0.45 },
+		},
+		Storm = {
+			Lighting = {
+				ClockTime = 17,
+				Brightness = 1.25,
+				OutdoorAmbient = Color3.fromRGB(88, 104, 128),
+				ExposureCompensation = -0.2,
+			},
+			Grade = { Saturation = -0.15, Contrast = 0.22, TintColor = Color3.fromRGB(190, 220, 235) },
+			Atmosphere = { Density = 0.48, Haze = 2.2, Color = Color3.fromRGB(78, 104, 122) },
+			Clouds = { Cover = 0.95, Density = 0.85 },
+		},
+		Storms = {
+			-- Wind: flat, bright overcast with dusty ochre haze. Hard to see far, not dark.
+			Wind = {
+				Lighting = {
+					ClockTime = 16.2,
+					Brightness = 2,
+					OutdoorAmbient = Color3.fromRGB(150, 138, 118),
+					ColorShift_Top = Color3.fromRGB(255, 226, 170),
+					ExposureCompensation = 0,
+				},
+				Grade = { Saturation = -0.12, Contrast = 0.12, TintColor = Color3.fromRGB(255, 236, 200) },
+				Atmosphere = {
+					Density = 0.52,
+					Offset = 0.1,
+					Haze = 2.6,
+					Glare = 0.1,
+					Color = Color3.fromRGB(196, 168, 120),
+					Decay = Color3.fromRGB(150, 120, 90),
+				},
+				Clouds = { Cover = 0.85, Density = 0.6 },
+			},
+			-- Flood: dark teal-grey, heavy and wet.
+			Flood = {
+				Lighting = {
+					ClockTime = 16.9,
+					Brightness = 1,
+					OutdoorAmbient = Color3.fromRGB(72, 96, 104),
+					ColorShift_Top = Color3.fromRGB(170, 200, 210),
+					ExposureCompensation = -0.25,
+				},
+				Grade = { Saturation = -0.25, Contrast = 0.2, TintColor = Color3.fromRGB(180, 215, 220) },
+				Atmosphere = {
+					Density = 0.56,
+					Offset = 0.05,
+					Haze = 2.8,
+					Glare = 0,
+					Color = Color3.fromRGB(70, 98, 104),
+					Decay = Color3.fromRGB(50, 70, 80),
+				},
+				Clouds = { Cover = 1, Density = 0.95 },
+			},
+			-- Lightning: very dark violet; strikes are the main light.
+			Lightning = {
+				Lighting = {
+					ClockTime = 17.15,
+					Brightness = 0.7,
+					OutdoorAmbient = Color3.fromRGB(86, 76, 120),
+					ColorShift_Top = Color3.fromRGB(190, 170, 255),
+					ExposureCompensation = -0.3,
+				},
+				Grade = { Saturation = -0.05, Contrast = 0.28, TintColor = Color3.fromRGB(205, 190, 255) },
+				Atmosphere = {
+					Density = 0.5,
+					Offset = 0.1,
+					Haze = 2.4,
+					Glare = 0,
+					Color = Color3.fromRGB(70, 56, 104),
+					Decay = Color3.fromRGB(50, 40, 80),
+				},
+				Clouds = { Cover = 1, Density = 1 },
+			},
+		},
+		-- Aftermath: the sun comes back lower and warmer than calm. Relief, go grab the loot.
+		Aftermath = {
+			Lighting = {
+				ClockTime = 17.2,
+				Brightness = 3.3,
+				OutdoorAmbient = Color3.fromRGB(165, 132, 118),
+				ColorShift_Top = Color3.fromRGB(255, 186, 120),
+				ExposureCompensation = 0.1,
+			},
+			Grade = { Saturation = 0.3, Contrast = 0.16, TintColor = Color3.fromRGB(255, 228, 196) },
+			Atmosphere = {
+				Density = 0.36,
+				Offset = 0.3,
+				Haze = 1.4,
+				Glare = 0.8,
+				Color = Color3.fromRGB(255, 206, 160),
+				Decay = Color3.fromRGB(170, 120, 140),
+			},
+			Clouds = { Cover = 0.6, Density = 0.4 },
 		},
 		Bloom = { Intensity = 0.5, Size = 24, Threshold = 1.2 },
 		SunRays = { Intensity = 0.09, Spread = 0.5 },
@@ -373,20 +518,27 @@ function LookService.apply(name: string, recolorMap: boolean?)
 	workspace:SetAttribute("Look", name)
 end
 
--- Tween goals for StormService: (lighting, grade, atmosphere, clouds). The storm's own color
--- tints the storm atmosphere.
-function LookService.targets(stormy: boolean, stormColor: Color3?): Phase
+-- The look for a storm-cycle phase: "Calm", "Warning", "Storm" or "Aftermath". During the
+-- warning and the storm, `storm` picks that storm's look (falling back to the profile's shared
+-- storm look, tinted by `stormColor`).
+function LookService.targetsFor(phase: string, storm: string?, stormColor: Color3?): Phase
 	local profile = profiles[active]
-	if not stormy then
+	if phase == "Aftermath" then
+		return profile.Aftermath or profile.Calm
+	elseif phase ~= "Warning" and phase ~= "Storm" then
 		return profile.Calm
 	end
-	local storm = table.clone(profile.Storm)
-	if stormColor then
-		local atmosphere = table.clone(storm.Atmosphere)
-		atmosphere.Color = stormColor:Lerp(atmosphere.Color, 0.6)
-		storm.Atmosphere = atmosphere
+	local own = storm and profile.Storms and profile.Storms[storm]
+	if own then
+		return own
 	end
-	return storm
+	local shared = table.clone(profile.Storm)
+	if stormColor then
+		local atmosphere = table.clone(shared.Atmosphere)
+		atmosphere.Color = stormColor:Lerp(atmosphere.Color, 0.6)
+		shared.Atmosphere = atmosphere
+	end
+	return shared
 end
 
 function LookService.active(): string
@@ -394,7 +546,7 @@ function LookService.active(): string
 end
 
 function LookService.names(): { string }
-	return { "V2", "A", "B", "C" }
+	return { "V2", "V3", "A", "B", "C" }
 end
 
 return LookService

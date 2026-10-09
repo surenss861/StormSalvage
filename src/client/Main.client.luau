@@ -16,6 +16,7 @@ local RunService = game:GetService("RunService")
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
 local Districts = require(script.Parent:WaitForChild("Districts"))
+local EnvironmentFX = require(script.Parent:WaitForChild("EnvironmentFX"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Notifications = require(script.Parent:WaitForChild("Notifications"))
 local SalvageFeedback = require(script.Parent:WaitForChild("SalvageFeedback"))
@@ -90,6 +91,7 @@ end)
 SalvageFeedback.init()
 StormEffects.init(Remotes.get("LightningWarning"))
 Districts.init()
+EnvironmentFX.init(StormEffects.getState, StormEffects.gustPhase, StormEffects.isReduced)
 
 ---------------------------------------------------------------------------- Tutorial hint
 
@@ -213,6 +215,7 @@ RunService.RenderStepped:Connect(function()
 		animateLoot(camera.CFrame.Position)
 	end
 	StormEffects.step(now)
+	EnvironmentFX.step(now)
 	SalvageFeedback.step(now)
 	Notifications.step()
 end)

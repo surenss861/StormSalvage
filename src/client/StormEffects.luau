@@ -479,6 +479,10 @@ function StormEffects.step(now: number)
 	setAlert("")
 end
 
+function StormEffects.getState(): any
+	return state
+end
+
 function StormEffects.setState(s)
 	state = s
 end
