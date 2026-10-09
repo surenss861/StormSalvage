@@ -45,8 +45,10 @@ Config.StormTuning = {
 }
 
 -- Death drops: only the owner can pick their bag back up for this long, then anyone can.
-Config.BagOwnerOnlySeconds = 20
-Config.BagLifetimeSeconds = 60
+-- Respawning (5s) and walking back at base speed takes 22-37s depending on the district
+-- (measured 2026-10-09), so 40s gives the owner a real chance; others get the last 35s.
+Config.BagOwnerOnlySeconds = 40
+Config.BagLifetimeSeconds = 75
 
 Config.Storms = {
 	Wind = {
@@ -165,7 +167,9 @@ Config.Loot = {
 	},
 	StormCore = {
 		Name = "Storm Core",
-		Value = 250,
+		-- Was 250. In a 10-minute solo run, 4 cores (1008) outearned every other trip combined
+		-- (300), making ordinary salvage pointless. 175 stays above the best Epic (140).
+		Value = 175,
 		Size = Vector3.new(1.6, 1.6, 1.6),
 		Color = Color3.fromRGB(120, 220, 255),
 		Material = Enum.Material.Neon,

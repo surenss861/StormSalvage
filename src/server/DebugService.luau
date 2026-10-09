@@ -10,15 +10,20 @@
 --   debug:Invoke("receipt", "Player1", "purchase-1")  -- simulated receipt -> decision name
 --   debug:Invoke("save", "Player1")     -- save now -> true if persisted
 --   debug:Invoke("stats")               -- recent StormStats records
+--   debug:Invoke("session")             -- first-session progression per player
+--   debug:Invoke("spawn", "Safe", pos)  -- one loot item on the floor at pos
+--   debug:Invoke("boost", 60)           -- 2x Salvage for everyone, for testing sale multipliers
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+local LootService = require(script.Parent.LootService)
 local MonetizationService = require(script.Parent.MonetizationService)
 local PlayerService = require(script.Parent.PlayerService)
 local StormService = require(script.Parent.StormService)
+local SessionStats = require(script.Parent.SessionStats)
 local StormStats = require(script.Parent.StormStats)
 
 local DebugService = {}
@@ -52,6 +57,22 @@ local commands: { [string]: (...any) -> any } = {
 		local player = Players:FindFirstChild(playerName)
 		assert(player and player:IsA("Player"), "no player " .. tostring(playerName))
 		return PlayerService.save(player, false)
+	end,
+	spawn = function(lootId: string, position: Vector3)
+		return LootService.spawnForTest(lootId, position):GetFullName()
+	end,
+	boost = function(seconds: number)
+		for _, player in Players:GetPlayers() do
+			local session = PlayerService.get(player)
+			if session then
+				session.Data.BoostUntil = os.time() + seconds
+				PlayerService.pushState(player)
+			end
+		end
+		return "boost " .. seconds
+	end,
+	session = function()
+		return SessionStats.all()
 	end,
 	stats = function()
 		return StormStats.history()

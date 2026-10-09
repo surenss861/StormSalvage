@@ -6,8 +6,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Shelter = require(ReplicatedStorage.Shared.Shelter)
 local PlayerService = require(script.Parent.PlayerService)
+local SessionStats = require(script.Parent.SessionStats)
 local StormStats = require(script.Parent.StormStats)
 
 local LootService = {}
@@ -22,6 +24,7 @@ type Zone = {
 local zones: { [string]: Zone } = {}
 local folder: Folder
 local rng = Random.new()
+local pickupRemote = Remotes.get("Pickup")
 local townMin: Vector3, townMax: Vector3
 
 -- Blender-made salvage models (assets/roblox/salvage). Each loot item is an invisible anchored
@@ -160,14 +163,20 @@ local function createLoot(
 	prompt.ActionText = "Grab"
 	prompt.ObjectText = ("%s  (%d)"):format(def.Name, def.Value)
 	prompt.HoldDuration = math.clamp(def.Value / 150, 0.2, 1.2)
-	-- Storm Cores can sit under a flood, so reach them from the water's surface.
-	prompt.MaxActivationDistance = def.Rarity == "Legendary" and 16 or 10
+	-- Storm Cores and dropped bags can sit under a flood, so reach them from the water's surface.
+	prompt.MaxActivationDistance = if def.Rarity == "Legendary" or owner then 16 else 10
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = item
 
 	local taken = false
 	if owner then
 		prompt.ObjectText = ("%s's %s  (%d)"):format(owner.DisplayName, def.Name, def.Value)
+		-- Lets clients mark the owner's bag and show when it opens up to everyone.
+		item:SetAttribute("OwnerId", owner.UserId)
+		item:SetAttribute(
+			"OwnerUntil",
+			workspace:GetServerTimeNow() + ((ownerOnlyUntil or os.clock()) - os.clock())
+		)
 	end
 
 	prompt.Triggered:Connect(function(player)
@@ -189,9 +198,12 @@ local function createLoot(
 			return
 		end
 		StormStats.collected(player, lootId)
+		SessionStats.collected(player, lootId)
 		taken = true
 		item:Destroy()
-		if def.Rarity == "Legendary" or def.Rarity == "Epic" then
+		pickupRemote:FireClient(player, { Id = lootId, Position = item.Position })
+		-- Only the signature find goes to everyone; Epic finds get the finder's own card.
+		if def.Rarity == "Legendary" then
 			PlayerService.notifyAll(("%s grabbed a %s!"):format(player.DisplayName, def.Name), rarityColor)
 		end
 		if onTaken then
@@ -269,6 +281,12 @@ function LootService.spawnStormCores(count: number)
 	end
 end
 
+-- Studio QA (DebugService): one item of any kind on the floor at `position`.
+function LootService.spawnForTest(lootId: string, position: Vector3): Instance
+	assert(Config.Loot[lootId], "unknown loot " .. lootId)
+	return createLoot(lootId, position)
+end
+
 -- Refill every zone instantly (used after a storm so the town feels "fresh").
 function LootService.refillAll()
 	for name, zone in zones do
@@ -284,6 +302,7 @@ local function dropBag(player: Player, character: Model)
 	if not root or #carried == 0 then
 		return
 	end
+	SessionStats.lostBag(player)
 	local origin = root.Position
 	local ownerOnlyUntil = os.clock() + Config.BagOwnerOnlySeconds
 	for i = 1, #carried do

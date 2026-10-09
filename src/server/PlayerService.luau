@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
+local SessionStats = require(script.Parent.SessionStats)
 local StormStats = require(script.Parent.StormStats)
 
 local PlayerService = {}
@@ -18,6 +19,7 @@ export type Session = {
 	OwnsBigBag: boolean,
 	OwnsVIP: boolean,
 	LastDamage: number,
+	Sales: number, -- sales this session; numbers each receipt so clients never show one twice
 }
 
 local sessions: { [Player]: Session } = {}
@@ -27,6 +29,7 @@ local diedCallbacks: { (Player, Model) -> () } = {}
 local playerStateRemote = Remotes.get("PlayerState")
 local notifyRemote = Remotes.get("Notify")
 local buyUpgradeRemote = Remotes.get("BuyUpgrade")
+local saleReceiptRemote = Remotes.get("SaleReceipt")
 
 function PlayerService.get(player: Player): Session?
 	return sessions[player]
@@ -65,15 +68,48 @@ function PlayerService.boostRemaining(session: Session): number
 	return math.max(0, session.Data.BoostUntil - os.time())
 end
 
-function PlayerService.sellMultiplier(session: Session): number
-	local m = 1
+-- Every active sell bonus, for the sale receipt. Multipliers stack by multiplying.
+function PlayerService.sellMultipliers(session: Session): { { Name: string, Factor: number } }
+	local list = {}
 	if session.OwnsVIP then
-		m *= Config.GamePasses.VIP.SellMultiplier
+		table.insert(list, { Name = "VIP", Factor = Config.GamePasses.VIP.SellMultiplier })
 	end
 	if PlayerService.boostRemaining(session) > 0 then
-		m *= 2
+		table.insert(list, { Name = "2x Salvage", Factor = 2 })
+	end
+	return list
+end
+
+function PlayerService.sellMultiplier(session: Session): number
+	local m = 1
+	for _, bonus in PlayerService.sellMultipliers(session) do
+		m *= bonus.Factor
 	end
 	return m
+end
+
+-- Anyone carrying a Storm Core glows, so everyone can see who's holding the big prize.
+local function refreshCoreGlow(player: Player, session: Session)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not root then
+		return
+	end
+	local carrying = table.find(session.Carried, "StormCore") ~= nil
+	local glow = root:FindFirstChild("CoreGlow")
+	if carrying and not glow then
+		local color = Config.RarityColors.Legendary
+		local light = Instance.new("PointLight")
+		light.Name = "CoreGlow"
+		light.Color = color
+		light.Range = 12
+		light.Brightness = 2.5
+		light.Parent = root
+		local sparkles = Instance.new("Sparkles")
+		sparkles.SparkleColor = color
+		sparkles.Parent = light -- removed together with the light
+	elseif not carrying and glow then
+		glow:Destroy()
+	end
 end
 
 local function carriedValue(session: Session): number
@@ -166,6 +202,7 @@ function PlayerService.tryCarry(player: Player, lootId: string): boolean
 		return false
 	end
 	table.insert(session.Carried, lootId)
+	refreshCoreGlow(player, session)
 	PlayerService.pushState(player)
 	return true
 end
@@ -178,6 +215,7 @@ function PlayerService.takeCarried(player: Player): { string }
 	end
 	local carried = session.Carried
 	session.Carried = {}
+	refreshCoreGlow(player, session)
 	PlayerService.pushState(player)
 	return carried
 end
@@ -191,12 +229,51 @@ function PlayerService.sell(player: Player)
 		PlayerService.notify(player, "Your bag is empty. Go salvage in town!", Color3.fromRGB(255, 220, 120))
 		return
 	end
-	local earned = math.floor(carriedValue(session) * PlayerService.sellMultiplier(session))
+	-- The receipt is built from the same numbers that pay out, so what the player sees is
+	-- exactly what they got. Lines are grouped by item, most valuable first.
+	local counts: { [string]: number } = {}
+	for _, id in session.Carried do
+		counts[id] = (counts[id] or 0) + 1
+	end
+	local lines = {}
+	for id, count in counts do
+		table.insert(lines, { Id = id, Count = count, Value = Config.Loot[id].Value })
+	end
+	table.sort(lines, function(a, b)
+		return a.Value * a.Count > b.Value * b.Count
+	end)
+	local base = carriedValue(session)
+	local multipliers = PlayerService.sellMultipliers(session) -- read before clearing the bag
+	local earned = math.floor(base * PlayerService.sellMultiplier(session))
+	local hadCore = counts.StormCore ~= nil
 	session.Data.Stats.ItemsSold += #session.Carried
 	session.Carried = {}
+	session.Sales += 1
+	refreshCoreGlow(player, session)
 	PlayerService.addCoins(player, earned)
 	StormStats.sold(player, earned)
-	PlayerService.notify(player, ("Sold for %d coins!"):format(earned), Color3.fromRGB(120, 255, 140))
+	SessionStats.sold(player, earned)
+	saleReceiptRemote:FireClient(player, {
+		Sale = session.Sales,
+		Lines = lines,
+		Base = base,
+		Multipliers = multipliers,
+		Total = earned,
+		Balance = session.Data.Coins,
+		HadCore = hadCore,
+	})
+	if hadCore then
+		local coreCoins =
+			math.floor(counts.StormCore * Config.Loot.StormCore.Value * PlayerService.sellMultiplier(session))
+		PlayerService.notifyAll(
+			("%s delivered %s! +%d"):format(
+				player.DisplayName,
+				counts.StormCore > 1 and (counts.StormCore .. " Storm Cores") or "a Storm Core",
+				coreCoins
+			),
+			Config.RarityColors.Legendary
+		)
+	end
 end
 
 local function buyUpgrade(player: Player, upgradeId: unknown)
@@ -224,6 +301,7 @@ local function buyUpgrade(player: Player, upgradeId: unknown)
 	end
 	session.Data.Coins -= cost
 	session.Data.Upgrades[upgradeId] = level + 1
+	SessionStats.upgraded(player, upgradeId, level + 1)
 	PlayerService.applyCharacterStats(player)
 	PlayerService.pushState(player)
 	PlayerService.notify(
@@ -234,6 +312,7 @@ local function buyUpgrade(player: Player, upgradeId: unknown)
 end
 
 local function onPlayerAdded(player: Player)
+	SessionStats.joined(player)
 	local leaderstats = Instance.new("Folder")
 	leaderstats.Name = "leaderstats"
 	local coins = Instance.new("IntValue")
@@ -266,6 +345,7 @@ local function onPlayerAdded(player: Player)
 		OwnsBigBag = false,
 		OwnsVIP = false,
 		LastDamage = 0,
+		Sales = 0,
 	}
 	sessions[player] = session
 
@@ -275,6 +355,7 @@ local function onPlayerAdded(player: Player)
 		PlayerService.applyCharacterStats(player)
 		PlayerService.pushState(player)
 		humanoid.Died:Connect(function()
+			SessionStats.died(player)
 			for _, cb in diedCallbacks do
 				task.spawn(cb, player, character)
 			end

@@ -16,6 +16,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Shelter = require(ReplicatedStorage.Shared.Shelter)
 local PlayerService = require(script.Parent.PlayerService)
 local LootService = require(script.Parent.LootService)
+local SessionStats = require(script.Parent.SessionStats)
 local StormStats = require(script.Parent.StormStats)
 
 local StormService = {}
@@ -433,6 +434,7 @@ local function rewardSurvivors(stormSeconds: number)
 		if session and root and not inSafeZone(root.Position) and (townSeconds[player] or 0) >= needed then
 			session.Data.Stats.StormsSurvived += 1
 			StormStats.survived(player)
+			SessionStats.survivedStorm(player)
 			PlayerService.addCoins(player, T.SurvivorBonus)
 			PlayerService.notify(
 				player,
@@ -471,6 +473,7 @@ local function cycle()
 		stormToken += 1
 		local token = stormToken
 		StormStats.beginStorm(storm)
+		SessionStats.stormStarted()
 		setPhase("Storm", Config.Cycle.Storm)
 		task.spawn(runners[storm], token)
 		task.spawn(trackTownTime, token)

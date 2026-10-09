@@ -11,6 +11,7 @@ local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
+local SalvageFeedback = require(script.Parent:WaitForChild("SalvageFeedback"))
 local StormEffects = require(script.Parent:WaitForChild("StormEffects"))
 
 local player = Players.LocalPlayer
@@ -94,10 +95,11 @@ for _, name in { "Rain", "Flood", "Wind" } do
 	end
 end
 
-local function playSound(name: string, volumeScale: number?)
+local function playSound(name: string, volumeScale: number?, pitch: number?)
 	local sound = sounds[name]
 	if sound then
 		sound.Volume = Config.Sounds[name].Volume * (volumeScale or 1)
+		sound.PlaybackSpeed = pitch or 1
 		sound.TimePosition = 0
 		sound:Play()
 	end
@@ -260,6 +262,14 @@ local function popCoins(amount: number)
 	Debris:AddItem(gain, 1)
 end
 
+local bagScale = new("UIScale", { Parent = bagBarBack })
+local function pulseBag()
+	bagScale.Scale = 1.15
+	TweenService
+		:Create(bagScale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+		:Play()
+end
+
 local boostLabel = label({
 	Name = "Boost",
 	Parent = hudRoot,
@@ -302,6 +312,19 @@ local toastHolder = new("Frame", {
 local toastCount = 0
 
 local function toast(text: string, color: Color3?)
+	-- The same message twice in a row (e.g. "Bag full!" on every grab attempt) refreshes the
+	-- visible one instead of stacking copies.
+	for _, c in toastHolder:GetChildren() do
+		if
+			c:IsA("TextLabel")
+			and c.LayoutOrder == toastCount
+			and c.Text == text
+			and c.TextTransparency == 0
+		then
+			c:SetAttribute("Until", os.clock() + 3)
+			return
+		end
+	end
 	toastCount += 1
 	local l = label({
 		Parent = toastHolder,
@@ -310,7 +333,11 @@ local function toast(text: string, color: Color3?)
 		TextColor3 = color or WHITE,
 		LayoutOrder = toastCount,
 	})
-	task.delay(3, function()
+	l:SetAttribute("Until", os.clock() + 3)
+	task.spawn(function()
+		while os.clock() < (l:GetAttribute("Until") or 0) do
+			task.wait(0.2)
+		end
 		TweenService:Create(l, TweenInfo.new(0.5), { TextTransparency = 1 }):Play()
 		local s = l:FindFirstChildOfClass("UIStroke")
 		if s then
@@ -334,8 +361,8 @@ local hint = label({
 	Name = "Hint",
 	Parent = hudRoot,
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -96),
-	Size = UDim2.new(0.7, 0, 0, 34),
+	Position = UDim2.new(0.5, 0, 1, -24), -- below the toast column, between the touch controls
+	Size = UDim2.new(0.5, 0, 0, 30),
 	Text = "",
 	TextColor3 = Color3.fromRGB(255, 240, 150),
 	Visible = false,
@@ -613,17 +640,7 @@ Remotes.get("PlayerState").OnClientEvent:Connect(function(s)
 	playerState = s
 	boostEndsAt = os.clock() + (s.BoostRemaining or 0)
 	if #s.Carried > lastCarried then
-		local id = s.Carried[#s.Carried]
-		local def = Config.Loot[id]
-		if def then
-			toast(("+ %s (%d)"):format(def.Name, def.Value), Config.RarityColors[def.Rarity])
-			-- Rarer finds sound brighter.
-			local rank = ({ Common = 0, Uncommon = 1, Rare = 2, Epic = 3, Legendary = 4 })[def.Rarity] or 0
-			playSound("Pickup")
-			if rank >= 2 then
-				playSound("Sell", 0.5 + rank * 0.1)
-			end
-		end
+		pulseBag()
 	end
 	local levels = 0
 	for _, level in s.Upgrades do
@@ -631,9 +648,6 @@ Remotes.get("PlayerState").OnClientEvent:Connect(function(s)
 	end
 	if lastCoins and s.Coins > lastCoins then
 		popCoins(s.Coins - lastCoins)
-		if #s.Carried < lastCarried then
-			playSound("Sell")
-		end
 	end
 	if lastCoins and levels > lastLevels then
 		playSound("Upgrade")
@@ -642,6 +656,16 @@ Remotes.get("PlayerState").OnClientEvent:Connect(function(s)
 	lastCoins = s.Coins
 	lastLevels = levels
 	render()
+end)
+
+-- Pickup feedback (pops, find cards) and sale receipts come from the server's exact results.
+Remotes.get("Pickup").OnClientEvent:Connect(function(info)
+	local carried = playerState and #playerState.Carried or 0
+	local capacity = playerState and playerState.Capacity or 0
+	SalvageFeedback.onPickup(info, carried, capacity)
+end)
+Remotes.get("SaleReceipt").OnClientEvent:Connect(function(receipt)
+	SalvageFeedback.onSale(receipt)
 end)
 
 Remotes.get("Notify").OnClientEvent:Connect(function(text, color)
@@ -666,6 +690,13 @@ Remotes.get("StormState").OnClientEvent:Connect(function(s)
 end)
 
 ---------------------------------------------------------------------------- Storm effects
+
+SalvageFeedback.init({
+	PlaySound = playSound,
+	HudRoot = hudRoot,
+	Font = FONT,
+	IsReduced = StormEffects.isReduced,
+})
 
 StormEffects.init({
 	PlaySound = playSound,
@@ -734,6 +765,10 @@ RunService.RenderStepped:Connect(function()
 		bannerTitle.TextColor3 = Color3.fromRGB(255, 220, 90)
 		bannerSub.Text = ("Fresh salvage everywhere!  %ds"):format(remaining)
 	end
+	local cores = SalvageFeedback.coreCount()
+	if cores > 0 and (phase == "Storm" or phase == "Aftermath") then
+		bannerSub.Text ..= ("  |  %d Storm Core%s"):format(cores, cores == 1 and "" or "s")
+	end
 
 	local boostLeft = boostEndsAt - os.clock()
 	boostLabel.Visible = boostLeft > 0
@@ -747,4 +782,5 @@ RunService.RenderStepped:Connect(function()
 		animateLoot(camera.CFrame.Position)
 	end
 	StormEffects.step(now)
+	SalvageFeedback.step(now)
 end)

@@ -11,9 +11,11 @@ local LootService = require(script.Parent.LootService)
 local StormService = require(script.Parent.StormService)
 local MonetizationService = require(script.Parent.MonetizationService)
 local DebugService = require(script.Parent.DebugService)
+local SessionStats = require(script.Parent.SessionStats)
 
 local map = MapBuilder.build()
 
+SessionStats.init()
 PlayerService.init()
 MonetizationService.init()
 LootService.init(map)

@@ -10,6 +10,8 @@ local EVENTS = {
 	"Notify", -- server -> client: toast text, color
 	"BuyUpgrade", -- client -> server: upgradeId
 	"LightningWarning", -- server -> client: position, radius, delay
+	"Pickup", -- server -> client: { Id, Position } for the player who grabbed it
+	"SaleReceipt", -- server -> client: the exact result of one sale (see PlayerService.sell)
 }
 
 local folder: Folder

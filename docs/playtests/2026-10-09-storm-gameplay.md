@@ -128,7 +128,7 @@ outdoors and 10 s indoors, plus about 20 s of health in the water.
 | --- | --- |
 | Gust timing | **Pass**: both clients got identical `GustAt`/`GustEnd` for all 5 gusts. |
 | Lightning | **Pass**: 3 clients got the same 32 warnings in the same order and positions. Concurrent zones were at least 46 studs apart (minimum allowed 22). Intervals 1.12–1.70 s. |
-| Flood | **Pass**: Player4 joined at water level 8 and immediately showed "Water at its peak - stay high \| 13s", the same as Player2, with all 9 ladder markers on. |
+| Flood | **Pass**: Player4 was requested when the water was at level 8 (about 10 s in). Their client took about 20 s to connect; when it was read, 13 s of the storm remained (about 32 s in), the water was at 12, and the banner correctly said "Water at its peak - stay high \| 13s", the same as Player2. All 9 ladder markers were on. (An earlier version of this line implied the peak message showed at level 8; it didn't.) |
 | Survival bonus | **Pass**: +25 exactly once per storm, only to players who qualified (sheltered or on a roof); none for players who died or stayed on the hill. |
 | Effects after death and respawn | **Pass**: dead players respawned on the hill; StormStats counted one death each. |
 | Same loot, two players | **Pass**: one player got it. |
