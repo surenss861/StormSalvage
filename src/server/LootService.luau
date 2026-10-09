@@ -5,15 +5,22 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Shelter = require(ReplicatedStorage.Shared.Shelter)
 local PlayerService = require(script.Parent.PlayerService)
 
 local LootService = {}
 
-type Zone = { Points: { Vector3 }, Label: string, Occupied: { [number]: Instance }, Pool: { { Id: string, Weight: number } } }
+type Zone = {
+	Points: { Vector3 },
+	Label: string,
+	Occupied: { [number]: Instance },
+	Pool: { { Id: string, Weight: number } },
+}
 
 local zones: { [string]: Zone } = {}
 local folder: Folder
 local rng = Random.new()
+local townMin: Vector3, townMax: Vector3
 
 local function pickWeighted(pool: { { Id: string, Weight: number } }): string
 	local total = 0
@@ -45,7 +52,14 @@ local function groundY(position: Vector3): number
 end
 
 -- owner: for a death drop, only this player can grab it until ownerOnlyUntil (os.clock()).
-local function createLoot(lootId: string, floorPosition: Vector3, onTaken: (() -> ())?, lifetime: number?, owner: Player?, ownerOnlyUntil: number?): Part
+local function createLoot(
+	lootId: string,
+	floorPosition: Vector3,
+	onTaken: (() -> ())?,
+	lifetime: number?,
+	owner: Player?,
+	ownerOnlyUntil: number?
+): Part
 	local def = Config.Loot[lootId]
 	local rarityColor = Config.RarityColors[def.Rarity]
 
@@ -53,17 +67,22 @@ local function createLoot(lootId: string, floorPosition: Vector3, onTaken: (() -
 	item.Name = lootId
 	item.Anchored = true
 	item.CanCollide = false
+	if def.Shape then
+		item.Shape = def.Shape
+	end
 	item.Size = def.Size
 	item.Color = def.Color
 	item.Material = def.Material
-	item.Position = floorPosition + Vector3.new(0, def.Size.Y / 2, 0)
-	item.Orientation = Vector3.new(0, rng:NextNumber(0, 360), 0)
+	local height = if def.Upright then def.Size.X else def.Size.Y
+	item.CFrame = CFrame.new(floorPosition + Vector3.new(0, height / 2, 0))
+		* CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
+		* (if def.Upright then CFrame.Angles(0, 0, math.pi / 2) else CFrame.identity)
 	item:SetAttribute("LootId", lootId)
 
 	-- Floating rarity marker (Highlights are capped at 31 on screen, so avoid them here).
 	local marker = Instance.new("BillboardGui")
 	marker.Size = UDim2.fromOffset(18, 18)
-	marker.StudsOffset = Vector3.new(0, def.Size.Y / 2 + 1.5, 0)
+	marker.StudsOffset = Vector3.new(0, height / 2 + 1.5, 0)
 	marker.MaxDistance = 80
 	marker.LightInfluence = 0
 	local dot = Instance.new("Frame")
@@ -95,7 +114,8 @@ local function createLoot(lootId: string, floorPosition: Vector3, onTaken: (() -
 	prompt.ActionText = "Grab"
 	prompt.ObjectText = ("%s  (%d)"):format(def.Name, def.Value)
 	prompt.HoldDuration = math.clamp(def.Value / 150, 0.2, 1.2)
-	prompt.MaxActivationDistance = 10
+	-- Storm Cores can sit under a flood, so reach them from the water's surface.
+	prompt.MaxActivationDistance = def.Rarity == "Legendary" and 16 or 10
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = item
 
@@ -109,7 +129,14 @@ local function createLoot(lootId: string, floorPosition: Vector3, onTaken: (() -
 			return
 		end
 		if owner and player ~= owner and owner.Parent and os.clock() < (ownerOnlyUntil or 0) then
-			PlayerService.notify(player, ("That's %s's bag. Free to grab in %ds."):format(owner.DisplayName, math.ceil((ownerOnlyUntil :: number) - os.clock())), Color3.fromRGB(255, 200, 120))
+			PlayerService.notify(
+				player,
+				("That's %s's bag. Free to grab in %ds."):format(
+					owner.DisplayName,
+					math.ceil((ownerOnlyUntil :: number) - os.clock())
+				),
+				Color3.fromRGB(255, 200, 120)
+			)
 			return
 		end
 		if not PlayerService.tryCarry(player, lootId) then
@@ -168,17 +195,30 @@ local function zoneCount(zone: Zone): number
 	return n
 end
 
+-- A random spot on open ground in town (roads, grass, plaza): never indoors or under a roof.
+local function exposedTownPoint(): Vector3?
+	local params = RaycastParams.new()
+	params.FilterDescendantsInstances = { folder }
+	params.IgnoreWater = true
+	for _ = 1, 25 do
+		local x = rng:NextNumber(townMin.X, townMax.X)
+		local z = rng:NextNumber(townMin.Z + 30, townMax.Z) -- stay off the foot of the ramp
+		local hit = workspace:Raycast(Vector3.new(x, 80, z), Vector3.new(0, -100, 0), params)
+		-- Building floors are at y=1, so anything lower is outdoor ground.
+		if hit and hit.Position.Y < 0.9 and not Shelter.isSheltered(hit.Position + Vector3.new(0, 2, 0)) then
+			return hit.Position
+		end
+	end
+	return nil
+end
+
 -- Legendary loot that only appears mid-storm, deliberately in exposed spots.
 function LootService.spawnStormCores(count: number)
-	local names = {}
-	for name in zones do
-		table.insert(names, name)
-	end
 	for _ = 1, count do
-		local zone = zones[names[rng:NextInteger(1, #names)]]
-		local point = zone.Points[rng:NextInteger(1, #zone.Points)]
-		local offset = Vector3.new(rng:NextNumber(-3, 3), 0, rng:NextNumber(-3, 3))
-		createLoot("StormCore", point - Vector3.new(0, 1.5, 0) + offset, nil, Config.Cycle.Storm + Config.Cycle.Aftermath)
+		local point = exposedTownPoint()
+		if point then
+			createLoot("StormCore", point, nil, Config.Cycle.Storm + Config.Cycle.Aftermath)
+		end
 	end
 end
 
@@ -206,7 +246,9 @@ local function dropBag(player: Player, character: Model)
 	end
 	PlayerService.notify(
 		player,
-		("You dropped your bag! It's yours alone for %ds, then anyone can grab it."):format(Config.BagOwnerOnlySeconds),
+		("You dropped your bag! It's yours alone for %ds, then anyone can grab it."):format(
+			Config.BagOwnerOnlySeconds
+		),
 		Color3.fromRGB(255, 120, 90)
 	)
 end
@@ -215,9 +257,11 @@ function LootService.init(map)
 	folder = Instance.new("Folder")
 	folder.Name = "Loot"
 	folder.Parent = workspace
+	townMin, townMax = map.TownMin, map.TownMax
 
 	for name, info in map.Zones do
-		zones[name] = { Points = info.Points, Label = info.Label, Occupied = {}, Pool = Config.ZonePools[name] }
+		zones[name] =
+			{ Points = info.Points, Label = info.Label, Occupied = {}, Pool = Config.ZonePools[name] }
 	end
 	LootService.refillAll()
 

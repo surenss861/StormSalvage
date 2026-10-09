@@ -56,7 +56,8 @@ local function upgradeValue(session: Session, id: string): any
 end
 
 function PlayerService.getCapacity(session: Session): number
-	return upgradeValue(session, "Backpack") + (session.OwnsBigBag and Config.GamePasses.BigBag.BonusCapacity or 0)
+	return upgradeValue(session, "Backpack")
+		+ (session.OwnsBigBag and Config.GamePasses.BigBag.BonusCapacity or 0)
 end
 
 function PlayerService.boostRemaining(session: Session): number
@@ -212,14 +213,22 @@ local function buyUpgrade(player: Player, upgradeId: unknown)
 		return
 	end
 	if session.Data.Coins < cost then
-		PlayerService.notify(player, ("Need %d more coins."):format(cost - session.Data.Coins), Color3.fromRGB(255, 120, 90))
+		PlayerService.notify(
+			player,
+			("Need %d more coins."):format(cost - session.Data.Coins),
+			Color3.fromRGB(255, 120, 90)
+		)
 		return
 	end
 	session.Data.Coins -= cost
 	session.Data.Upgrades[upgradeId] = level + 1
 	PlayerService.applyCharacterStats(player)
 	PlayerService.pushState(player)
-	PlayerService.notify(player, ("%s upgraded to level %d!"):format(def.DisplayName, level + 1), Color3.fromRGB(140, 200, 255))
+	PlayerService.notify(
+		player,
+		("%s upgraded to level %d!"):format(def.DisplayName, level + 1),
+		Color3.fromRGB(140, 200, 255)
+	)
 end
 
 local function onPlayerAdded(player: Player)
@@ -273,7 +282,11 @@ local function onPlayerAdded(player: Player)
 	end
 	PlayerService.pushState(player)
 	if not canSave then
-		PlayerService.notify(player, "Progress won't save in this session (DataStores unavailable).", Color3.fromRGB(255, 200, 80))
+		PlayerService.notify(
+			player,
+			"Progress won't save in this session (DataStores unavailable).",
+			Color3.fromRGB(255, 200, 80)
+		)
 	end
 end
 

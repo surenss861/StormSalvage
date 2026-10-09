@@ -18,16 +18,36 @@ local ok, err = pcall(function()
 		for file in listing:gmatch('href="([%w_]+[%.%w]*%.luau)"') do
 			local name, kind = file:match("^([%w_]+)%.(%a+)%.luau$")
 			local class = "ModuleScript"
-			if kind == "server" then class = "Script" elseif kind == "client" then class = "LocalScript" else name = file:match("^([%w_]+)%.luau$") end
+			if kind == "server" then
+				class = "Script"
+			elseif kind == "client" then
+				class = "LocalScript"
+			else
+				name = file:match("^([%w_]+)%.luau$")
+			end
 			local src = Http:GetAsync(BASE .. dir .. "/" .. file)
 			local inst = folder:FindFirstChild(name)
-			if inst and inst.ClassName ~= class then inst:Destroy() inst = nil end
-			if not inst then inst = Instance.new(class) inst.Name = name inst.Parent = folder table.insert(log, "created " .. name) end
-			if inst.Source ~= src then inst.Source = src table.insert(log, "updated " .. dir .. "/" .. name) end
+			if inst and inst.ClassName ~= class then
+				inst:Destroy()
+				inst = nil
+			end
+			if not inst then
+				inst = Instance.new(class)
+				inst.Name = name
+				inst.Parent = folder
+				table.insert(log, "created " .. name)
+			end
+			if inst.Source ~= src then
+				inst.Source = src
+				table.insert(log, "updated " .. dir .. "/" .. name)
+			end
 			seen[name] = true
 		end
 		for _, c in folder:GetChildren() do
-			if c:IsA("LuaSourceContainer") and not seen[c.Name] then table.insert(log, "removed " .. c.Name) c:Destroy() end
+			if c:IsA("LuaSourceContainer") and not seen[c.Name] then
+				table.insert(log, "removed " .. c.Name)
+				c:Destroy()
+			end
 		end
 	end
 end)

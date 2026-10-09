@@ -1,11 +1,13 @@
 -- Storm Salvage client: HUD, upgrade shop, tutorial hints, storm visuals.
 
 local Debris = game:GetService("Debris")
+local Lighting = game:GetService("Lighting")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
@@ -44,7 +46,11 @@ local function corner(radius: number?)
 end
 
 local function stroke(color: Color3?, thickness: number?)
-	return new("UIStroke", { Color = color or Color3.new(0, 0, 0), Thickness = thickness or 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border })
+	return new("UIStroke", {
+		Color = color or Color3.new(0, 0, 0),
+		Thickness = thickness or 2,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	})
 end
 
 local function label(props: { [string]: any }): TextLabel
@@ -63,52 +69,215 @@ local function button(props: { [string]: any }): TextButton
 	props.TextScaled = true
 	props.AutoButtonColor = true
 	local b = new("TextButton", props, { corner(8), stroke(Color3.new(0, 0, 0), 2) })
-	new("UIPadding", { Parent = b, PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4), PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6) })
+	new("UIPadding", {
+		Parent = b,
+		PaddingTop = UDim.new(0, 4),
+		PaddingBottom = UDim.new(0, 4),
+		PaddingLeft = UDim.new(0, 6),
+		PaddingRight = UDim.new(0, 6),
+	})
 	return b
+end
+
+---------------------------------------------------------------------------- Sound
+
+local sounds: { [string]: Sound } = {}
+for name, info in Config.Sounds do
+	if info.Id ~= "" then
+		sounds[name] =
+			new("Sound", { Name = name, SoundId = info.Id, Volume = info.Volume, Parent = SoundService })
+	end
+end
+for _, name in { "Rain", "Flood", "Wind" } do
+	if sounds[name] then
+		sounds[name].Looped = true
+	end
+end
+
+local function playSound(name: string, volumeScale: number?)
+	local sound = sounds[name]
+	if sound then
+		sound.Volume = Config.Sounds[name].Volume * (volumeScale or 1)
+		sound.TimePosition = 0
+		sound:Play()
+	end
+end
+
+-- Fades a looping ambience in or out without restarting it every frame.
+local function setAmbience(name: string, on: boolean)
+	local sound = sounds[name]
+	if not sound then
+		return
+	end
+	local target = on and Config.Sounds[name].Volume or 0
+	if sound:GetAttribute("Target") == target then
+		return
+	end
+	sound:SetAttribute("Target", target)
+	if on and not sound.IsPlaying then
+		sound.Volume = 0
+		sound:Play()
+	end
+	local tween = TweenService:Create(sound, TweenInfo.new(2.5), { Volume = target })
+	tween:Play()
+	if not on then
+		tween.Completed:Once(function()
+			if sound:GetAttribute("Target") == 0 then
+				sound:Stop()
+			end
+		end)
+	end
 end
 
 ---------------------------------------------------------------------------- HUD
 
-local gui = new("ScreenGui", { Name = "HUD", ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, Parent = playerGui })
+local gui = new(
+	"ScreenGui",
+	{ Name = "HUD", ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, Parent = playerGui }
+)
+
+-- Everything hangs off one root frame scaled to the screen height, so the HUD shrinks on
+-- phones (~370px tall in landscape) instead of covering a third of the view. The root is
+-- sized 1/scale so that after scaling it still fills the screen.
+local hudRoot =
+	new("Frame", { Name = "Root", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Parent = gui })
+local rootScale = new("UIScale", { Parent = hudRoot })
+local function fitHud()
+	local camera = workspace.CurrentCamera
+	local scale = camera and math.clamp(camera.ViewportSize.Y / 560, 0.62, 1) or 1
+	rootScale.Scale = scale
+	hudRoot.Size = UDim2.fromScale(1 / scale, 1 / scale)
+end
+fitHud()
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitHud)
 
 -- Storm banner (top centre)
 local banner = new("Frame", {
 	Name = "Banner",
-	Parent = gui,
+	Parent = hudRoot,
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 8),
 	Size = UDim2.new(0.42, 0, 0, 62),
 	BackgroundColor3 = PANEL,
 	BackgroundTransparency = 0.2,
-}, { corner(12), stroke(), new("UISizeConstraint", { MaxSize = Vector2.new(440, 62), MinSize = Vector2.new(220, 50) }) })
-local bannerTitle = label({ Parent = banner, Size = UDim2.new(1, -16, 0.55, 0), Position = UDim2.new(0, 8, 0, 4), Text = "CALM" })
-local bannerSub = label({ Parent = banner, Size = UDim2.new(1, -16, 0.35, 0), Position = UDim2.new(0, 8, 0.6, -2), Text = "", TextColor3 = Color3.fromRGB(200, 200, 210) })
+}, {
+	corner(12),
+	stroke(),
+	new("UISizeConstraint", { MaxSize = Vector2.new(440, 62), MinSize = Vector2.new(220, 50) }),
+})
+local bannerTitle = label({
+	Parent = banner,
+	Size = UDim2.new(1, -16, 0.55, 0),
+	Position = UDim2.new(0, 8, 0, 4),
+	Text = "CALM",
+})
+local bannerSub = label({
+	Parent = banner,
+	Size = UDim2.new(1, -16, 0.35, 0),
+	Position = UDim2.new(0, 8, 0.6, -2),
+	Text = "",
+	TextColor3 = Color3.fromRGB(200, 200, 210),
+})
 
 -- Stats strip directly under the banner (top-left belongs to Roblox chat, top-right to the player list)
 local stats = new("Frame", {
 	Name = "Stats",
-	Parent = gui,
+	Parent = hudRoot,
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 76),
 	Size = UDim2.new(0.42, 0, 0, 58),
 	BackgroundColor3 = PANEL,
 	BackgroundTransparency = 0.25,
-}, { corner(12), stroke(), new("UISizeConstraint", { MaxSize = Vector2.new(440, 58), MinSize = Vector2.new(260, 58) }) })
-local coinsLabel = label({ Name = "Coins", Parent = stats, Position = UDim2.new(0, 12, 0, 6), Size = UDim2.new(0.4, -12, 0, 30), Text = "0", TextColor3 = Color3.fromRGB(255, 215, 80), TextXAlignment = Enum.TextXAlignment.Left })
-local bagLabel = label({ Name = "Bag", Parent = stats, Position = UDim2.new(0.4, 6, 0, 6), Size = UDim2.new(0.6, -18, 0, 22), Text = "Bag 0/3", TextXAlignment = Enum.TextXAlignment.Left })
-local bagBarBack = new("Frame", { Name = "BagBar", Parent = stats, Position = UDim2.new(0.4, 6, 0, 32), Size = UDim2.new(0.6, -18, 0, 10), BackgroundColor3 = Color3.fromRGB(50, 55, 65) }, { corner(5) })
-local bagBar = new("Frame", { Name = "Fill", Parent = bagBarBack, Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.fromRGB(90, 220, 110) }, { corner(5) })
-local bagValue = label({ Name = "BagValue", Parent = stats, Position = UDim2.new(0, 12, 0, 36), Size = UDim2.new(0.4, -12, 0, 16), Text = "", TextColor3 = Color3.fromRGB(170, 230, 180), TextXAlignment = Enum.TextXAlignment.Left })
+}, {
+	corner(12),
+	stroke(),
+	new("UISizeConstraint", { MaxSize = Vector2.new(440, 58), MinSize = Vector2.new(260, 58) }),
+})
+local coinsLabel: TextLabel = label({
+	Name = "Coins",
+	Parent = stats,
+	Position = UDim2.new(0, 12, 0, 6),
+	Size = UDim2.new(0.4, -12, 0, 30),
+	Text = "0",
+	TextColor3 = Color3.fromRGB(255, 215, 80),
+	TextXAlignment = Enum.TextXAlignment.Left,
+})
+local bagLabel = label({
+	Name = "Bag",
+	Parent = stats,
+	Position = UDim2.new(0.4, 6, 0, 6),
+	Size = UDim2.new(0.6, -18, 0, 22),
+	Text = "Bag 0/3",
+	TextXAlignment = Enum.TextXAlignment.Left,
+})
+local bagBarBack = new("Frame", {
+	Name = "BagBar",
+	Parent = stats,
+	Position = UDim2.new(0.4, 6, 0, 32),
+	Size = UDim2.new(0.6, -18, 0, 10),
+	BackgroundColor3 = Color3.fromRGB(50, 55, 65),
+}, { corner(5) })
+local bagBar = new("Frame", {
+	Name = "Fill",
+	Parent = bagBarBack,
+	Size = UDim2.fromScale(0, 1),
+	BackgroundColor3 = Color3.fromRGB(90, 220, 110),
+}, { corner(5) })
+local bagValue = label({
+	Name = "BagValue",
+	Parent = stats,
+	Position = UDim2.new(0, 12, 0, 36),
+	Size = UDim2.new(0.4, -12, 0, 16),
+	Text = "",
+	TextColor3 = Color3.fromRGB(170, 230, 180),
+	TextXAlignment = Enum.TextXAlignment.Left,
+})
 
-local boostLabel = label({ Name = "Boost", Parent = gui, AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 138), Size = UDim2.new(0, 220, 0, 24), Text = "", TextColor3 = Color3.fromRGB(255, 220, 90), Visible = false })
+local coinsScale = new("UIScale", { Parent = coinsLabel })
+local function popCoins(amount: number)
+	coinsScale.Scale = 1.25
+	TweenService
+		:Create(
+			coinsScale,
+			TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+			{ Scale = 1 }
+		)
+		:Play()
+	local gain = label({
+		Parent = stats,
+		Position = UDim2.new(0, 12, 0, 40),
+		Size = UDim2.new(0.4, -12, 0, 24),
+		Text = ("+%d"):format(amount),
+		TextColor3 = Color3.fromRGB(255, 225, 90),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 5,
+	})
+	TweenService:Create(
+		gain,
+		TweenInfo.new(0.9, Enum.EasingStyle.Quad),
+		{ Position = UDim2.new(0, 12, 0, -10), TextTransparency = 1 }
+	):Play()
+	Debris:AddItem(gain, 1)
+end
+
+local boostLabel = label({
+	Name = "Boost",
+	Parent = hudRoot,
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 138),
+	Size = UDim2.new(0, 220, 0, 24),
+	Text = "",
+	TextColor3 = Color3.fromRGB(255, 220, 90),
+	Visible = false,
+})
 
 -- Shop button (right)
 local shopButton = button({
 	Name = "ShopButton",
-	Parent = gui,
+	Parent = hudRoot,
 	AnchorPoint = Vector2.new(1, 0.5),
 	Position = UDim2.new(1, -10, 0.45, 0),
-	Size = UDim2.new(0, 120, 0, 48),
+	Size = UDim2.new(0, 150, 0, 64), -- ~44px tall after the HUD scale on small phones
 	BackgroundColor3 = Color3.fromRGB(60, 120, 200),
 	Text = "UPGRADES",
 })
@@ -116,20 +285,31 @@ local shopButton = button({
 -- Toasts (bottom centre)
 local toastHolder = new("Frame", {
 	Name = "Toasts",
-	Parent = gui,
+	Parent = hudRoot,
 	AnchorPoint = Vector2.new(0.5, 1),
 	Position = UDim2.new(0.5, 0, 0.78, 0),
 	Size = UDim2.new(0.6, 0, 0, 150),
 	BackgroundTransparency = 1,
 	ZIndex = 10, -- above the shop so "Need X more coins" is readable while it's open
 }, {
-	new("UIListLayout", { VerticalAlignment = Enum.VerticalAlignment.Bottom, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }),
+	new("UIListLayout", {
+		VerticalAlignment = Enum.VerticalAlignment.Bottom,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Padding = UDim.new(0, 4),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}),
 })
 local toastCount = 0
 
 local function toast(text: string, color: Color3?)
 	toastCount += 1
-	local l = label({ Parent = toastHolder, Size = UDim2.new(1, 0, 0, 30), Text = text, TextColor3 = color or WHITE, LayoutOrder = toastCount })
+	local l = label({
+		Parent = toastHolder,
+		Size = UDim2.new(1, 0, 0, 30),
+		Text = text,
+		TextColor3 = color or WHITE,
+		LayoutOrder = toastCount,
+	})
 	task.delay(3, function()
 		TweenService:Create(l, TweenInfo.new(0.5), { TextTransparency = 1 }):Play()
 		local s = l:FindFirstChildOfClass("UIStroke")
@@ -152,7 +332,7 @@ end
 -- Tutorial hint
 local hint = label({
 	Name = "Hint",
-	Parent = gui,
+	Parent = hudRoot,
 	AnchorPoint = Vector2.new(0.5, 1),
 	Position = UDim2.new(0.5, 0, 1, -96),
 	Size = UDim2.new(0.7, 0, 0, 34),
@@ -181,15 +361,33 @@ end
 
 local shop = new("Frame", {
 	Name = "Shop",
-	Parent = gui,
+	Parent = hudRoot,
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.5),
 	Size = UDim2.fromScale(0.9, 0.75),
 	BackgroundColor3 = PANEL,
 	Visible = false,
-}, { corner(16), stroke(Color3.new(0, 0, 0), 3), new("UISizeConstraint", { MaxSize = Vector2.new(520, 380) }) })
-label({ Parent = shop, Position = UDim2.new(0, 16, 0, 10), Size = UDim2.new(1, -80, 0, 40), Text = "GEAR SHOP", TextXAlignment = Enum.TextXAlignment.Left })
-local closeButton = button({ Name = "Close", Parent = shop, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 10), Size = UDim2.new(0, 40, 0, 40), BackgroundColor3 = Color3.fromRGB(200, 60, 60), Text = "X" })
+}, {
+	corner(16),
+	stroke(Color3.new(0, 0, 0), 3),
+	new("UISizeConstraint", { MaxSize = Vector2.new(520, 380) }),
+})
+label({
+	Parent = shop,
+	Position = UDim2.new(0, 16, 0, 10),
+	Size = UDim2.new(1, -80, 0, 40),
+	Text = "GEAR SHOP",
+	TextXAlignment = Enum.TextXAlignment.Left,
+})
+local closeButton = button({
+	Name = "Close",
+	Parent = shop,
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.new(1, -10, 0, 10),
+	Size = UDim2.new(0, 40, 0, 40),
+	BackgroundColor3 = Color3.fromRGB(200, 60, 60),
+	Text = "X",
+})
 local list = new("ScrollingFrame", {
 	Name = "List",
 	Parent = shop,
@@ -216,12 +414,55 @@ end
 
 local upgradeRows: { [string]: { Info: TextLabel, Buy: TextButton } } = {}
 
-local function shopRow(name: string, order: number, title: string, desc: string, buttonColor: Color3): (TextLabel, TextButton)
-	local row = new("Frame", { Name = name, Parent = list, LayoutOrder = order, Size = UDim2.new(1, -8, 0, 84), BackgroundColor3 = Color3.fromRGB(40, 45, 58) }, { corner(10) })
-	label({ Parent = row, Position = UDim2.new(0, 12, 0, 6), Size = UDim2.new(0.62, -12, 0, 28), Text = title, TextXAlignment = Enum.TextXAlignment.Left })
-	label({ Parent = row, Position = UDim2.new(0, 12, 0, 36), Size = UDim2.new(0.62, -12, 0, 18), Text = desc, TextColor3 = Color3.fromRGB(190, 190, 200), TextXAlignment = Enum.TextXAlignment.Left, Font = Enum.Font.GothamMedium })
-	local sub = label({ Parent = row, Name = "Sub", Position = UDim2.new(0, 12, 0, 56), Size = UDim2.new(0.62, -12, 0, 18), Text = "", TextColor3 = Color3.fromRGB(140, 220, 160), TextXAlignment = Enum.TextXAlignment.Left, Font = Enum.Font.GothamMedium })
-	local buy = button({ Name = "Buy", Parent = row, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), Size = UDim2.new(0.34, 0, 0, 52), BackgroundColor3 = buttonColor, Text = "" })
+local function shopRow(
+	name: string,
+	order: number,
+	title: string,
+	desc: string,
+	buttonColor: Color3
+): (TextLabel, TextButton)
+	local row = new("Frame", {
+		Name = name,
+		Parent = list,
+		LayoutOrder = order,
+		Size = UDim2.new(1, -8, 0, 84),
+		BackgroundColor3 = Color3.fromRGB(40, 45, 58),
+	}, { corner(10) })
+	label({
+		Parent = row,
+		Position = UDim2.new(0, 12, 0, 6),
+		Size = UDim2.new(0.62, -12, 0, 28),
+		Text = title,
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
+	label({
+		Parent = row,
+		Position = UDim2.new(0, 12, 0, 36),
+		Size = UDim2.new(0.62, -12, 0, 18),
+		Text = desc,
+		TextColor3 = Color3.fromRGB(190, 190, 200),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Font = Enum.Font.GothamMedium,
+	})
+	local sub = label({
+		Parent = row,
+		Name = "Sub",
+		Position = UDim2.new(0, 12, 0, 56),
+		Size = UDim2.new(0.62, -12, 0, 18),
+		Text = "",
+		TextColor3 = Color3.fromRGB(140, 220, 160),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Font = Enum.Font.GothamMedium,
+	})
+	local buy = button({
+		Name = "Buy",
+		Parent = row,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -10, 0.5, 0),
+		Size = UDim2.new(0.34, 0, 0, 52),
+		BackgroundColor3 = buttonColor,
+		Text = "",
+	})
 	return sub, buy
 end
 
@@ -239,7 +480,8 @@ local order = 100
 for _, pass in Config.GamePasses do
 	if pass.Id ~= 0 then
 		order += 1
-		local _, buy = shopRow(pass.DisplayName, order, pass.DisplayName, pass.Description, Color3.fromRGB(40, 170, 90))
+		local _, buy =
+			shopRow(pass.DisplayName, order, pass.DisplayName, pass.Description, Color3.fromRGB(40, 170, 90))
 		buy.Text = "R$ Pass"
 		buy.Activated:Connect(function()
 			MarketplaceService:PromptGamePassPurchase(player, pass.Id)
@@ -249,7 +491,13 @@ end
 for _, product in Config.DevProducts do
 	if product.Id ~= 0 then
 		order += 1
-		local _, buy = shopRow(product.DisplayName, order, product.DisplayName, "One-time purchase", Color3.fromRGB(40, 170, 90))
+		local _, buy = shopRow(
+			product.DisplayName,
+			order,
+			product.DisplayName,
+			"One-time purchase",
+			Color3.fromRGB(40, 170, 90)
+		)
 		buy.Text = "R$ Buy"
 		buy.Activated:Connect(function()
 			MarketplaceService:PromptProductPurchase(player, product.Id)
@@ -266,9 +514,14 @@ local function refreshShop()
 		local level = playerState.Upgrades[id] or 0
 		local cost = def.Costs[level + 1]
 		if cost then
-			row.Info.Text = ("Lv %d: %s  ->  %s"):format(level, formatValue(id, def.Values[level + 1]), formatValue(id, def.Values[level + 2]))
+			row.Info.Text = ("Lv %d: %s  ->  %s"):format(
+				level,
+				formatValue(id, def.Values[level + 1]),
+				formatValue(id, def.Values[level + 2])
+			)
 			row.Buy.Text = ("%d coins"):format(cost)
-			row.Buy.BackgroundColor3 = playerState.Coins >= cost and Color3.fromRGB(60, 170, 80) or Color3.fromRGB(90, 90, 100)
+			row.Buy.BackgroundColor3 = playerState.Coins >= cost and Color3.fromRGB(60, 170, 80)
+				or Color3.fromRGB(90, 90, 100)
 		else
 			row.Info.Text = ("Lv %d: %s  (MAX)"):format(level, formatValue(id, def.Values[level + 1]))
 			row.Buy.Text = "MAXED"
@@ -317,6 +570,8 @@ local function render()
 end
 
 local lastCarried = 0
+local lastCoins: number? = nil
+local lastLevels = 0
 Remotes.get("PlayerState").OnClientEvent:Connect(function(s)
 	playerState = s
 	boostEndsAt = os.clock() + (s.BoostRemaining or 0)
@@ -325,9 +580,30 @@ Remotes.get("PlayerState").OnClientEvent:Connect(function(s)
 		local def = Config.Loot[id]
 		if def then
 			toast(("+ %s (%d)"):format(def.Name, def.Value), Config.RarityColors[def.Rarity])
+			-- Rarer finds sound brighter.
+			local rank = ({ Common = 0, Uncommon = 1, Rare = 2, Epic = 3, Legendary = 4 })[def.Rarity] or 0
+			playSound("Pickup")
+			if rank >= 2 then
+				playSound("Sell", 0.5 + rank * 0.1)
+			end
 		end
 	end
+	local levels = 0
+	for _, level in s.Upgrades do
+		levels += level
+	end
+	if lastCoins and s.Coins > lastCoins then
+		popCoins(s.Coins - lastCoins)
+		if #s.Carried < lastCarried then
+			playSound("Sell")
+		end
+	end
+	if lastCoins and levels > lastLevels then
+		playSound("Upgrade")
+	end
 	lastCarried = #s.Carried
+	lastCoins = s.Coins
+	lastLevels = levels
 	render()
 end)
 
@@ -341,36 +617,73 @@ Remotes.get("StormState").OnClientEvent:Connect(function(s)
 	if s.Phase == "Warning" and previous ~= "Warning" then
 		local info = Config.Storms[s.Storm]
 		toast(("%s INCOMING! %s"):format(info.DisplayName, info.Hint), info.Color)
+		playSound("Siren")
+	elseif s.Phase ~= "Warning" and sounds.Siren and sounds.Siren.IsPlaying then
+		TweenService:Create(sounds.Siren, TweenInfo.new(2), { Volume = 0 }):Play()
 	end
+	local storming = s.Phase == "Storm"
+	setAmbience("Rain", storming and (s.Storm == "Flood" or s.Storm == "Lightning"))
+	setAmbience("Flood", storming and s.Storm == "Flood")
+	setAmbience("Wind", storming and s.Storm == "Wind")
 end)
 
 ---------------------------------------------------------------------------- Lightning warnings
 
 local effects = new("Folder", { Name = "ClientEffects", Parent = workspace })
+-- Client-only grade for lightning flashes, separate from the server's storm grade.
+local flash = new("ColorCorrectionEffect", { Name = "LightningFlash", Parent = Lighting })
 
-Remotes.get("LightningWarning").OnClientEvent:Connect(function(position: Vector3, radius: number, delay: number)
-	local disc = new("Part", {
-		Parent = effects,
-		Anchored = true,
-		CanCollide = false,
-		CanQuery = false,
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.2, 1, 1),
-		CFrame = CFrame.new(position + Vector3.new(0, 0.35, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		Material = Enum.Material.Neon,
-		Color = Color3.fromRGB(255, 230, 80),
-		Transparency = 0.35,
-	})
-	TweenService:Create(disc, TweenInfo.new(delay, Enum.EasingStyle.Linear), {
-		Size = Vector3.new(0.2, radius * 2, radius * 2),
-		Color = Color3.fromRGB(255, 60, 40),
-	}):Play()
-	Debris:AddItem(disc, delay + 0.1)
-end)
+local function lightningFlash(position: Vector3)
+	local camera = workspace.CurrentCamera
+	if not camera or (camera.CFrame.Position - position).Magnitude > 220 then
+		return
+	end
+	local distance = (camera.CFrame.Position - position).Magnitude
+	local closeness = 1 - distance / 220
+	flash.Brightness = 0.35 * closeness
+	TweenService
+		:Create(
+			flash,
+			TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ Brightness = 0 }
+		)
+		:Play()
+	-- Thunder arrives a beat after the flash, quieter with distance.
+	task.delay(distance / 400, playSound, "Thunder", 0.4 + closeness * 0.6)
+end
+
+Remotes.get("LightningWarning").OnClientEvent
+	:Connect(function(position: Vector3, radius: number, delay: number)
+		local disc = new("Part", {
+			Parent = effects,
+			Anchored = true,
+			CanCollide = false,
+			CanQuery = false,
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.2, 1, 1),
+			CFrame = CFrame.new(position + Vector3.new(0, 0.35, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			Material = Enum.Material.Neon,
+			Color = Color3.fromRGB(255, 230, 80),
+			Transparency = 0.35,
+		})
+		TweenService:Create(disc, TweenInfo.new(delay, Enum.EasingStyle.Linear), {
+			Size = Vector3.new(0.2, radius * 2, radius * 2),
+			Color = Color3.fromRGB(255, 60, 40),
+		}):Play()
+		Debris:AddItem(disc, delay + 0.1)
+		task.delay(delay, lightningFlash, position)
+	end)
 
 ---------------------------------------------------------------------------- Weather: rain + wind push
 
-local rainAnchor = new("Part", { Parent = effects, Anchored = true, CanCollide = false, CanQuery = false, Transparency = 1, Size = Vector3.new(90, 1, 90) })
+local rainAnchor = new("Part", {
+	Parent = effects,
+	Anchored = true,
+	CanCollide = false,
+	CanQuery = false,
+	Transparency = 1,
+	Size = Vector3.new(90, 1, 90),
+})
 local rain = new("ParticleEmitter", {
 	Parent = rainAnchor,
 	Enabled = false,
@@ -385,6 +698,69 @@ local rain = new("ParticleEmitter", {
 	Orientation = Enum.ParticleOrientation.VelocityParallel,
 	LightEmission = 0.3,
 })
+
+-- Wind streaks blow past the camera from upwind during windstorms.
+local windAnchor = new("Part", {
+	Parent = effects,
+	Anchored = true,
+	CanCollide = false,
+	CanQuery = false,
+	Transparency = 1,
+	Size = Vector3.new(120, 40, 1),
+})
+local windStreaks = new("ParticleEmitter", {
+	Parent = windAnchor,
+	Enabled = false,
+	Rate = 160,
+	Lifetime = NumberRange.new(1, 1.4),
+	Speed = NumberRange.new(90, 120),
+	EmissionDirection = Enum.NormalId.Front,
+	Size = NumberSequence.new(0.14),
+	Squash = NumberSequence.new(3),
+	Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(0.2, 0.5),
+		NumberSequenceKeypoint.new(0.8, 0.5),
+		NumberSequenceKeypoint.new(1, 1),
+	}),
+	Color = ColorSequence.new(Color3.fromRGB(225, 220, 205)),
+	Orientation = Enum.ParticleOrientation.VelocityParallel,
+	LightEmission = 0.1,
+})
+
+---------------------------------------------------------------------------- Loot bob
+
+-- Loot gently floats and spins so it reads as "pick me up". Purely local: the server's
+-- anchored parts never move, and only items near the camera are animated.
+local lootBase: { [BasePart]: CFrame } = {}
+local function trackLoot(item: Instance)
+	if item:IsA("BasePart") then
+		lootBase[item] = item.CFrame
+	end
+end
+task.spawn(function()
+	local lootFolder = workspace:WaitForChild("Loot")
+	lootFolder.ChildAdded:Connect(trackLoot)
+	lootFolder.ChildRemoved:Connect(function(item)
+		lootBase[item :: BasePart] = nil
+	end)
+	for _, item in lootFolder:GetChildren() do
+		trackLoot(item)
+	end
+end)
+
+local function animateLoot(cameraPosition: Vector3)
+	local t = os.clock()
+	for item, base in lootBase do
+		local pos = base.Position
+		if (pos - cameraPosition).Magnitude < 120 then
+			local bob = 0.35 + math.sin(t * 2 + pos.X * 0.3) * 0.25
+			item.CFrame = CFrame.new(pos + Vector3.new(0, bob, 0))
+				* CFrame.Angles(0, t * 1.2 + pos.Z, 0)
+				* base.Rotation
+		end
+	end
+end
 
 local windForce: VectorForce? = nil
 local function getWindForce(): VectorForce?
@@ -448,8 +824,16 @@ RunService.RenderStepped:Connect(function()
 	local camera = workspace.CurrentCamera
 	local stormActive = phase == "Storm"
 	rain.Enabled = stormActive and (stormState.Storm == "Flood" or stormState.Storm == "Lightning")
+	windStreaks.Enabled = stormActive and stormState.Storm == "Wind"
 	if camera then
-		rainAnchor.CFrame = CFrame.new(camera.CFrame.Position + Vector3.new(0, 40, 0))
+		local camPos = camera.CFrame.Position
+		rainAnchor.CFrame = CFrame.new(camPos + Vector3.new(0, 40, 0))
+		if windStreaks.Enabled then
+			local dir = stormState.WindDir
+			windAnchor.CFrame =
+				CFrame.lookAt(camPos - dir * 60 + Vector3.new(0, 4, 0), camPos + Vector3.new(0, 4, 0))
+		end
+		animateLoot(camPos)
 	end
 
 	local force = getWindForce()

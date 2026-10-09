@@ -62,22 +62,38 @@ local function exposedPlayers(): { { Player: Player, Root: BasePart } }
 end
 
 local function randomTownPoint(): Vector3
-	return Vector3.new(rng:NextNumber(map.TownMin.X, map.TownMax.X), 0, rng:NextNumber(map.TownMin.Z + 30, map.TownMax.Z))
+	return Vector3.new(
+		rng:NextNumber(map.TownMin.X, map.TownMax.X),
+		0,
+		rng:NextNumber(map.TownMin.Z + 30, map.TownMax.Z)
+	)
 end
 
 local function tweenSky(stormy: boolean, color: Color3?)
 	local info = TweenInfo.new(6, Enum.EasingStyle.Sine)
+	-- Calm values match MapBuilder's environment setup.
 	TweenService:Create(Lighting, info, {
-		Brightness = stormy and 0.8 or 2,
-		ClockTime = stormy and 17.6 or 14.5,
-		OutdoorAmbient = stormy and Color3.fromRGB(90, 95, 110) or Color3.fromRGB(128, 128, 128),
+		Brightness = stormy and 1.1 or 2.4,
+		ClockTime = stormy and 16.8 or 15.5, -- low sun, not dusk: past ~17.3 the moon shows through
+		OutdoorAmbient = stormy and Color3.fromRGB(95, 100, 115) or Color3.fromRGB(135, 130, 125),
+		ExposureCompensation = stormy and -0.3 or 0,
 	}):Play()
+	local grade = Lighting:FindFirstChild("Grade")
+	if grade then
+		TweenService:Create(grade, info, {
+			Saturation = stormy and -0.3 or 0.12,
+			Contrast = stormy and 0.15 or 0.06,
+			TintColor = stormy and Color3.fromRGB(205, 215, 235) or Color3.fromRGB(255, 248, 238),
+		}):Play()
+	end
 	TweenService:Create(atmosphere, info, {
 		Density = stormy and 0.5 or 0.28,
 		Haze = stormy and 2.5 or 0.5,
-		Color = stormy and (color or Color3.fromRGB(150, 160, 175)):Lerp(Color3.fromRGB(110, 110, 120), 0.6) or Color3.fromRGB(199, 199, 199),
+		Color = stormy and (color or Color3.fromRGB(150, 160, 175)):Lerp(Color3.fromRGB(110, 110, 120), 0.6)
+			or Color3.fromRGB(199, 199, 199),
 	}):Play()
-	TweenService:Create(clouds, info, { Cover = stormy and 0.95 or 0.5, Density = stormy and 0.9 or 0.4 }):Play()
+	TweenService:Create(clouds, info, { Cover = stormy and 0.95 or 0.5, Density = stormy and 0.9 or 0.4 })
+		:Play()
 end
 
 ---------------------------------------------------------------------------- Wind
@@ -95,7 +111,8 @@ local function launchDebris(origin: Vector3, velocity: Vector3)
 	p.Parent = effectsFolder
 	p:SetNetworkOwner(nil)
 	p.AssemblyLinearVelocity = velocity
-	p.AssemblyAngularVelocity = Vector3.new(rng:NextNumber(-10, 10), rng:NextNumber(-10, 10), rng:NextNumber(-10, 10))
+	p.AssemblyAngularVelocity =
+		Vector3.new(rng:NextNumber(-10, 10), rng:NextNumber(-10, 10), rng:NextNumber(-10, 10))
 	p.Touched:Connect(function(hit)
 		if p.AssemblyLinearVelocity.Magnitude < 25 then
 			return
@@ -121,7 +138,10 @@ local function runWind(token: number)
 			origin = target - dir * 70 + Vector3.new(0, rng:NextNumber(4, 9), 0)
 		else
 			target = randomTownPoint()
-			origin = target - dir * 120 + perp * rng:NextNumber(-60, 60) + Vector3.new(0, rng:NextNumber(5, 14), 0)
+			origin = target
+				- dir * 120
+				+ perp * rng:NextNumber(-60, 60)
+				+ Vector3.new(0, rng:NextNumber(5, 14), 0)
 		end
 		local speed = rng:NextNumber(70, 95)
 		local flatDir = Vector3.new(target.X - origin.X, 0, target.Z - origin.Z).Unit
@@ -143,7 +163,11 @@ local function setWaterLayer(bottom: number, material: Enum.Material)
 end
 
 local function clearFlood()
-	workspace.Terrain:FillBlock(CFrame.new(0, 10, 0), Vector3.new(FLOOD_HALF * 2 + 8, 24, FLOOD_HALF * 2 + 8), Enum.Material.Air)
+	workspace.Terrain:FillBlock(
+		CFrame.new(0, 10, 0),
+		Vector3.new(FLOOD_HALF * 2 + 8, 24, FLOOD_HALF * 2 + 8),
+		Enum.Material.Air
+	)
 	floodLevel = 0
 end
 
@@ -292,7 +316,11 @@ local function rewardSurvivors(stormSeconds: number)
 		if session and root and not inSafeZone(root.Position) and (townSeconds[player] or 0) >= needed then
 			session.Data.Stats.StormsSurvived += 1
 			PlayerService.addCoins(player, T.SurvivorBonus)
-			PlayerService.notify(player, ("Survived the storm in town! +%d coins"):format(T.SurvivorBonus), Color3.fromRGB(255, 220, 90))
+			PlayerService.notify(
+				player,
+				("Survived the storm in town! +%d coins"):format(T.SurvivorBonus),
+				Color3.fromRGB(255, 220, 90)
+			)
 		end
 	end
 	table.clear(townSeconds)
@@ -358,7 +386,12 @@ function StormService.forceNextStorm(name: string)
 end
 
 function StormService.getState()
-	return { Phase = state.Phase, Storm = state.Storm, FloodLevel = floodLevel, EndsIn = state.EndsAt - workspace:GetServerTimeNow() }
+	return {
+		Phase = state.Phase,
+		Storm = state.Storm,
+		FloodLevel = floodLevel,
+		EndsIn = state.EndsAt - workspace:GetServerTimeNow(),
+	}
 end
 
 function StormService.init(mapInfo)

@@ -17,7 +17,8 @@ local function ownsPass(player: Player, passId: number): boolean
 	if passId == 0 then
 		return false
 	end
-	local ok, owns = pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, passId)
+	local ok, owns =
+		pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, passId)
 	return ok and owns == true
 end
 
@@ -46,7 +47,11 @@ local function registerProducts()
 	if coins.Id ~= 0 then
 		productHandlers[coins.Id] = function(player, session)
 			session.Data.Coins += coins.Coins
-			PlayerService.notify(player, ("+%d coins. Thanks for the support!"):format(coins.Coins), Color3.fromRGB(255, 220, 90))
+			PlayerService.notify(
+				player,
+				("+%d coins. Thanks for the support!"):format(coins.Coins),
+				Color3.fromRGB(255, 220, 90)
+			)
 		end
 	end
 end

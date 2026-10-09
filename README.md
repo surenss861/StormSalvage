@@ -11,7 +11,12 @@ rojo build default.project.json -o StormSalvage.rbxl
 open StormSalvage.rbxl                         # opens in Roblox Studio, then press Play
 ```
 
-To edit live, run `rojo serve` and connect with the Rojo Studio plugin.
+To edit live, run `rojo serve` and connect with the Rojo Studio plugin. Without Rojo, serve the repo with
+`python3 -m http.server 34872 --bind 127.0.0.1` and paste `tools/studio-sync-bootstrap.luau` into the Studio
+command bar (Edit mode); it copies `src/` into the place and turns HTTP back off.
+
+In Studio playtests, `ServerStorage.StormSalvageDebug` (a BindableFunction, never created in live servers) can
+`skip` the current phase, force a `storm` type, or grant `coins`. See `src/server/DebugService.luau`.
 
 Progress only saves in a **published** place with *Game Settings → Security → Enable Studio Access to API
 Services* turned on. Otherwise the game runs with a temporary profile and tells the player.
@@ -25,7 +30,7 @@ Services* turned on. Otherwise the game runs with a temporary profile and tells 
    escape floods.
 4. Legendary **Storm Cores** spawn mid-storm. Players still in town when the storm ends get a bonus.
 5. Sell at **SELL HERE**, then buy Backpack, Boots, and Armor upgrades at the Gear Shop.
-6. If you die, your bag drops where you fell, and anyone can grab it.
+6. If you die, your bag drops where you fell. For 20 seconds only you can pick it up, then anyone can.
 
 ## Layout
 
@@ -38,13 +43,17 @@ Services* turned on. Otherwise the game runs with a temporary profile and tells 
 | `src/server/PlayerService.luau` | Session state, selling, upgrades, damage/armor, autosave |
 | `src/server/DataService.luau` | DataStore persistence with a session lock |
 | `src/server/MonetizationService.luau` | Game passes and idempotent developer-product receipts |
-| `src/client/Main.client.luau` | HUD, shop, tutorial hint, lightning warnings, rain, wind push |
+| `src/server/DebugService.luau` | Studio-only QA hooks (skip phase, force storm, grant coins) |
+| `src/client/Main.client.luau` | HUD, shop, tutorial hint, sounds, lightning warnings, rain/wind effects, wind push |
 
 ## Before launch
 
-- [ ] Create the game passes and dev products on the Creator Dashboard and put their IDs in `Config.luau`.
-      (Items with ID `0` are hidden.)
-- [ ] Add sound effects (siren, thunder, wind, pickup, and sell). None are included yet.
-- [ ] Tune the wind push strength (`* 55` in the client) and the storm damage numbers through playtesting.
-- [ ] Test with two clients (Studio → Test → Clients and Servers) and on the mobile emulator.
-- [ ] Test a purchase in a published test place and confirm it isn't granted twice.
+See [`docs/QA-V1.md`](docs/QA-V1.md) for what was tested in Studio, what wasn't, and the prioritized launch
+blockers. In short:
+
+- [ ] Publish a separate private test experience and verify DataStore saving, session locking, and rejoining.
+- [ ] Test with two clients (Studio → Test → Clients and Servers): loot contention and the protected dropped bag.
+- [ ] Test on a low-end phone (frame rate, touch prompts).
+- [ ] Create the game passes and dev products on the Creator Dashboard and put their IDs in `Config.luau`
+      (items with ID `0` are hidden), then confirm a test purchase isn't granted twice.
+- [ ] Tune `Config.StormTuning` and the upgrade costs from real playtest data.
