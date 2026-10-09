@@ -13,12 +13,14 @@
 --   debug:Invoke("session")             -- first-session progression per player
 --   debug:Invoke("spawn", "Safe", pos)  -- one loot item on the floor at pos
 --   debug:Invoke("boost", 60)           -- 2x Salvage for everyone, for testing sale multipliers
+--   debug:Invoke("look", "A")           -- switch the world look profile (V2, A, B, C)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+local LookService = require(script.Parent.LookService)
 local LootService = require(script.Parent.LootService)
 local MonetizationService = require(script.Parent.MonetizationService)
 local PlayerService = require(script.Parent.PlayerService)
@@ -70,6 +72,11 @@ local commands: { [string]: (...any) -> any } = {
 			end
 		end
 		return "boost " .. seconds
+	end,
+	look = function(name: string)
+		LookService.apply(name)
+		StormService.refreshSky()
+		return "look " .. name
 	end,
 	session = function()
 		return SessionStats.all()

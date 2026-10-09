@@ -18,6 +18,7 @@ local PlayerService = require(script.Parent.PlayerService)
 local LootService = require(script.Parent.LootService)
 local SessionStats = require(script.Parent.SessionStats)
 local StormStats = require(script.Parent.StormStats)
+local LookService = require(script.Parent.LookService)
 
 local StormService = {}
 
@@ -100,29 +101,15 @@ end
 
 local function tweenSky(stormy: boolean, color: Color3?)
 	local info = TweenInfo.new(6, Enum.EasingStyle.Sine)
-	-- Calm values match MapBuilder's environment setup.
-	TweenService:Create(Lighting, info, {
-		Brightness = stormy and 1.1 or 2.4,
-		ClockTime = stormy and 16.8 or 15.5, -- low sun, not dusk: past ~17.3 the moon shows through
-		OutdoorAmbient = stormy and Color3.fromRGB(95, 100, 115) or Color3.fromRGB(135, 130, 125),
-		ExposureCompensation = stormy and -0.3 or 0,
-	}):Play()
+	-- Goals come from the active look profile (LookService), calm or storm.
+	local goals = LookService.targets(stormy, color)
+	TweenService:Create(Lighting, info, goals.Lighting):Play()
 	local grade = Lighting:FindFirstChild("Grade")
 	if grade then
-		TweenService:Create(grade, info, {
-			Saturation = stormy and -0.3 or 0.12,
-			Contrast = stormy and 0.15 or 0.06,
-			TintColor = stormy and Color3.fromRGB(205, 215, 235) or Color3.fromRGB(255, 248, 238),
-		}):Play()
+		TweenService:Create(grade, info, goals.Grade):Play()
 	end
-	TweenService:Create(atmosphere, info, {
-		Density = stormy and 0.5 or 0.28,
-		Haze = stormy and 2.5 or 0.5,
-		Color = stormy and (color or Color3.fromRGB(150, 160, 175)):Lerp(Color3.fromRGB(110, 110, 120), 0.6)
-			or Color3.fromRGB(199, 199, 199),
-	}):Play()
-	TweenService:Create(clouds, info, { Cover = stormy and 0.95 or 0.5, Density = stormy and 0.9 or 0.4 })
-		:Play()
+	TweenService:Create(atmosphere, info, goals.Atmosphere):Play()
+	TweenService:Create(clouds, info, goals.Clouds):Play()
 end
 
 ---------------------------------------------------------------------------- Wind
@@ -503,6 +490,25 @@ end
 -- Studio QA hooks (see DebugService). Not reachable from clients.
 function StormService.skipPhase()
 	skipRequested = true
+end
+
+-- Re-applies the sky for the current phase immediately (after a look profile change).
+function StormService.refreshSky()
+	local stormy = state.Phase == "Warning" or state.Phase == "Storm"
+	local goals = LookService.targets(stormy, state.Storm and Config.Storms[state.Storm].Color or nil)
+	for _, pair in
+		{ { Lighting, goals.Lighting }, { atmosphere, goals.Atmosphere }, { clouds, goals.Clouds } }
+	do
+		for k, v in pair[2] do
+			(pair[1] :: any)[k] = v
+		end
+	end
+	local grade = Lighting:FindFirstChild("Grade")
+	if grade then
+		for k, v in goals.Grade do
+			(grade :: any)[k] = v
+		end
+	end
 end
 
 function StormService.forceNextStorm(name: string)

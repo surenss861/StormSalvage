@@ -14,6 +14,7 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local Palette = require(game:GetService("ReplicatedStorage").Shared.Palette)
+local LookService = require(script.Parent.LookService)
 
 local MapBuilder = {}
 
@@ -670,46 +671,14 @@ end
 
 ---------------------------------------------------------------------------- Environment
 
-local function ensure(parent: Instance, className: string, name: string): any
-	local existing = parent:FindFirstChild(name)
-	if existing and existing.ClassName == className then
-		return existing
-	end
-	local inst = Instance.new(className)
-	inst.Name = name
-	inst.Parent = parent
-	return inst
-end
-
--- Warm late-afternoon grade for calm weather; StormService tweens these during storms.
+-- Lighting, grade, atmosphere and water come from the active look profile (LookService);
+-- StormService tweens toward the profile's storm look.
 local function setupEnvironment()
-	Lighting.ClockTime = 15.5
-	Lighting.Brightness = 2.4
-	Lighting.Ambient = Color3.fromRGB(70, 70, 80)
-	Lighting.OutdoorAmbient = Color3.fromRGB(135, 130, 125)
-	Lighting.ColorShift_Top = Color3.fromRGB(255, 240, 215)
-	Lighting.EnvironmentDiffuseScale = 0.5
-	Lighting.EnvironmentSpecularScale = 0.5
 	Lighting.GeographicLatitude = 35
+	LookService.apply("V2", false)
 
-	local grade = ensure(Lighting, "ColorCorrectionEffect", "Grade")
-	grade.Saturation = 0.12
-	grade.Contrast = 0.06
-	grade.Brightness = 0
-	grade.TintColor = Color3.fromRGB(255, 248, 238)
-	local bloom = ensure(Lighting, "BloomEffect", "Bloom")
-	bloom.Intensity = 0.35
-	bloom.Size = 22
-	bloom.Threshold = 1.4
-	local rays = ensure(Lighting, "SunRaysEffect", "SunRays")
-	rays.Intensity = 0.05
-	rays.Spread = 0.6
-
-	-- Flash floods are muddy, not tropical.
+	-- Flash floods are muddy, not tropical (colour from the look profile).
 	local terrain = workspace.Terrain
-	terrain.WaterColor = Color3.fromRGB(92, 84, 58)
-	terrain.WaterTransparency = 0.35
-	terrain.WaterReflectance = 0.25
 	terrain.WaterWaveSize = 0.25
 	terrain.WaterWaveSpeed = 14
 end
