@@ -115,6 +115,19 @@ function PlayerService.applyCharacterStats(player: Player)
 	end
 end
 
+-- Server-side check that a living player is actually standing near a prompt. Prompts
+-- are fired by the client, so this guards against triggering them from across the map.
+function PlayerService.isNear(player: Player, prompt: ProximityPrompt): boolean
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local target = prompt.Parent
+	if not humanoid or humanoid.Health <= 0 or not root or not (target and target:IsA("BasePart")) then
+		return false
+	end
+	return (root.Position - target.Position).Magnitude <= prompt.MaxActivationDistance + 8
+end
+
 -- All storm damage goes through here so armor applies consistently.
 function PlayerService.damage(player: Player, amount: number)
 	local session = sessions[player]

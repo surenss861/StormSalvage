@@ -39,11 +39,13 @@ local function groundY(position: Vector3): number
 		end
 	end
 	params.FilterDescendantsInstances = exclude
+	params.IgnoreWater = true -- drops during a flood should land on the ground, not float
 	local hit = workspace:Raycast(position + Vector3.new(0, 3, 0), Vector3.new(0, -60, 0), params)
 	return hit and hit.Position.Y or position.Y
 end
 
-local function createLoot(lootId: string, floorPosition: Vector3, onTaken: (() -> ())?, lifetime: number?): Part
+-- owner: for a death drop, only this player can grab it until ownerOnlyUntil (os.clock()).
+local function createLoot(lootId: string, floorPosition: Vector3, onTaken: (() -> ())?, lifetime: number?, owner: Player?, ownerOnlyUntil: number?): Part
 	local def = Config.Loot[lootId]
 	local rarityColor = Config.RarityColors[def.Rarity]
 
@@ -98,12 +100,16 @@ local function createLoot(lootId: string, floorPosition: Vector3, onTaken: (() -
 	prompt.Parent = item
 
 	local taken = false
+	if owner then
+		prompt.ObjectText = ("%s's %s  (%d)"):format(owner.DisplayName, def.Name, def.Value)
+	end
+
 	prompt.Triggered:Connect(function(player)
-		if taken then
+		if taken or not PlayerService.isNear(player, prompt) then
 			return
 		end
-		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-		if not humanoid or humanoid.Health <= 0 then
+		if owner and player ~= owner and owner.Parent and os.clock() < (ownerOnlyUntil or 0) then
+			PlayerService.notify(player, ("That's %s's bag. Free to grab in %ds."):format(owner.DisplayName, math.ceil((ownerOnlyUntil :: number) - os.clock())), Color3.fromRGB(255, 200, 120))
 			return
 		end
 		if not PlayerService.tryCarry(player, lootId) then
@@ -192,12 +198,17 @@ local function dropBag(player: Player, character: Model)
 		return
 	end
 	local origin = root.Position
-	for i = 1, math.min(#carried, 10) do
+	local ownerOnlyUntil = os.clock() + Config.BagOwnerOnlySeconds
+	for i = 1, #carried do
 		local pos = origin + Vector3.new(rng:NextNumber(-6, 6), 0, rng:NextNumber(-6, 6))
 		pos = Vector3.new(pos.X, groundY(pos), pos.Z)
-		createLoot(carried[i], pos, nil, 60)
+		createLoot(carried[i], pos, nil, Config.BagLifetimeSeconds, player, ownerOnlyUntil)
 	end
-	PlayerService.notify(player, "You dropped your bag! Go back and grab it.", Color3.fromRGB(255, 120, 90))
+	PlayerService.notify(
+		player,
+		("You dropped your bag! It's yours alone for %ds, then anyone can grab it."):format(Config.BagOwnerOnlySeconds),
+		Color3.fromRGB(255, 120, 90)
+	)
 end
 
 function LootService.init(map)

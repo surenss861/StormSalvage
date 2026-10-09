@@ -193,7 +193,8 @@ function MapBuilder.build()
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Anchored = true
 	spawn.Size = Vector3.new(12, 1, 12)
-	spawn.Position = PLATEAU_CENTER + Vector3.new(0, plateauTop + 0.5, -25)
+	-- Rotated so players spawn facing south, toward the town and the sell/shop counters.
+	spawn.CFrame = CFrame.new(PLATEAU_CENTER + Vector3.new(0, plateauTop + 0.5, -25)) * CFrame.Angles(0, math.pi, 0)
 	spawn.Neutral = true
 	spawn.Duration = 0
 	spawn.Color = Color3.fromRGB(240, 170, 40)
@@ -208,8 +209,7 @@ function MapBuilder.build()
 	sellPrompt.MaxActivationDistance = 14
 	sellPrompt.RequiresLineOfSight = false
 	sellPrompt.Parent = sellPart
-	local sellSign = sign(sellPart, "SELL HERE", Color3.fromRGB(120, 255, 140), 6, 2000)
-	sellSign.AlwaysOnTop = true
+	sign(sellPart, "SELL HERE", Color3.fromRGB(120, 255, 140), 6, 2000)
 
 	local shopPart = part({ Parent = yard, Name = "UpgradeShop", Size = Vector3.new(14, 4, 5), Position = PLATEAU_CENTER + Vector3.new(25, plateauTop + 2, 15), Color = Color3.fromRGB(60, 120, 200), Material = Enum.Material.DiamondPlate })
 	local shopPrompt = Instance.new("ProximityPrompt")

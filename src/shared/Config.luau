@@ -15,6 +15,26 @@ Config.Cycle = {
 	Aftermath = 15,
 }
 
+-- Storm danger tuning. Damage values are before armor.
+Config.StormTuning = {
+	SurvivorBonus = 25,
+	SurvivorMinTownFraction = 0.5, -- must spend this share of the storm in town to earn the bonus
+	FloodDamagePerSecond = 5, -- ~20s in the water from full health
+	FloodRiseFraction = 0.4, -- water reaches full height after this share of the storm
+	LightningDamage = 35,
+	LightningRadius = 9,
+	LightningWarnSeconds = 1.6,
+	LightningInterval = { 0.8, 1.4 },
+	LightningTargetChance = 0.5, -- chance a strike aims near an exposed player
+	DebrisDamage = 14,
+	DebrisInterval = 0.3,
+	WindPush = 110, -- client-side push acceleration (studs/s²); 55 barely moved players in testing
+}
+
+-- Death drops: only the owner can pick their bag back up for this long, then anyone can.
+Config.BagOwnerOnlySeconds = 20
+Config.BagLifetimeSeconds = 60
+
 Config.Storms = {
 	Wind = {
 		DisplayName = "WINDSTORM",

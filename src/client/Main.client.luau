@@ -73,6 +73,7 @@ local gui = new("ScreenGui", { Name = "HUD", ResetOnSpawn = false, ZIndexBehavio
 
 -- Storm banner (top centre)
 local banner = new("Frame", {
+	Name = "Banner",
 	Parent = gui,
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 8),
@@ -83,24 +84,27 @@ local banner = new("Frame", {
 local bannerTitle = label({ Parent = banner, Size = UDim2.new(1, -16, 0.55, 0), Position = UDim2.new(0, 8, 0, 4), Text = "CALM" })
 local bannerSub = label({ Parent = banner, Size = UDim2.new(1, -16, 0.35, 0), Position = UDim2.new(0, 8, 0.6, -2), Text = "", TextColor3 = Color3.fromRGB(200, 200, 210) })
 
--- Stats (top left)
+-- Stats strip directly under the banner (top-left belongs to Roblox chat, top-right to the player list)
 local stats = new("Frame", {
+	Name = "Stats",
 	Parent = gui,
-	Position = UDim2.new(0, 10, 0, 76),
-	Size = UDim2.new(0.22, 0, 0, 118),
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 76),
+	Size = UDim2.new(0.42, 0, 0, 58),
 	BackgroundColor3 = PANEL,
 	BackgroundTransparency = 0.25,
-}, { corner(12), stroke(), new("UISizeConstraint", { MaxSize = Vector2.new(250, 118), MinSize = Vector2.new(160, 118) }) })
-local coinsLabel = label({ Parent = stats, Position = UDim2.new(0, 10, 0, 6), Size = UDim2.new(1, -20, 0, 34), Text = "0", TextColor3 = Color3.fromRGB(255, 215, 80), TextXAlignment = Enum.TextXAlignment.Left })
-local bagLabel = label({ Parent = stats, Position = UDim2.new(0, 10, 0, 44), Size = UDim2.new(1, -20, 0, 22), Text = "Bag 0/3", TextXAlignment = Enum.TextXAlignment.Left })
-local bagBarBack = new("Frame", { Parent = stats, Position = UDim2.new(0, 10, 0, 70), Size = UDim2.new(1, -20, 0, 10), BackgroundColor3 = Color3.fromRGB(50, 55, 65) }, { corner(5) })
-local bagBar = new("Frame", { Parent = bagBarBack, Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.fromRGB(90, 220, 110) }, { corner(5) })
-local bagValue = label({ Parent = stats, Position = UDim2.new(0, 10, 0, 86), Size = UDim2.new(1, -20, 0, 22), Text = "", TextColor3 = Color3.fromRGB(170, 230, 180), TextXAlignment = Enum.TextXAlignment.Left })
+}, { corner(12), stroke(), new("UISizeConstraint", { MaxSize = Vector2.new(440, 58), MinSize = Vector2.new(260, 58) }) })
+local coinsLabel = label({ Name = "Coins", Parent = stats, Position = UDim2.new(0, 12, 0, 6), Size = UDim2.new(0.4, -12, 0, 30), Text = "0", TextColor3 = Color3.fromRGB(255, 215, 80), TextXAlignment = Enum.TextXAlignment.Left })
+local bagLabel = label({ Name = "Bag", Parent = stats, Position = UDim2.new(0.4, 6, 0, 6), Size = UDim2.new(0.6, -18, 0, 22), Text = "Bag 0/3", TextXAlignment = Enum.TextXAlignment.Left })
+local bagBarBack = new("Frame", { Name = "BagBar", Parent = stats, Position = UDim2.new(0.4, 6, 0, 32), Size = UDim2.new(0.6, -18, 0, 10), BackgroundColor3 = Color3.fromRGB(50, 55, 65) }, { corner(5) })
+local bagBar = new("Frame", { Name = "Fill", Parent = bagBarBack, Size = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.fromRGB(90, 220, 110) }, { corner(5) })
+local bagValue = label({ Name = "BagValue", Parent = stats, Position = UDim2.new(0, 12, 0, 36), Size = UDim2.new(0.4, -12, 0, 16), Text = "", TextColor3 = Color3.fromRGB(170, 230, 180), TextXAlignment = Enum.TextXAlignment.Left })
 
-local boostLabel = label({ Parent = gui, Position = UDim2.new(0, 10, 0, 198), Size = UDim2.new(0, 220, 0, 24), Text = "", TextColor3 = Color3.fromRGB(255, 220, 90), TextXAlignment = Enum.TextXAlignment.Left, Visible = false })
+local boostLabel = label({ Name = "Boost", Parent = gui, AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 138), Size = UDim2.new(0, 220, 0, 24), Text = "", TextColor3 = Color3.fromRGB(255, 220, 90), Visible = false })
 
 -- Shop button (right)
 local shopButton = button({
+	Name = "ShopButton",
 	Parent = gui,
 	AnchorPoint = Vector2.new(1, 0.5),
 	Position = UDim2.new(1, -10, 0.45, 0),
@@ -111,11 +115,13 @@ local shopButton = button({
 
 -- Toasts (bottom centre)
 local toastHolder = new("Frame", {
+	Name = "Toasts",
 	Parent = gui,
 	AnchorPoint = Vector2.new(0.5, 1),
 	Position = UDim2.new(0.5, 0, 0.78, 0),
 	Size = UDim2.new(0.6, 0, 0, 150),
 	BackgroundTransparency = 1,
+	ZIndex = 10, -- above the shop so "Need X more coins" is readable while it's open
 }, {
 	new("UIListLayout", { VerticalAlignment = Enum.VerticalAlignment.Bottom, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }),
 })
@@ -145,6 +151,7 @@ end
 
 -- Tutorial hint
 local hint = label({
+	Name = "Hint",
 	Parent = gui,
 	AnchorPoint = Vector2.new(0.5, 1),
 	Position = UDim2.new(0.5, 0, 1, -96),
@@ -173,16 +180,18 @@ end
 ---------------------------------------------------------------------------- Shop
 
 local shop = new("Frame", {
+	Name = "Shop",
 	Parent = gui,
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.5),
 	Size = UDim2.fromScale(0.9, 0.75),
 	BackgroundColor3 = PANEL,
 	Visible = false,
-}, { corner(16), stroke(Color3.new(0, 0, 0), 3), new("UISizeConstraint", { MaxSize = Vector2.new(520, 560) }) })
+}, { corner(16), stroke(Color3.new(0, 0, 0), 3), new("UISizeConstraint", { MaxSize = Vector2.new(520, 380) }) })
 label({ Parent = shop, Position = UDim2.new(0, 16, 0, 10), Size = UDim2.new(1, -80, 0, 40), Text = "GEAR SHOP", TextXAlignment = Enum.TextXAlignment.Left })
-local closeButton = button({ Parent = shop, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 10), Size = UDim2.new(0, 40, 0, 40), BackgroundColor3 = Color3.fromRGB(200, 60, 60), Text = "X" })
+local closeButton = button({ Name = "Close", Parent = shop, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 10), Size = UDim2.new(0, 40, 0, 40), BackgroundColor3 = Color3.fromRGB(200, 60, 60), Text = "X" })
 local list = new("ScrollingFrame", {
+	Name = "List",
 	Parent = shop,
 	Position = UDim2.new(0, 10, 0, 60),
 	Size = UDim2.new(1, -20, 1, -70),
@@ -198,6 +207,8 @@ local function formatValue(id: string, value: any): string
 		return ("%d slots"):format(value)
 	elseif id == "Boots" then
 		return ("%d speed"):format(value)
+	elseif value == 0 then
+		return "no protection"
 	else
 		return ("-%d%% damage"):format(math.floor(value * 100 + 0.5))
 	end
@@ -205,18 +216,18 @@ end
 
 local upgradeRows: { [string]: { Info: TextLabel, Buy: TextButton } } = {}
 
-local function shopRow(order: number, title: string, desc: string, buttonColor: Color3): (TextLabel, TextButton)
-	local row = new("Frame", { Parent = list, LayoutOrder = order, Size = UDim2.new(1, -8, 0, 84), BackgroundColor3 = Color3.fromRGB(40, 45, 58) }, { corner(10) })
+local function shopRow(name: string, order: number, title: string, desc: string, buttonColor: Color3): (TextLabel, TextButton)
+	local row = new("Frame", { Name = name, Parent = list, LayoutOrder = order, Size = UDim2.new(1, -8, 0, 84), BackgroundColor3 = Color3.fromRGB(40, 45, 58) }, { corner(10) })
 	label({ Parent = row, Position = UDim2.new(0, 12, 0, 6), Size = UDim2.new(0.62, -12, 0, 28), Text = title, TextXAlignment = Enum.TextXAlignment.Left })
 	label({ Parent = row, Position = UDim2.new(0, 12, 0, 36), Size = UDim2.new(0.62, -12, 0, 18), Text = desc, TextColor3 = Color3.fromRGB(190, 190, 200), TextXAlignment = Enum.TextXAlignment.Left, Font = Enum.Font.GothamMedium })
 	local sub = label({ Parent = row, Name = "Sub", Position = UDim2.new(0, 12, 0, 56), Size = UDim2.new(0.62, -12, 0, 18), Text = "", TextColor3 = Color3.fromRGB(140, 220, 160), TextXAlignment = Enum.TextXAlignment.Left, Font = Enum.Font.GothamMedium })
-	local buy = button({ Parent = row, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), Size = UDim2.new(0.34, 0, 0, 52), BackgroundColor3 = buttonColor, Text = "" })
+	local buy = button({ Name = "Buy", Parent = row, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), Size = UDim2.new(0.34, 0, 0, 52), BackgroundColor3 = buttonColor, Text = "" })
 	return sub, buy
 end
 
 for i, id in Config.UpgradeOrder do
 	local def = Config.Upgrades[id]
-	local sub, buy = shopRow(i, def.DisplayName, def.Description, Color3.fromRGB(60, 170, 80))
+	local sub, buy = shopRow(id, i, def.DisplayName, def.Description, Color3.fromRGB(60, 170, 80))
 	upgradeRows[id] = { Info = sub, Buy = buy }
 	buy.Activated:Connect(function()
 		Remotes.get("BuyUpgrade"):FireServer(id)
@@ -228,7 +239,7 @@ local order = 100
 for _, pass in Config.GamePasses do
 	if pass.Id ~= 0 then
 		order += 1
-		local _, buy = shopRow(order, pass.DisplayName, pass.Description, Color3.fromRGB(40, 170, 90))
+		local _, buy = shopRow(pass.DisplayName, order, pass.DisplayName, pass.Description, Color3.fromRGB(40, 170, 90))
 		buy.Text = "R$ Pass"
 		buy.Activated:Connect(function()
 			MarketplaceService:PromptGamePassPurchase(player, pass.Id)
@@ -238,7 +249,7 @@ end
 for _, product in Config.DevProducts do
 	if product.Id ~= 0 then
 		order += 1
-		local _, buy = shopRow(order, product.DisplayName, "One-time purchase", Color3.fromRGB(40, 170, 90))
+		local _, buy = shopRow(product.DisplayName, order, product.DisplayName, "One-time purchase", Color3.fromRGB(40, 170, 90))
 		buy.Text = "R$ Buy"
 		buy.Activated:Connect(function()
 			MarketplaceService:PromptProductPurchase(player, product.Id)
@@ -367,11 +378,12 @@ local rain = new("ParticleEmitter", {
 	Lifetime = NumberRange.new(0.8, 1.2),
 	Speed = NumberRange.new(70, 90),
 	EmissionDirection = Enum.NormalId.Bottom,
-	Size = NumberSequence.new(0.12),
-	Color = ColorSequence.new(Color3.fromRGB(180, 200, 230)),
-	Transparency = NumberSequence.new(0.35),
+	Size = NumberSequence.new(0.18),
+	Squash = NumberSequence.new(2.5), -- stretch into streaks
+	Color = ColorSequence.new(Color3.fromRGB(190, 210, 235)),
+	Transparency = NumberSequence.new(0.2),
 	Orientation = Enum.ParticleOrientation.VelocityParallel,
-	LightEmission = 0.2,
+	LightEmission = 0.3,
 })
 
 local windForce: VectorForce? = nil
@@ -450,7 +462,7 @@ RunService.RenderStepped:Connect(function()
 		local windy = stormActive and stormState.Storm == "Wind" and not sheltered
 		force.Enabled = windy
 		if windy then
-			force.Force = stormState.WindDir * root.AssemblyMass * 55
+			force.Force = stormState.WindDir * root.AssemblyMass * Config.StormTuning.WindPush
 		end
 	end
 end)

@@ -15,7 +15,7 @@ local LootService = require(script.Parent.LootService)
 
 local StormService = {}
 
-local SURVIVOR_BONUS = 25
+local T = Config.StormTuning
 
 local stormStateRemote = Remotes.get("StormState")
 local lightningRemote = Remotes.get("LightningWarning")
@@ -24,6 +24,9 @@ local map
 local rng = Random.new()
 local state = { Phase = "Calm", Storm = nil :: string?, EndsAt = 0, WindDir = Vector3.new(1, 0, 0) }
 local stormToken = 0 -- incremented to stop the running storm effect loop
+local skipRequested = false
+local forcedStorm: string? = nil
+local townSeconds: { [Player]: number } = {}
 local floodLevel = 0
 local effectsFolder: Folder
 local atmosphere: Atmosphere
@@ -100,7 +103,7 @@ local function launchDebris(origin: Vector3, velocity: Vector3)
 		local player = Players:GetPlayerFromCharacter(hit.Parent)
 		if player and os.clock() - (debrisCooldown[player] or 0) > 0.8 then
 			debrisCooldown[player] = os.clock()
-			PlayerService.damage(player, 14)
+			PlayerService.damage(player, T.DebrisDamage)
 		end
 	end)
 	Debris:AddItem(p, 5)
@@ -123,7 +126,7 @@ local function runWind(token: number)
 		local speed = rng:NextNumber(70, 95)
 		local flatDir = Vector3.new(target.X - origin.X, 0, target.Z - origin.Z).Unit
 		launchDebris(origin, flatDir * speed + Vector3.new(0, 12, 0))
-		task.wait(0.3)
+		task.wait(T.DebrisInterval)
 	end
 end
 
@@ -146,7 +149,7 @@ end
 
 local function runFlood(token: number)
 	local maxY = map.FloodMaxY
-	local riseStep = (Config.Cycle.Storm * 0.4) / (maxY / 4)
+	local riseStep = (Config.Cycle.Storm * T.FloodRiseFraction) / (maxY / 4)
 	task.spawn(function()
 		local bottom = 0
 		while stormToken == token and bottom < maxY do
@@ -160,7 +163,7 @@ local function runFlood(token: number)
 		for _, player in Players:GetPlayers() do
 			local root = rootOf(player)
 			if root and floodLevel > 0 and root.Position.Y < floodLevel and not inSafeZone(root.Position) then
-				PlayerService.damage(player, 5)
+				PlayerService.damage(player, T.FloodDamagePerSecond / 2)
 			end
 		end
 		task.wait(0.5)
@@ -218,11 +221,11 @@ local function bolt(target: Vector3)
 end
 
 local function runLightning(token: number)
-	local radius, warnTime = 9, 1.6
+	local radius, warnTime = T.LightningRadius, T.LightningWarnSeconds
 	while stormToken == token do
 		local exposed = exposedPlayers()
 		local target
-		if #exposed > 0 and rng:NextNumber() < 0.65 then
+		if #exposed > 0 and rng:NextNumber() < T.LightningTargetChance then
 			target = exposed[rng:NextInteger(1, #exposed)].Root.Position * Vector3.new(1, 0, 1)
 				+ Vector3.new(rng:NextNumber(-5, 5), 0, rng:NextNumber(-5, 5))
 		else
@@ -237,11 +240,11 @@ local function runLightning(token: number)
 			for _, entry in exposedPlayers() do
 				local flat = (entry.Root.Position - target) * Vector3.new(1, 0, 1)
 				if flat.Magnitude <= radius then
-					PlayerService.damage(entry.Player, 40)
+					PlayerService.damage(entry.Player, T.LightningDamage)
 				end
 			end
 		end)
-		task.wait(rng:NextNumber(0.6, 1.1))
+		task.wait(rng:NextNumber(T.LightningInterval[1], T.LightningInterval[2]))
 	end
 end
 
@@ -255,16 +258,44 @@ local function setPhase(phase: string, duration: number)
 	broadcast()
 end
 
-local function rewardSurvivors()
+-- Waits out a phase, returning early if a Studio debug command asked to skip it.
+local function waitPhase(duration: number)
+	local endsAt = os.clock() + duration
+	skipRequested = false
+	while os.clock() < endsAt and not skipRequested do
+		task.wait(0.1)
+	end
+	skipRequested = false
+end
+
+-- Counts how long each living player spends in town while a storm is running.
+local function trackTownTime(token: number)
+	table.clear(townSeconds)
+	while stormToken == token do
+		for _, player in Players:GetPlayers() do
+			local root = rootOf(player)
+			if root and not inSafeZone(root.Position) then
+				townSeconds[player] = (townSeconds[player] or 0) + 1
+			end
+		end
+		task.wait(1)
+	end
+end
+
+-- Bonus for players alive in town at the end who also spent most of the storm there,
+-- so walking down in the last few seconds doesn't count.
+local function rewardSurvivors(stormSeconds: number)
+	local needed = math.max(1, math.floor(stormSeconds * T.SurvivorMinTownFraction))
 	for _, player in Players:GetPlayers() do
 		local session = PlayerService.get(player)
 		local root = rootOf(player)
-		if session and root and not inSafeZone(root.Position) then
+		if session and root and not inSafeZone(root.Position) and (townSeconds[player] or 0) >= needed then
 			session.Data.Stats.StormsSurvived += 1
-			PlayerService.addCoins(player, SURVIVOR_BONUS)
-			PlayerService.notify(player, ("Survived the storm in town! +%d coins"):format(SURVIVOR_BONUS), Color3.fromRGB(255, 220, 90))
+			PlayerService.addCoins(player, T.SurvivorBonus)
+			PlayerService.notify(player, ("Survived the storm in town! +%d coins"):format(T.SurvivorBonus), Color3.fromRGB(255, 220, 90))
 		end
 	end
+	table.clear(townSeconds)
 end
 
 local function cycle()
@@ -273,7 +304,7 @@ local function cycle()
 	while true do
 		state.Storm = nil
 		setPhase("Calm", Config.Cycle.Calm)
-		task.wait(Config.Cycle.Calm)
+		waitPhase(Config.Cycle.Calm)
 
 		local choices = {}
 		for _, name in stormNames do
@@ -281,37 +312,53 @@ local function cycle()
 				table.insert(choices, name)
 			end
 		end
-		local storm = choices[rng:NextInteger(1, #choices)]
+		local storm = forcedStorm or choices[rng:NextInteger(1, #choices)]
+		forcedStorm = nil
 		last = storm
 		local angle = rng:NextNumber(0, math.pi * 2)
 		state.Storm = storm
 		state.WindDir = Vector3.new(math.cos(angle), 0, math.sin(angle))
 		setPhase("Warning", Config.Cycle.Warning)
 		tweenSky(true, Config.Storms[storm].Color)
-		task.wait(Config.Cycle.Warning)
+		waitPhase(Config.Cycle.Warning)
 
 		stormToken += 1
 		local token = stormToken
 		setPhase("Storm", Config.Cycle.Storm)
 		task.spawn(runners[storm], token)
+		task.spawn(trackTownTime, token)
+		local stormStarted = os.clock()
 		task.delay(Config.Cycle.Storm * 0.3, function()
 			if stormToken == token then
 				LootService.spawnStormCores(Config.StormCoresPerStorm)
 				PlayerService.notifyAll("Storm Cores have appeared in town!", Config.RarityColors.Legendary)
 			end
 		end)
-		task.wait(Config.Cycle.Storm)
+		waitPhase(Config.Cycle.Storm)
 
 		stormToken += 1
-		rewardSurvivors()
+		rewardSurvivors(os.clock() - stormStarted)
 		if storm == "Flood" then
 			recedeFlood()
 		end
 		tweenSky(false)
 		setPhase("Aftermath", Config.Cycle.Aftermath)
 		LootService.refillAll()
-		task.wait(Config.Cycle.Aftermath)
+		waitPhase(Config.Cycle.Aftermath)
 	end
+end
+
+-- Studio QA hooks (see DebugService). Not reachable from clients.
+function StormService.skipPhase()
+	skipRequested = true
+end
+
+function StormService.forceNextStorm(name: string)
+	forcedStorm = name
+end
+
+function StormService.getState()
+	return { Phase = state.Phase, Storm = state.Storm, FloodLevel = floodLevel, EndsIn = state.EndsAt - workspace:GetServerTimeNow() }
 end
 
 function StormService.init(mapInfo)
@@ -332,8 +379,15 @@ function StormService.init(mapInfo)
 	Players.PlayerAdded:Connect(function(player)
 		stormStateRemote:FireClient(player, state)
 	end)
+	-- Dying disqualifies you from this storm's survivor bonus.
+	PlayerService.onDied(function(player)
+		if state.Phase == "Storm" then
+			townSeconds[player] = -math.huge
+		end
+	end)
 	Players.PlayerRemoving:Connect(function(player)
 		debrisCooldown[player] = nil
+		townSeconds[player] = nil
 	end)
 
 	task.spawn(cycle)

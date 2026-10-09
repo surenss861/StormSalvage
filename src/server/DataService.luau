@@ -105,11 +105,14 @@ function DataService.save(player: Player, data: Data, release: boolean): boolean
 	if not store then
 		return false
 	end
+	local lostLock = false
 	local ok, err = pcall(function()
 		(store :: DataStore):UpdateAsync(key(player.UserId), function(old)
 			if old and old.Lock and old.Lock.Session ~= SESSION_ID then
+				lostLock = true
 				return nil -- we lost the lock; never overwrite another server's data
 			end
+			lostLock = false
 			local copy = table.clone(data)
 			copy.Lock = if release then nil else { Session = SESSION_ID, Time = os.time() }
 			return copy
@@ -117,6 +120,9 @@ function DataService.save(player: Player, data: Data, release: boolean): boolean
 	end)
 	if not ok then
 		warn("[DataService] save failed for", player.Name, err)
+	elseif lostLock then
+		warn("[DataService] save skipped, another server owns the profile:", player.Name)
+		return false
 	end
 	return ok
 end
