@@ -211,7 +211,16 @@ export type BuildingOptions = {
 	Awning: boolean?, -- covered walkway along the front; counts as shelter
 	Trim: Color3?,
 	-- Blender shell drawn over invisible gameplay walls/roof (assets/roblox/town/<Name>).
-	Shell: { Name: string, Wall: Color3?, Roof: Color3?, Interior: boolean?, Porch: number? }?,
+	Shell: {
+		Name: string,
+		Set: string?, -- asset folder, default "town"
+		Wall: Color3?,
+		Roof: Color3?,
+		Interior: boolean?,
+		Porch: number?,
+		SignText: string?, -- labels the shell's Signboard mesh
+		SignColor: Color3?,
+	}?,
 	LootMargin: number?, -- distance from the walls to the loot grid (default 4)
 }
 
@@ -259,7 +268,8 @@ local function building(
 	wall(model, center + Vector3.new(-w / 2, 0, 0), d, h, false, doorFace == "W", color, material)
 
 	local face = FACES[doorFace]
-	local shell = o.Shell and placeAsset("town", o.Shell.Name, facing(center, face.Normal), model)
+	local shell = o.Shell
+		and placeAsset(o.Shell.Set or "town", o.Shell.Name, facing(center, face.Normal), model)
 	if shell and o.Shell then
 		-- Walls and roof stay for collision, shelter raycasts, and flood/lightning rules; the
 		-- shell draws the house. Its meshes never collide.
@@ -270,6 +280,15 @@ local function building(
 		end
 		roof.Transparency = 1
 		recolor(shell, { Plaster = o.Shell.Wall, RoofRed = o.Shell.Roof })
+		if o.Shell.SignText then
+			labelAsset(
+				shell,
+				"Signboard",
+				Enum.NormalId.Front,
+				o.Shell.SignText,
+				o.Shell.SignColor or Color3.new(1, 1, 1)
+			)
+		end
 		if o.Shell.Porch then
 			-- The porch roof looks like cover, so make it count as shelter.
 			local porchRoof = part({
@@ -369,7 +388,7 @@ local function building(
 			})
 		end
 	end
-	if o.Sign then
+	if o.Sign and not shell then
 		local signY, signH = math.min(h - 2.2, 11.8), 3.6
 		if o.Awning then
 			signY, signH = 12.3, 3.2 -- sit between the awning and the roof
@@ -395,7 +414,10 @@ local function building(
 			Material = Enum.Material.Metal,
 		})
 		CollectionService:AddTag(awning, "Shelter")
-		for along = -faceWidth / 2 + 2, faceWidth / 2 - 2, 15 do
+		if shell then
+			awning.Transparency = 1 -- the shell draws the awning and its posts
+		end
+		for along = -faceWidth / 2 + 2, (if shell then -math.huge else faceWidth / 2 - 2), 15 do
 			if math.abs(along) > 6 then
 				prop({
 					Parent = model,
@@ -434,7 +456,7 @@ local function building(
 			Material = Enum.Material.Brick,
 		})
 	end
-	if o.Parapet then
+	if o.Parapet and not shell then
 		local py = h + 1 + 0.8
 		for _, s in { -1, 1 } do
 			prop({
@@ -834,6 +856,127 @@ local function buildScrapyard(yard: Model, sellPart: BasePart, shopPart: BasePar
 	labelAsset(gate, "HazardBlack", Enum.NormalId.Back, "GOOD LUCK OUT THERE", Palette.Swatches.SafetyYellow)
 end
 
+---------------------------------------------------------------------------- District upgrade
+
+-- Swaps the primitive district dressing for the Blender kit (assets/roblox/districts) when it's
+-- present. Gameplay parts (canopy shelter, columns, fountain basin) stay as invisible collision.
+local function upgradeDistricts()
+	local districts = assetRoot and assetRoot:FindFirstChild("districts")
+	if not districts then
+		return
+	end
+	local function place(name: string, cf: CFrame): Model?
+		return placeAsset("districts", name, cf, map)
+	end
+	local function eachNamed(names: { [string]: "hide" | "remove" })
+		for _, d in map:GetChildren() do
+			local action = names[d.Name]
+			if action == "remove" then
+				d:Destroy()
+			elseif action == "hide" and d:IsA("BasePart") then
+				d.Transparency = 1
+			end
+		end
+	end
+
+	-- Gas station: canopy (turned so its pump islands sit on the old pump spots), pumps, pylon.
+	eachNamed({
+		CanopyTrim = "remove",
+		PumpBlock = "remove",
+		PriceSignPole = "remove",
+		PriceSign = "remove",
+		CanopyColumn = "hide",
+	})
+	local canopyShelter = roofs:FindFirstChild("Canopy") :: BasePart?
+	if canopyShelter then
+		canopyShelter.Transparency = 1
+	end
+	place("FuelCanopy", CFrame.new(-120, 0, -45) * CFrame.Angles(0, math.pi, 0))
+	for _, x in { -128, -98 } do
+		place("FuelPump", facing(Vector3.new(x, 0.6, -45), Vector3.new(0, 0, 1)))
+	end
+	local pylon = place("PriceSign", facing(Vector3.new(-146, 0, -30), Vector3.new(0, 0, 1)))
+	labelAsset(pylon, "Signboard", Enum.NormalId.Front, "GAS\n$3.99", Palette.Swatches.White)
+	labelAsset(pylon, "Signboard", Enum.NormalId.Back, "GAS\n$3.99", Palette.Swatches.White)
+	place("Dumpster", facing(Vector3.new(-132, 0, -101), Vector3.new(0, 0, 1)))
+
+	-- Supermarket (door faces +Z): aisle shelves in rows between the loot rows (z offsets
+	-- -17.5, -3.5, 10.5), gaps between units so the aisles connect; side shelves along the walls.
+	local market = Vector3.new(120, 0, -80)
+	eachNamed({ SideShelf = "remove" })
+	for _, dz in { -17.5, -3.5, 10.5 } do
+		for _, dx in { -22, -7, 8, 23 } do
+			place("AisleShelf", CFrame.new(market + Vector3.new(dx, 1, dz)))
+		end
+	end
+	for _, sx in { -1, 1 } do
+		for _, dz in { -13, 0, 13 } do
+			place("AisleShelf", facing(market + Vector3.new(sx * 33.4, 1, dz), Vector3.new(-sx, 0, 0)))
+		end
+	end
+	for _, info in
+		{
+			{ Vector3.new(110, 0.25, -30), 25 },
+			{ Vector3.new(141, 0.25, -47), -60 },
+			{ Vector3.new(127, 0.25, -51), 95 },
+		}
+	do
+		place("ShoppingCart", CFrame.new(info[1]) * CFrame.Angles(0, math.rad(info[2]), 0))
+	end
+	place("Dumpster", facing(Vector3.new(146, 0, -109), Vector3.new(0, 0, 1)))
+
+	-- Warehouse (door faces -Z): pallet racks between loot rows (z offsets -22.5, -8.5, 5.5,
+	-- 19.5) with a center aisle in line with the door; forklift parked outside.
+	local warehouse = Vector3.new(125, 0, 90)
+	for _, dz in { -22.5, -8.5, 5.5, 19.5 } do
+		for _, dx in { -16, 16 } do
+			place("PalletRack", CFrame.new(warehouse + Vector3.new(dx, 1, dz)))
+		end
+	end
+	place("Forklift", facing(Vector3.new(114, 0, 50), Vector3.new(-1, 0, 0)))
+	place("Dumpster", facing(Vector3.new(98, 0, 125), Vector3.new(0, 0, -1)))
+
+	-- Motel (door faces -Z): beds along the back wall, machines on the walkway, new pole sign.
+	local motel = Vector3.new(0, 0, 165)
+	for _, dx in { -42, -28, -14, 14, 28, 42 } do
+		local bed = assetRoot and assetRoot:FindFirstChild("town") and assetRoot.town:FindFirstChild("Bed")
+		if bed then
+			placeAsset(
+				"town",
+				"Bed",
+				CFrame.new(motel + Vector3.new(dx, 1, 13.2)) * CFrame.Angles(0, math.pi / 2, 0),
+				map
+			)
+		end
+	end
+	place("VendingMachine", facing(Vector3.new(-30, 0.4, 146.5), Vector3.new(0, 0, -1)))
+	place("IceMachine", facing(Vector3.new(26, 0.4, 146.5), Vector3.new(0, 0, -1)))
+	eachNamed({ MotelSignPole = "remove", MotelSign = "remove", MotelSignGlow = "remove" })
+	local motelSign = place("MotelSign", facing(Vector3.new(-64, 0, 142), Vector3.new(0, 0, -1)))
+	labelAsset(motelSign, "Signboard", Enum.NormalId.Front, "MOTEL\nVACANCY", Palette.Swatches.NeonPink)
+	labelAsset(motelSign, "Signboard", Enum.NormalId.Back, "MOTEL\nVACANCY", Palette.Swatches.NeonPink)
+
+	-- Town square: tiered fountain over the old basin (kept invisible for collision and the spray),
+	-- siren tower, and a memorial outside the loot grid.
+	eachNamed({ FountainColumn = "remove", Fountain = "hide", FountainWater = "hide" })
+	place("Fountain", CFrame.new(-50, 0.4, -55))
+	local water = map:FindFirstChild("FountainWater") :: BasePart?
+	local spray = water and water:FindFirstChildOfClass("ParticleEmitter")
+	if spray then
+		local nozzle = prop({
+			Name = "FountainNozzle",
+			Size = Vector3.one,
+			Position = Vector3.new(-50, 11, -55),
+			Transparency = 1,
+			CanCollide = false,
+		})
+		spray.Parent = nozzle
+	end
+	eachNamed({ SirenBase = "remove", SirenPole = "remove", Siren = "remove", SirenHorn = "remove" })
+	place("SirenTower", CFrame.new(-92, 0, -40))
+	place("Statue", facing(Vector3.new(-88, 0, -82), Vector3.new(1, 0, 0.6)))
+end
+
 ---------------------------------------------------------------------------- Build
 
 function MapBuilder.build()
@@ -1184,7 +1327,17 @@ function MapBuilder.build()
 			"N",
 			Color3.fromRGB(80, 80, 85),
 			true,
-			{ Sign = "WAREHOUSE 7", SignColor = Color3.fromRGB(45, 60, 85), Parapet = true }
+			{
+				Sign = "WAREHOUSE 7",
+				SignColor = Color3.fromRGB(45, 60, 85),
+				Parapet = true,
+				Shell = {
+					Set = "districts",
+					Name = "WarehouseShell",
+					SignText = "WAREHOUSE 7",
+					SignColor = Palette.Swatches.SafetyYellow,
+				},
+			}
 		),
 		Label = "Warehouse",
 	}
@@ -1198,7 +1351,17 @@ function MapBuilder.build()
 			"S",
 			Color3.fromRGB(200, 40, 40),
 			true,
-			{ Sign = "FUEL & GO", SignColor = Color3.fromRGB(200, 40, 40), Parapet = true }
+			{
+				Sign = "FUEL & GO",
+				SignColor = Color3.fromRGB(200, 40, 40),
+				Parapet = true,
+				Shell = {
+					Set = "districts",
+					Name = "GasStationShell",
+					SignText = "FUEL & GO",
+					SignColor = Palette.Swatches.White,
+				},
+			}
 		),
 		Label = "Gas Station",
 	}
@@ -1217,6 +1380,12 @@ function MapBuilder.build()
 				SignColor = Color3.fromRGB(50, 120, 60),
 				SignTextColor = Color3.fromRGB(255, 240, 150),
 				Parapet = true,
+				Shell = {
+					Set = "districts",
+					Name = "SupermarketShell",
+					SignText = "SUPER SAVER",
+					SignColor = Palette.Swatches.Mustard,
+				},
 			}
 		),
 		Label = "Supermarket",
@@ -1236,6 +1405,12 @@ function MapBuilder.build()
 				SignColor = Color3.fromRGB(70, 90, 130),
 				SignTextColor = Color3.fromRGB(255, 120, 160),
 				Awning = true,
+				Shell = {
+					Set = "districts",
+					Name = "MotelShell",
+					SignText = "STARLITE MOTEL",
+					SignColor = Palette.Swatches.NeonPink,
+				},
 			}
 		),
 		Label = "Motel",
@@ -1260,6 +1435,7 @@ function MapBuilder.build()
 	canopy.Parent = roofs
 	CollectionService:AddTag(canopy, "Shelter")
 	prop({
+		Name = "CanopyTrim",
 		Size = Vector3.new(36.4, 0.4, 20.4),
 		Position = Vector3.new(-120, 11.3, -45),
 		Color = TRIM,
@@ -1268,12 +1444,14 @@ function MapBuilder.build()
 	})
 	for _, x in { -135, -105 } do
 		part({
+			Name = "CanopyColumn",
 			Size = Vector3.new(1, 12, 1),
 			Position = Vector3.new(x, 6, -45),
 			Color = Color3.fromRGB(220, 220, 220),
 			Material = Enum.Material.Metal,
 		})
 		part({
+			Name = "PumpBlock",
 			Size = Vector3.new(2, 4, 1.5),
 			Position = Vector3.new(x + 7, 2, -45),
 			Color = Color3.fromRGB(240, 200, 40),
@@ -1281,6 +1459,7 @@ function MapBuilder.build()
 		})
 	end
 	prop({
+		Name = "PriceSignPole",
 		Size = Vector3.new(1, 18, 1),
 		Position = Vector3.new(-146, 9, -30),
 		Color = Color3.fromRGB(70, 70, 75),
@@ -1288,6 +1467,7 @@ function MapBuilder.build()
 		CastShadow = true,
 	})
 	local priceSign = prop({
+		Name = "PriceSign",
 		Size = Vector3.new(8, 6, 0.6),
 		Position = Vector3.new(-146, 20, -30),
 		Color = Color3.fromRGB(200, 40, 40),
@@ -1324,6 +1504,7 @@ function MapBuilder.build()
 	-- Supermarket shelves (against side walls, outside the loot grid)
 	for _, sx in { -1, 1 } do
 		part({
+			Name = "SideShelf",
 			Size = Vector3.new(2, 6, 40),
 			Position = Vector3.new(120 + sx * 32.5, 4, -80),
 			Color = Color3.fromRGB(220, 220, 220),
@@ -1367,6 +1548,7 @@ function MapBuilder.build()
 
 	-- Motel: neon pole sign
 	prop({
+		Name = "MotelSignPole",
 		Size = Vector3.new(1.2, 24, 1.2),
 		Position = Vector3.new(-64, 12, 142),
 		Color = Color3.fromRGB(70, 70, 75),
@@ -1374,6 +1556,7 @@ function MapBuilder.build()
 		CastShadow = true,
 	})
 	local motelSign = prop({
+		Name = "MotelSign",
 		Size = Vector3.new(12, 6, 1),
 		Position = Vector3.new(-64, 26, 142),
 		Color = Color3.fromRGB(30, 35, 60),
@@ -1383,6 +1566,7 @@ function MapBuilder.build()
 	surfaceSign(motelSign, Enum.NormalId.Front, "MOTEL\nVACANCY", Color3.fromRGB(255, 110, 160))
 	surfaceSign(motelSign, Enum.NormalId.Back, "MOTEL\nVACANCY", Color3.fromRGB(255, 110, 160))
 	prop({
+		Name = "MotelSignGlow",
 		Size = Vector3.new(12.4, 6.4, 0.6),
 		Position = Vector3.new(-64, 26, 142),
 		Color = Color3.fromRGB(255, 110, 160),
@@ -1408,6 +1592,7 @@ function MapBuilder.build()
 		Material = Enum.Material.Marble,
 	})
 	local fountainWater = part({
+		Name = "FountainWater",
 		Size = Vector3.new(1, 12, 12),
 		Position = Vector3.new(-50, 3.2, -55),
 		Shape = Enum.PartType.Cylinder,
@@ -1418,6 +1603,7 @@ function MapBuilder.build()
 		CanCollide = false,
 	})
 	prop({
+		Name = "FountainColumn",
 		Size = Vector3.new(6, 1.6, 1.6),
 		Position = Vector3.new(-50, 6, -55),
 		Shape = Enum.PartType.Cylinder,
@@ -1481,6 +1667,7 @@ function MapBuilder.build()
 	-- Storm siren tower: the town's landmark, and where warnings come from.
 	local sirenBase = Vector3.new(-92, 0, -40)
 	prop({
+		Name = "SirenBase",
 		Size = Vector3.new(4, 1, 4),
 		Position = sirenBase + Vector3.new(0, 0.5, 0),
 		Color = CONCRETE,
@@ -1488,6 +1675,7 @@ function MapBuilder.build()
 		CanCollide = true,
 	})
 	prop({
+		Name = "SirenPole",
 		Size = Vector3.new(1.2, 30, 1.2),
 		Position = sirenBase + Vector3.new(0, 15, 0),
 		Color = Color3.fromRGB(120, 120, 125),
@@ -1505,6 +1693,7 @@ function MapBuilder.build()
 	})
 	for _, dir in { Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0) } do
 		prop({
+			Name = "SirenHorn",
 			Size = Vector3.new(3, 2.4, 2.4),
 			Position = sirenHead.Position + dir * 2.6,
 			Shape = Enum.PartType.Cylinder,
@@ -1596,6 +1785,8 @@ function MapBuilder.build()
 			townAsset(info[1], facing(info[2], dir))
 		end
 	end
+
+	upgradeDistricts()
 
 	return {
 		Zones = zones,

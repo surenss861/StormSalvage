@@ -36,7 +36,7 @@ SWATCHES = {
     "HazardBlack": (34, 34, 38), "ContainerBlue": (40, 96, 150), "ContainerGreen": (58, 122, 82),
     "Glass": (150, 200, 230), "WindowWarm": (255, 214, 140), "NeonPink": (255, 110, 160),
     "NeonGreen": (120, 255, 140), "StormCyan": (120, 220, 255), "Rubber": (32, 32, 34),
-    "White": (240, 240, 240),
+    "White": (240, 240, 240), "Signboard": (34, 38, 46),
 }
 MATERIALS = {"Plastic", "Smooth", "Wood", "Planks", "Brick", "Concrete", "Metal", "Rusty", "Plate",
              "Slate", "Glass", "Neon", "Fabric", "Rubber", "Grass", "Rock", "Cobble"}

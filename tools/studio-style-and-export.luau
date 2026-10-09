@@ -42,8 +42,19 @@ end
 local PRECISE =
 	{ SellShack = true, GearShack = true, GateArch = true, Crane = true, Crusher = true, Workbench = true }
 -- Pure visuals: house shells sit over invisible gameplay walls, and debris is set dressing.
-local VISUAL_ONLY =
-	{ HouseA = true, HouseB = true, DebrisBranch = true, DebrisSheet = true, BushRound = true }
+local VISUAL_ONLY = {
+	HouseA = true,
+	HouseB = true,
+	DebrisBranch = true,
+	DebrisSheet = true,
+	BushRound = true,
+	SupermarketShell = true,
+	GasStationShell = true,
+	WarehouseShell = true,
+	MotelShell = true,
+	FuelCanopy = true, -- the canopy's shelter and columns are gameplay parts in MapBuilder
+	Fountain = true, -- the old basin cylinder stays as invisible collision
+}
 
 -- Applies palette material/color to one model; returns how many MeshParts were styled.
 local function style(model: Instance): (number, { string })

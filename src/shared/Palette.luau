@@ -45,6 +45,7 @@ Palette.Swatches = {
 	StormCyan = Color3.fromRGB(120, 220, 255),
 	Rubber = Color3.fromRGB(32, 32, 34),
 	White = Color3.fromRGB(240, 240, 240),
+	Signboard = Color3.fromRGB(34, 38, 46), -- reserved for the one sign board per building (code adds text)
 } :: { [string]: Color3 }
 
 -- Roblox materials allowed in Blender object names.
