@@ -909,7 +909,8 @@ local function upgradeDistricts()
 			place("AisleShelf", CFrame.new(market + Vector3.new(dx, 1, dz)))
 		end
 	end
-	for _, sx in { -1, 1 } do
+	-- Wall shelves on the east side only: the grid's west column is 1.5 studs from that wall.
+	for _, sx in { 1 } do
 		for _, dz in { -13, 0, 13 } do
 			place("AisleShelf", facing(market + Vector3.new(sx * 33.4, 1, dz), Vector3.new(-sx, 0, 0)))
 		end
@@ -1020,8 +1021,18 @@ local function upgradeDistricts()
 	-- Warehouse: loading dock at the east bay, cargo and a pallet jack in the yard, hanging lamps
 	-- and a duct inside (the lamp model hangs 3.7-7.7 studs above its pivot).
 	eachNamed({ YardCrate = "remove" })
+	-- The yard's primitive containers become the Scrapyard's Blender container (same 8 x 8.5 x 20
+	-- footprint). The source part's center is mid-height, the asset's pivot is its base.
+	for _, d in map:GetChildren() do
+		if d.Name == "Container" and d:IsA("BasePart") then
+			local base = d.CFrame * CFrame.new(0, -d.Size.Y / 2, 0)
+			placeAsset("scrapyard", "Container", base, map)
+			d.Transparency = 1 -- keep the collision box
+		end
+	end
 	packProp("LoadingDock", facing(Vector3.new(147, 0, 53.4), Vector3.new(0, 0, -1)))
-	packProp("CargoStack", facing(Vector3.new(101, 0, 52), Vector3.new(0, 0, -1)))
+	-- Beside the building, not in front of a bay door.
+	packProp("CargoStack", facing(Vector3.new(84, 0, 66), Vector3.new(1, 0, 0)))
 	packProp("PalletJack", CFrame.new(134, 0, 49) * CFrame.Angles(0, math.rad(-20), 0))
 	for _, pos in
 		{
