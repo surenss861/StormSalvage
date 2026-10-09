@@ -31,6 +31,7 @@ The source of truth is `src/shared/Palette.luau`. Groups:
 - 1 Blender unit = 1 stud. Import with the 3D Importer's **Scale Unit: Studs**.
 - Default avatar is about 5 studs tall; doors are 4.5 × 8, ceilings 11–13, steps 1 stud high.
 - Loot items are exaggerated 1.3–1.5× real size so they read from 30 studs away.
+- Axes after import (verified in Studio): Blender −Y (front) → Roblox −Z (the model's LookVector), Blender Z → Roblox Y, Blender +X → Roblox −X. Model pivots land at the asset's base center.
 
 ## Asset specifications
 

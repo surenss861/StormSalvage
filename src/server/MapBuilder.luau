@@ -10,8 +10,10 @@
 
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
+local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+local Palette = require(game:GetService("ReplicatedStorage").Shared.Palette)
 
 local MapBuilder = {}
 
@@ -559,113 +561,41 @@ end
 
 ---------------------------------------------------------------------------- Scrapyard
 
+-- Blender asset library (assets/roblox, synced by Rojo into ServerStorage.Assets). Each model's
+-- pivot is its base center and its front faces -Z, so CFrame.lookAt(base, base + facing) places it.
+local assetRoot = ServerStorage:FindFirstChild("Assets")
+
+local function placeAsset(set: string, name: string, cf: CFrame, parent: Instance): Model?
+	local folder = assetRoot and assetRoot:FindFirstChild(set)
+	local source = folder and folder:FindFirstChild(name)
+	if not source then
+		warn("[MapBuilder] missing asset", set, name)
+		return nil
+	end
+	local model = source:Clone() :: Model
+	model:PivotTo(cf)
+	model.Parent = parent
+	return model
+end
+
+local function facing(base: Vector3, direction: Vector3): CFrame
+	return CFrame.lookAt(base, base + direction)
+end
+
+-- Adds text to the one MeshPart of a model whose name contains `swatchKey`.
+local function labelAsset(model: Model?, swatchKey: string, face: Enum.NormalId, text: string, color: Color3)
+	if not model then
+		return
+	end
+	for _, p in model:GetChildren() do
+		if p:IsA("BasePart") and string.find(p.Name, swatchKey, 1, true) then
+			surfaceSign(p, face, text, color, Enum.Font.LuckiestGuy)
+			return
+		end
+	end
+end
+
 local yardRng = Random.new(7)
-
--- A corrugated shack behind a counter. The counter's front (-Z of its CFrame) faces the aisle.
-local function shack(parent: Instance, counter: BasePart, color: Color3, title: string, titleColor: Color3)
-	local frame = counter.CFrame - Vector3.new(0, counter.Size.Y / 2, 0) -- counter base, on the ground
-	local function at(x: number, y: number, z: number): CFrame
-		return frame * CFrame.new(x, y, z)
-	end
-	part({
-		Parent = parent,
-		Size = Vector3.new(18, 10, 0.6),
-		CFrame = at(0, 5, 11),
-		Color = color,
-		Material = Enum.Material.CorrodedMetal,
-	})
-	for _, s in { -1, 1 } do
-		part({
-			Parent = parent,
-			Size = Vector3.new(0.6, 10, 9),
-			CFrame = at(s * 9, 5, 6.5),
-			Color = color,
-			Material = Enum.Material.CorrodedMetal,
-		})
-		prop({
-			Parent = parent,
-			Size = Vector3.new(0.5, 10, 0.5),
-			CFrame = at(s * 9.5, 5, -2.5),
-			Color = Color3.fromRGB(70, 70, 75),
-			Material = Enum.Material.Metal,
-		})
-	end
-	-- Roof runs out over the counter as an awning.
-	part({
-		Parent = parent,
-		Size = Vector3.new(20, 0.6, 15),
-		CFrame = at(0, 10.3, 4),
-		Color = Color3.fromRGB(80, 80, 86),
-		Material = Enum.Material.CorrodedMetal,
-	})
-	prop({
-		Parent = parent,
-		Size = Vector3.new(20, 0.3, 0.3),
-		CFrame = at(0, 9.9, -3.4),
-		Color = titleColor,
-		Material = Enum.Material.Neon,
-	})
-	local board = prop({
-		Parent = parent,
-		Size = Vector3.new(16, 3.2, 0.5),
-		CFrame = at(0, 12.3, -2),
-		Color = Color3.fromRGB(30, 32, 38),
-		Material = Enum.Material.SmoothPlastic,
-	})
-	surfaceSign(board, Enum.NormalId.Front, title, titleColor)
-	local lamp = prop({
-		Parent = parent,
-		Size = Vector3.new(1, 0.6, 1),
-		CFrame = at(0, 9.6, 3),
-		Color = Color3.fromRGB(255, 240, 200),
-		Material = Enum.Material.Neon,
-	})
-	local light = Instance.new("PointLight")
-	light.Range = 18
-	light.Color = titleColor
-	light.Brightness = 1.2
-	light.Parent = lamp
-end
-
-local function scrapPile(parent: Instance, center: Vector3, radius: number)
-	local rust = {
-		Color3.fromRGB(125, 72, 50),
-		Color3.fromRGB(95, 85, 80),
-		Color3.fromRGB(140, 110, 70),
-		Color3.fromRGB(70, 75, 85),
-	}
-	for i = 1, 7 do
-		local s = yardRng:NextNumber(3, 7) * (i == 1 and 1.6 or 1)
-		local offset = Vector3.new(
-			yardRng:NextNumber(-radius, radius),
-			s * 0.3,
-			yardRng:NextNumber(-radius, radius) * 0.6
-		)
-		prop({
-			Parent = parent,
-			Size = Vector3.new(s, s * 0.7, s * 1.3),
-			CFrame = CFrame.new(center + offset) * CFrame.Angles(
-				yardRng:NextNumber(-0.4, 0.4),
-				yardRng:NextNumber(0, 6.28),
-				yardRng:NextNumber(-0.4, 0.4)
-			),
-			Color = rust[yardRng:NextInteger(1, #rust)],
-			Material = i % 3 == 0 and Enum.Material.DiamondPlate or Enum.Material.CorrodedMetal,
-			CastShadow = true,
-		})
-	end
-	for _ = 1, 2 do
-		prop({
-			Parent = parent,
-			Size = Vector3.new(1, 3, 3),
-			CFrame = CFrame.new(center + Vector3.new(yardRng:NextNumber(-radius, radius), 1.5, radius * 0.7))
-				* CFrame.Angles(0, yardRng:NextNumber(0, 6.28), yardRng:NextNumber(-0.3, 0.3)),
-			Shape = Enum.PartType.Cylinder,
-			Color = Color3.fromRGB(30, 30, 32),
-			Material = Enum.Material.Rubber,
-		})
-	end
-end
 
 local function buildScrapyard(yard: Model, sellPart: BasePart, shopPart: BasePart, rampStartZ: number)
 	local top = PLATEAU_HEIGHT
@@ -674,7 +604,7 @@ local function buildScrapyard(yard: Model, sellPart: BasePart, shopPart: BasePar
 		Name = "YardFloor",
 		Size = Vector3.new(PLATEAU_SIZE.X, 0.2, PLATEAU_SIZE.Z),
 		Position = PLATEAU_CENTER + Vector3.new(0, top + 0.1, 0),
-		Color = Color3.fromRGB(122, 108, 92),
+		Color = Palette.Swatches.RustDark:Lerp(Palette.Swatches.Sand, 0.45),
 		Material = Enum.Material.Ground,
 	})
 	prop({
@@ -686,170 +616,119 @@ local function buildScrapyard(yard: Model, sellPart: BasePart, shopPart: BasePar
 		Material = Enum.Material.Concrete,
 	})
 
-	shack(yard, sellPart, Color3.fromRGB(70, 130, 80), "SCRAP BUYER", Color3.fromRGB(120, 255, 140))
-	shack(yard, shopPart, Color3.fromRGB(60, 100, 170), "GEAR SHOP", Color3.fromRGB(140, 200, 255))
+	-- Shops: the model's counter sits 4.4 studs in front of its origin, so step back from the
+	-- (invisible) prompt part along its facing.
+	for _, info in
+		{
+			{ sellPart, "SellShack", "SCRAP BUYER", Palette.Swatches.NeonGreen },
+			{ shopPart, "GearShack", "GEAR SHOP", Palette.Swatches.StormCyan },
+		}
+	do
+		local counter: BasePart = info[1]
+		local look = counter.CFrame.LookVector
+		local ground = Vector3.new(counter.Position.X, top, counter.Position.Z)
+		local shack = placeAsset("scrapyard", info[2], facing(ground, look) * CFrame.new(0, 0, 4.4), yard)
+		labelAsset(shack, "HazardBlack", Enum.NormalId.Front, info[3], info[4])
+	end
 
-	-- Corrugated fence on the three outer edges.
-	local fenceColors =
-		{ Color3.fromRGB(120, 85, 65), Color3.fromRGB(105, 100, 95), Color3.fromRGB(135, 100, 70) }
+	-- Fence panels around the three outer edges.
 	local minX, maxX = -PLATEAU_SIZE.X / 2 + 1, PLATEAU_SIZE.X / 2 - 1
 	local minZ = PLATEAU_CENTER.Z - PLATEAU_SIZE.Z / 2 + 1
-	local i = 0
-	for x = minX + 5, maxX - 5, 10 do
-		i += 1
-		prop({
-			Parent = yard,
-			Size = Vector3.new(10, 9 + (i % 2), 0.5),
-			Position = Vector3.new(x, top + 4.5, minZ),
-			Color = fenceColors[i % 3 + 1],
-			Material = Enum.Material.CorrodedMetal,
-			CanCollide = true,
-		})
+	for x = minX + 5.25, maxX - 5, 10.5 do
+		placeAsset("scrapyard", "FencePanel", facing(Vector3.new(x, top, minZ), Vector3.new(0, 0, 1)), yard)
 	end
 	for _, x in { minX, maxX } do
-		for z = minZ + 5, rampStartZ - 6, 10 do
-			i += 1
-			prop({
-				Parent = yard,
-				Size = Vector3.new(0.5, 9 + (i % 2), 10),
-				Position = Vector3.new(x, top + 4.5, z),
-				Color = fenceColors[i % 3 + 1],
-				Material = Enum.Material.CorrodedMetal,
-				CanCollide = true,
-			})
+		for z = minZ + 5.25, rampStartZ - 6, 10.5 do
+			placeAsset(
+				"scrapyard",
+				"FencePanel",
+				facing(Vector3.new(x, top, z), Vector3.new(-math.sign(x), 0, 0)),
+				yard
+			)
 		end
 	end
 
-	-- Scrap mountains along the back fence (the spawn faces away from them, toward town).
-	for _, x in { -65, -40, 35, 62 } do
-		scrapPile(yard, Vector3.new(x, top, minZ + 9), 8)
-	end
-
-	-- Crushed-car stack
-	local carColors =
-		{ Color3.fromRGB(150, 60, 45), Color3.fromRGB(70, 95, 130), Color3.fromRGB(200, 170, 70) }
-	for level = 0, 2 do
-		prop({
-			Parent = yard,
-			Size = Vector3.new(6, 1.8, 11),
-			CFrame = CFrame.new(-62, top + 0.9 + level * 1.8, -285)
-				* CFrame.Angles(0, math.rad(level * 9 - 9), 0),
-			Color = carColors[level + 1],
-			Material = Enum.Material.CorrodedMetal,
-			CanCollide = true,
-			CastShadow = true,
-		})
-	end
-
-	-- Oil drums by the counters
-	for _, offset in
+	-- Back of the yard: scrap mountains, the crusher, and the crushed-car stack.
+	for _, spot in
 		{
-			Vector3.new(-36, 0, -248),
-			Vector3.new(-38.5, 0, -246),
-			Vector3.new(36, 0, -248),
-			Vector3.new(38.5, 0, -250),
+			Vector3.new(-68, 1.8, 11),
+			Vector3.new(-22, 1.5, 9),
+			Vector3.new(22, 1.6, 10),
+			Vector3.new(66, 1.4, 9),
+			Vector3.new(-74, 1.2, 50),
+			Vector3.new(0, 1.2, 8),
 		}
 	do
-		prop({
-			Parent = yard,
-			Size = Vector3.new(3.6, 2.4, 2.4),
-			Position = Vector3.new(offset.X, top + 1.8, offset.Z),
-			Orientation = Vector3.new(0, 0, 90),
-			Shape = Enum.PartType.Cylinder,
-			Color = yardRng:NextNumber() < 0.5 and Color3.fromRGB(40, 90, 150) or Color3.fromRGB(170, 60, 40),
-			Material = Enum.Material.Metal,
-			CanCollide = true,
-		})
+		local pile = placeAsset(
+			"scrapyard",
+			"ScrapPile",
+			CFrame.new(spot.X, top, minZ + spot.Z) * CFrame.Angles(0, yardRng:NextNumber(0, math.pi * 2), 0),
+			yard
+		)
+		if pile then
+			pile:ScaleTo(spot.Y)
+		end
+	end
+	placeAsset("scrapyard", "Crusher", facing(Vector3.new(-48, top, -306), Vector3.new(0, 0, 1)), yard)
+	placeAsset("scrapyard", "CarStack", CFrame.new(-70, top, -282) * CFrame.Angles(0, math.rad(12), 0), yard)
+
+	-- East side: stacked containers, pallets, and a workbench by the gear shop.
+	placeAsset("scrapyard", "Container", CFrame.new(72, top, -262), yard)
+	placeAsset("scrapyard", "Container", CFrame.new(72, top, -284) * CFrame.Angles(0, math.rad(4), 0), yard)
+	placeAsset(
+		"scrapyard",
+		"Container",
+		CFrame.new(71, top + 8.5, -273) * CFrame.Angles(0, math.rad(-6), 0),
+		yard
+	)
+	placeAsset(
+		"scrapyard",
+		"PalletStack",
+		CFrame.new(50, top, -282) * CFrame.Angles(0, math.rad(20), 0),
+		yard
+	)
+	placeAsset("scrapyard", "Workbench", facing(Vector3.new(52, top, -250), Vector3.new(-1, 0, 0)), yard)
+
+	-- West side and around the counters.
+	placeAsset(
+		"scrapyard",
+		"TireStack",
+		CFrame.new(-50, top, -282) * CFrame.Angles(0, math.rad(-30), 0),
+		yard
+	)
+	placeAsset("scrapyard", "OilDrums", CFrame.new(-38, top, -247) * CFrame.Angles(0, math.rad(40), 0), yard)
+	placeAsset("scrapyard", "OilDrums", CFrame.new(40, top, -243) * CFrame.Angles(0, math.rad(-70), 0), yard)
+	placeAsset("scrapyard", "Wreck", CFrame.new(-52, top, -234) * CFrame.Angles(0, math.rad(35), 0), yard)
+
+	-- Floodlights in the corners light the yard at storm time.
+	for _, pos in
+		{
+			Vector3.new(-78, top, -320),
+			Vector3.new(78, top, -320),
+			Vector3.new(-78, top, -232),
+			Vector3.new(78, top, -232),
+		}
+	do
+		placeAsset("scrapyard", "Floodlight", facing(pos, Vector3.new(-math.sign(pos.X), 0, 0)), yard)
 	end
 
-	-- Crane: the landmark you can see from anywhere in town.
-	local craneBase = Vector3.new(58, top, -300)
-	local tower = Instance.new("TrussPart")
-	tower.Anchored = true
-	tower.Size = Vector3.new(4, 56, 4)
-	tower.Position = craneBase + Vector3.new(0, 28, 0)
-	tower.Color = Color3.fromRGB(230, 170, 30)
-	tower.Parent = yard
-	prop({
-		Parent = yard,
-		Size = Vector3.new(6, 5, 6),
-		Position = craneBase + Vector3.new(0, 58.5, 0),
-		Color = Color3.fromRGB(230, 170, 30),
-		Material = Enum.Material.Metal,
-		CastShadow = true,
-	})
-	-- Boom reaches out over the yard; its back end carries the counterweight.
-	local towerTop = craneBase + Vector3.new(0, 56, 0)
-	local reach = Vector3.new(-1, 0, 0.35).Unit
-	local boomCenter = towerTop + reach * 14 + Vector3.new(0, 2, 0)
-	local boom = Instance.new("TrussPart")
-	boom.Anchored = true
-	boom.Size = Vector3.new(2, 2, 46)
-	boom.CFrame = CFrame.lookAt(boomCenter, boomCenter + reach)
-	boom.Color = Color3.fromRGB(230, 170, 30)
-	boom.CanQuery = false
-	boom.Parent = yard
-	local tip = boom.CFrame * Vector3.new(0, 0, -22)
-	prop({
-		Parent = yard,
-		Size = Vector3.new(0.3, 22, 0.3),
-		Position = tip - Vector3.new(0, 11, 0),
-		Color = Color3.fromRGB(30, 30, 30),
-		Material = Enum.Material.Metal,
-		CanCollide = false,
-	})
-	prop({
-		Parent = yard,
-		Size = Vector3.new(1.5, 6, 6),
-		Position = tip - Vector3.new(0, 22.5, 0),
-		Orientation = Vector3.new(0, 0, 90),
-		Shape = Enum.PartType.Cylinder,
-		Color = Color3.fromRGB(60, 60, 65),
-		Material = Enum.Material.DiamondPlate,
-		CastShadow = true,
-	})
-	prop({
-		Parent = yard,
-		Size = Vector3.new(6, 4, 6),
-		Position = boom.CFrame * Vector3.new(0, -1, 20),
-		Color = Color3.fromRGB(80, 80, 85),
-		Material = Enum.Material.Concrete,
-	})
+	-- Crane: the landmark you can see from anywhere in town. Its jib reaches over the yard (-X).
+	-- Blender +X becomes Roblox -X on import (Y-up conversion), so the jib modeled along -X points
+	-- +X here; turn it around so it reaches into the yard.
+	placeAsset("scrapyard", "Crane", CFrame.new(58, top, -300) * CFrame.Angles(0, math.pi, 0), yard)
+	placeAsset("scrapyard", "TireStack", CFrame.new(-20, top, -312) * CFrame.Angles(0, math.rad(60), 0), yard)
+	placeAsset("scrapyard", "Wreck", CFrame.new(28, top, -310) * CFrame.Angles(0, math.rad(-80), 0), yard)
+	placeAsset("scrapyard", "OilDrums", CFrame.new(46, top, -318) * CFrame.Angles(0, math.rad(15), 0), yard)
 
-	-- Gate arch over the top of the ramp
-	for _, s in { -1, 1 } do
-		prop({
-			Parent = yard,
-			Size = Vector3.new(1.5, 16, 1.5),
-			Position = Vector3.new(s * 13.5, top + 8, rampStartZ - 1.5),
-			Color = Color3.fromRGB(70, 70, 75),
-			Material = Enum.Material.Metal,
-			CanCollide = true,
-		})
-	end
-	local beam = prop({
-		Parent = yard,
-		Name = "GateSign",
-		Size = Vector3.new(30, 4, 1),
-		Position = Vector3.new(0, top + 17, rampStartZ - 1.5),
-		Color = Color3.fromRGB(35, 35, 40),
-		Material = Enum.Material.Metal,
-		CastShadow = true,
-	})
-	surfaceSign(
-		beam,
-		Enum.NormalId.Back,
-		"STORM SALVAGE YARD",
-		Color3.fromRGB(255, 200, 60),
-		Enum.Font.LuckiestGuy
+	-- Gate arch over the top of the ramp, front (with its bulbs) facing the town.
+	local gate = placeAsset(
+		"scrapyard",
+		"GateArch",
+		facing(Vector3.new(0, top, rampStartZ - 1.5), Vector3.new(0, 0, 1)),
+		yard
 	)
-	surfaceSign(
-		beam,
-		Enum.NormalId.Front,
-		"GOOD LUCK OUT THERE",
-		Color3.fromRGB(255, 200, 60),
-		Enum.Font.LuckiestGuy
-	)
+	labelAsset(gate, "HazardBlack", Enum.NormalId.Front, "STORM SALVAGE YARD", Palette.Swatches.SafetyYellow)
+	labelAsset(gate, "HazardBlack", Enum.NormalId.Back, "GOOD LUCK OUT THERE", Palette.Swatches.SafetyYellow)
 end
 
 ---------------------------------------------------------------------------- Build
@@ -1042,8 +921,8 @@ function MapBuilder.build()
 		Name = "SellCounter",
 		Size = Vector3.new(14, 4, 5),
 		CFrame = CFrame.lookAt(sellPos, sellPos + Vector3.new(1, 0, 0)),
-		Color = Color3.fromRGB(60, 170, 80),
-		Material = Enum.Material.DiamondPlate,
+		Transparency = 1, -- prompt holder; the SellShack model draws the counter
+		CanCollide = false,
 	})
 	local sellPrompt = Instance.new("ProximityPrompt")
 	sellPrompt.Name = "SellPrompt"
@@ -1052,15 +931,14 @@ function MapBuilder.build()
 	sellPrompt.MaxActivationDistance = 14
 	sellPrompt.RequiresLineOfSight = false
 	sellPrompt.Parent = sellPart
-	sign(sellPart, "SELL HERE", Color3.fromRGB(120, 255, 140), 15, 2000)
 
 	local shopPart = part({
 		Parent = yard,
 		Name = "UpgradeShop",
 		Size = Vector3.new(14, 4, 5),
 		CFrame = CFrame.lookAt(shopPos, shopPos - Vector3.new(1, 0, 0)),
-		Color = Color3.fromRGB(60, 120, 200),
-		Material = Enum.Material.DiamondPlate,
+		Transparency = 1, -- prompt holder; the GearShack model draws the counter
+		CanCollide = false,
 	})
 	local shopPrompt = Instance.new("ProximityPrompt")
 	shopPrompt.Name = "UpgradePrompt"
@@ -1069,7 +947,6 @@ function MapBuilder.build()
 	shopPrompt.MaxActivationDistance = 14
 	shopPrompt.RequiresLineOfSight = false
 	shopPrompt.Parent = shopPart
-	sign(shopPart, "UPGRADES", Color3.fromRGB(140, 200, 255), 15)
 
 	for x = -80, 80, 8 do
 		if math.abs(x) > 14 and math.abs(x + 70) > 10 then
@@ -1084,7 +961,6 @@ function MapBuilder.build()
 			})
 		end
 	end
-	car(PLATEAU_CENTER + Vector3.new(55, plateauTop, 25), Color3.fromRGB(160, 60, 40), 20)
 	buildScrapyard(yard, sellPart, shopPart, rampStartZ)
 
 	-- Town buildings

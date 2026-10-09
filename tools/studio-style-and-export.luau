@@ -9,7 +9,8 @@ local HttpService = game:GetService("HttpService")
 local SerializationService = game:GetService("SerializationService")
 local ServerStorage = game:GetService("ServerStorage")
 
-local Palette = require(game:GetService("ReplicatedStorage").Shared.Palette)
+-- Require a fresh copy: the command bar caches modules, which would hide palette edits.
+local Palette = require(game:GetService("ReplicatedStorage").Shared.Palette:Clone())
 
 local B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 local function base64(buf: buffer): string
@@ -35,6 +36,11 @@ local function base64(buf: buffer): string
 	return table.concat(out)
 end
 
+-- Assets with open interiors or gaps (doorways, the gate) need real collision shapes; a box
+-- around their joined walls would block them. Everything else uses a cheap box. Salvage never
+-- collides (LootService turns collisions off).
+local PRECISE = { SellShack = true, GearShack = true, GateArch = true, Crane = true, Crusher = true, Workbench = true }
+
 -- Applies palette material/color to one model; returns how many MeshParts were styled.
 local function style(model: Instance): (number, { string })
 	local styled, unknown = 0, {}
@@ -52,7 +58,9 @@ local function style(model: Instance): (number, { string })
 			end
 			d.Anchored = true
 			d.CastShadow = d.Size.Magnitude > 4
-			d.CollisionFidelity = Enum.CollisionFidelity.Box
+			d.CollisionFidelity = if PRECISE[model.Name]
+				then Enum.CollisionFidelity.PreciseConvexDecomposition
+				else Enum.CollisionFidelity.Box
 			if material == Enum.Material.Glass then
 				d.Transparency = 0.3
 			end
@@ -61,7 +69,7 @@ local function style(model: Instance): (number, { string })
 	return styled, unknown
 end
 
-local root = ServerStorage:FindFirstChild("ImportedAssets")
+local root = ServerStorage:FindFirstChild("ImportedAssets") or ServerStorage:FindFirstChild("Assets")
 assert(root, "Put imported models in ServerStorage.ImportedAssets.<set> first")
 
 local log = {}

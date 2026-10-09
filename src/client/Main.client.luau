@@ -352,7 +352,7 @@ local function updateHint()
 		hint.Text = "Head down into town and grab glowing salvage!"
 		hint.Visible = true
 	else
-		hint.Text = "Bring your salvage back to SELL HERE at the Scrapyard"
+		hint.Text = "Bring your salvage back to the Scrap Buyer at the Scrapyard"
 		hint.Visible = true
 	end
 end

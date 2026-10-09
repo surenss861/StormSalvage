@@ -74,7 +74,13 @@ function Palette.parseName(name: string): (Enum.Material?, Color3?)
 	if not material then
 		return nil, nil
 	end
-	return Palette.Materials[material], Palette.Swatches[swatch :: string]
+	local robloxMaterial = Palette.Materials[material]
+	-- Roblox's CorrodedMetal texture paints over any color with brown rust, so painted metal
+	-- (containers, shack walls, crushed cars) renders as plain Metal; only rust swatches corrode.
+	if robloxMaterial == Enum.Material.CorrodedMetal and swatch ~= "Rust" and swatch ~= "RustDark" then
+		robloxMaterial = Enum.Material.Metal
+	end
+	return robloxMaterial, Palette.Swatches[swatch :: string]
 end
 
 return Palette

@@ -3,6 +3,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Shelter = require(ReplicatedStorage.Shared.Shelter)
@@ -21,6 +22,36 @@ local zones: { [string]: Zone } = {}
 local folder: Folder
 local rng = Random.new()
 local townMin: Vector3, townMax: Vector3
+
+-- Blender-made salvage models (assets/roblox/salvage). Each loot item is an invisible anchored
+-- root part (prompt, light, marker) with the model's MeshParts welded to it, so the client's
+-- bob/spin moves the whole item by setting one CFrame.
+local salvageModels: Instance? = nil
+do
+	local assets = ServerStorage:FindFirstChild("Assets")
+	salvageModels = assets and assets:FindFirstChild("salvage")
+end
+
+local function attachModel(item: Part, model: Model, height: number)
+	local pivot = model:GetPivot()
+	local base = item.CFrame * CFrame.new(0, -height / 2, 0)
+	for _, piece in model:GetChildren() do
+		if piece:IsA("BasePart") then
+			local clone = piece:Clone()
+			clone.CFrame = base * pivot:ToObjectSpace(piece.CFrame)
+			clone.Anchored = false
+			clone.CanCollide = false
+			clone.CanQuery = false
+			clone.CanTouch = false
+			clone.Massless = true
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = item
+			weld.Part1 = clone
+			weld.Parent = clone
+			clone.Parent = item
+		end
+	end
+end
 
 local function pickWeighted(pool: { { Id: string, Weight: number } }): string
 	local total = 0
@@ -67,16 +98,30 @@ local function createLoot(
 	item.Name = lootId
 	item.Anchored = true
 	item.CanCollide = false
-	if def.Shape then
-		item.Shape = def.Shape
+	item.CanTouch = false
+	local yaw = CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
+	local model = salvageModels and salvageModels:FindFirstChild(lootId)
+	local height
+	if model and model:IsA("Model") then
+		local size = model:GetExtentsSize()
+		height = size.Y
+		item.Size = size
+		item.Transparency = 1
+		item.CFrame = CFrame.new(floorPosition + Vector3.new(0, height / 2, 0)) * yaw
+		attachModel(item, model, height)
+	else
+		-- Primitive fallback if the asset library is missing.
+		if def.Shape then
+			item.Shape = def.Shape
+		end
+		item.Size = def.Size
+		item.Color = def.Color
+		item.Material = def.Material
+		height = if def.Upright then def.Size.X else def.Size.Y
+		item.CFrame = CFrame.new(floorPosition + Vector3.new(0, height / 2, 0))
+			* yaw
+			* (if def.Upright then CFrame.Angles(0, 0, math.pi / 2) else CFrame.identity)
 	end
-	item.Size = def.Size
-	item.Color = def.Color
-	item.Material = def.Material
-	local height = if def.Upright then def.Size.X else def.Size.Y
-	item.CFrame = CFrame.new(floorPosition + Vector3.new(0, height / 2, 0))
-		* CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
-		* (if def.Upright then CFrame.Angles(0, 0, math.pi / 2) else CFrame.identity)
 	item:SetAttribute("LootId", lootId)
 
 	-- Floating rarity marker (Highlights are capped at 31 on screen, so avoid them here).
