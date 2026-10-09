@@ -54,6 +54,8 @@ local VISUAL_ONLY = {
 	MotelShell = true,
 	FuelCanopy = true, -- the canopy's shelter and columns are gameplay parts in MapBuilder
 	Fountain = true, -- the old basin cylinder stays as invisible collision
+	IndustryLamp = true,
+	VentDuct = true,
 }
 
 -- Applies palette material/color to one model; returns how many MeshParts were styled.

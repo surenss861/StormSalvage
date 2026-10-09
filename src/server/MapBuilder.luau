@@ -975,6 +975,94 @@ local function upgradeDistricts()
 	eachNamed({ SirenBase = "remove", SirenPole = "remove", Siren = "remove", SirenHorn = "remove" })
 	place("SirenTower", CFrame.new(-92, 0, -40))
 	place("Statue", facing(Vector3.new(-88, 0, -82), Vector3.new(1, 0, 0.6)))
+
+	-- Props merged from the five-district source pack (assets/roblox/districtprops).
+	if not (assetRoot and assetRoot:FindFirstChild("districtprops")) then
+		return
+	end
+	local function packProp(name: string, cf: CFrame): Model?
+		return placeAsset("districtprops", name, cf, map)
+	end
+	local function lightNeon(model: Model?, range: number)
+		if not model then
+			return
+		end
+		for _, p in model:GetDescendants() do
+			if p:IsA("BasePart") and p.Material == Enum.Material.Neon then
+				local light = Instance.new("PointLight")
+				light.Range = range
+				light.Brightness = 1.4
+				light.Color = Color3.fromRGB(255, 225, 170)
+				light.Parent = p
+			end
+		end
+	end
+
+	-- Supermarket: cart corral in the lot, produce out front, stock pallets by the loading door.
+	packProp("CartCorral", CFrame.new(150, 0.25, -34))
+	packProp("ProduceStand", facing(Vector3.new(100, 0.25, -51), Vector3.new(0, 0, 1)))
+	packProp("FoodPallet", CFrame.new(132, 0, -109) * CFrame.Angles(0, math.rad(12), 0))
+
+	-- Gas station: an open-air repair bay on the west side.
+	prop({
+		Name = "RepairPad",
+		Size = Vector3.new(18, 0.3, 22),
+		Position = Vector3.new(-153, 0.15, -82),
+		Color = CONCRETE,
+		Material = Enum.Material.Concrete,
+		CanQuery = true,
+	})
+	packProp("GarageLift", facing(Vector3.new(-153, 0.3, -80), Vector3.new(1, 0, 0)))
+	packProp("ToolCabinet", facing(Vector3.new(-147, 0.3, -91), Vector3.new(0, 0, 1)))
+	packProp("OilRack", facing(Vector3.new(-157, 0.3, -91.5), Vector3.new(0, 0, 1)))
+	packProp("Extinguisher", facing(Vector3.new(-112.5, 0.3, -63.6), Vector3.new(0, 0, 1)))
+
+	-- Warehouse: loading dock at the east bay, cargo and a pallet jack in the yard, hanging lamps
+	-- and a duct inside (the lamp model hangs 3.7-7.7 studs above its pivot).
+	eachNamed({ YardCrate = "remove" })
+	packProp("LoadingDock", facing(Vector3.new(147, 0, 53.4), Vector3.new(0, 0, -1)))
+	packProp("CargoStack", facing(Vector3.new(101, 0, 52), Vector3.new(0, 0, -1)))
+	packProp("PalletJack", CFrame.new(134, 0, 49) * CFrame.Angles(0, math.rad(-20), 0))
+	for _, pos in
+		{
+			Vector3.new(125, 14.3, 72),
+			Vector3.new(125, 14.3, 98),
+			Vector3.new(105, 14.3, 85),
+			Vector3.new(145, 14.3, 85),
+		}
+	do
+		lightNeon(packProp("IndustryLamp", CFrame.new(pos)), 32)
+	end
+	packProp("VentDuct", CFrame.new(125, 17, 116))
+
+	-- Motel: dressers between the beds and a sink on the back wall; luggage cart on the walkway;
+	-- AC units outside the back.
+	for _, dx in { -35, -21, 21, 35 } do
+		packProp("MotelDresser", CFrame.new(dx, 1, 177.9))
+	end
+	packProp("BathroomSink", CFrame.new(0, 1, 178.0))
+	packProp("LuggageCart", facing(Vector3.new(8, 0.4, 147), Vector3.new(0, 0, -1)))
+	for _, x in { -40, -10, 20, 45 } do
+		packProp("OutdoorAC", facing(Vector3.new(x, 0, 183), Vector3.new(0, 0, 1)))
+	end
+
+	-- Town square: clock tower landmark behind the plaza, planters beside it, and a bus stop on
+	-- the cross road. The bus stop's roof looks like cover, so it counts as shelter.
+	packProp("ClockTower", facing(Vector3.new(-50, 0, -98), Vector3.new(0, 0, 1)))
+	for _, x in { -62, -38 } do
+		packProp("RoundPlanter", CFrame.new(x, 0, -92))
+	end
+	packProp("BusStop", facing(Vector3.new(-62, 0, -14), Vector3.new(0, 0, 1)))
+	local busRoof = part({
+		Parent = roofs,
+		Name = "BusStopShelter",
+		Size = Vector3.new(17, 0.6, 6),
+		Position = Vector3.new(-62, 10.1, -14),
+		Transparency = 1,
+		CanCollide = false,
+	})
+	CollectionService:AddTag(busRoof, "Shelter")
+	packProp("NoticeBoard", facing(Vector3.new(-36, 0, -15), Vector3.new(0, 0, 1)))
 end
 
 ---------------------------------------------------------------------------- Build
@@ -1405,6 +1493,7 @@ function MapBuilder.build()
 				SignColor = Color3.fromRGB(70, 90, 130),
 				SignTextColor = Color3.fromRGB(255, 120, 160),
 				Awning = true,
+				LootMargin = 5, -- keeps the back loot row clear of the dressers
 				Shell = {
 					Set = "districts",
 					Name = "MotelShell",
@@ -1532,12 +1621,14 @@ function MapBuilder.build()
 	end
 	for _, pos in { Vector3.new(100, 0, 52), Vector3.new(104.5, 0, 51), Vector3.new(146, 0, 52) } do
 		prop({
+			Name = "YardCrate",
 			Size = Vector3.new(4, 0.6, 4),
 			Position = pos + Vector3.new(0, 0.3, 0),
 			Color = Color3.fromRGB(160, 125, 85),
 			Material = Enum.Material.WoodPlanks,
 		})
 		prop({
+			Name = "YardCrate",
 			Size = Vector3.new(3.4, 3, 3.4),
 			Position = pos + Vector3.new(0, 2.1, 0),
 			Color = Color3.fromRGB(175, 140, 95),
