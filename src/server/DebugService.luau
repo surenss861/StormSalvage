@@ -9,6 +9,7 @@
 --   debug:Invoke("state")               -- storm + player summary
 --   debug:Invoke("receipt", "Player1", "purchase-1")  -- simulated receipt -> decision name
 --   debug:Invoke("save", "Player1")     -- save now -> true if persisted
+--   debug:Invoke("stats")               -- recent StormStats records
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -18,6 +19,7 @@ local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local MonetizationService = require(script.Parent.MonetizationService)
 local PlayerService = require(script.Parent.PlayerService)
 local StormService = require(script.Parent.StormService)
+local StormStats = require(script.Parent.StormStats)
 
 local DebugService = {}
 
@@ -50,6 +52,9 @@ local commands: { [string]: (...any) -> any } = {
 		local player = Players:FindFirstChild(playerName)
 		assert(player and player:IsA("Player"), "no player " .. tostring(playerName))
 		return PlayerService.save(player, false)
+	end,
+	stats = function()
+		return StormStats.history()
 	end,
 	state = function()
 		local players = {}

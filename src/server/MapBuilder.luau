@@ -430,6 +430,26 @@ local function building(
 		end
 	end
 
+	if o.Gable and shell then
+		-- Invisible pitched-roof collision under the shell's roof meshes, so anyone climbing
+		-- the ladder in a flood stands on the roof they can see (not inside it).
+		local rh = o.Gable
+		local rd = d / 2 + 1.5
+		for _, side in { -1, 1 } do
+			local cf = CFrame.new(center + Vector3.new(0, h + 1 + rh / 2, side * rd / 2))
+			if side == 1 then
+				cf *= CFrame.Angles(0, math.pi, 0)
+			end
+			wedge({
+				Parent = model,
+				Name = "RoofSlope",
+				Size = Vector3.new(w + 3, rh, rd),
+				CFrame = cf,
+				Transparency = 1,
+				CastShadow = false,
+			})
+		end
+	end
 	if o.Gable and not shell then
 		local rh = o.Gable
 		local rd = (d + 3) / 2
@@ -1342,9 +1362,9 @@ function MapBuilder.build()
 			wallWood,
 			"N",
 			roofColors[i],
-			false,
+			true, -- ladder: flood escape onto the roof
 			{
-				Gable = 6,
+				Gable = i % 2 == 1 and 7 or 6, -- ridge heights of HouseA / HouseB in build_town.py
 				Label = false,
 				Shell = {
 					Name = i % 2 == 1 and "HouseA" or "HouseB",

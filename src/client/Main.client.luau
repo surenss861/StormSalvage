@@ -1,7 +1,6 @@
 -- Storm Salvage client: HUD, upgrade shop, tutorial hints, storm visuals.
 
 local Debris = game:GetService("Debris")
-local Lighting = game:GetService("Lighting")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -12,7 +11,7 @@ local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
-local Shelter = require(ReplicatedStorage.Shared:WaitForChild("Shelter"))
+local StormEffects = require(script.Parent:WaitForChild("StormEffects"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -20,6 +19,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 local FONT = Enum.Font.FredokaOne
 local WHITE = Color3.new(1, 1, 1)
 local PANEL = Color3.fromRGB(25, 28, 36)
+local SUBTLE = Color3.fromRGB(200, 200, 210)
 
 local playerState: any = nil
 local stormState: any = { Phase = "Calm", EndsAt = 0 }
@@ -104,12 +104,12 @@ local function playSound(name: string, volumeScale: number?)
 end
 
 -- Fades a looping ambience in or out without restarting it every frame.
-local function setAmbience(name: string, on: boolean)
+local function setAmbience(name: string, on: boolean, volumeScale: number?)
 	local sound = sounds[name]
 	if not sound then
 		return
 	end
-	local target = on and Config.Sounds[name].Volume or 0
+	local target = on and Config.Sounds[name].Volume * (volumeScale or 1) or 0
 	if sound:GetAttribute("Target") == target then
 		return
 	end
@@ -118,7 +118,7 @@ local function setAmbience(name: string, on: boolean)
 		sound.Volume = 0
 		sound:Play()
 	end
-	local tween = TweenService:Create(sound, TweenInfo.new(2.5), { Volume = target })
+	local tween = TweenService:Create(sound, TweenInfo.new(if on then 1 else 2.5), { Volume = target })
 	tween:Play()
 	if not on then
 		tween.Completed:Once(function()
@@ -176,7 +176,7 @@ local bannerSub = label({
 	Size = UDim2.new(1, -16, 0.35, 0),
 	Position = UDim2.new(0, 8, 0.6, -2),
 	Text = "",
-	TextColor3 = Color3.fromRGB(200, 200, 210),
+	TextColor3 = SUBTLE,
 })
 
 -- Stats strip directly under the banner (top-left belongs to Roblox chat, top-right to the player list)
@@ -346,7 +346,9 @@ local function updateHint()
 		return
 	end
 	local s = playerState
-	if s.Stats.ItemsSold > 0 then
+	local stormy = stormState.Phase == "Warning" or stormState.Phase == "Storm"
+	if s.Stats.ItemsSold > 0 or stormy then
+		-- The storm banner and alerts carry the advice while a storm is coming or running.
 		hint.Visible = false
 	elseif #s.Carried == 0 then
 		hint.Text = "Head down into town and grab glowing salvage!"
@@ -519,6 +521,27 @@ for _, product in Config.DevProducts do
 	end
 end
 
+-- Accessibility: no screen flashes, no swaying trees, fewer wind streaks.
+do
+	local _, toggle = shopRow(
+		"ReducedEffects",
+		200,
+		"Reduced Effects",
+		"No lightning flashes or swaying trees.",
+		Color3.fromRGB(90, 90, 100)
+	)
+	local function show()
+		local on = StormEffects.isReduced()
+		toggle.Text = on and "ON" or "OFF"
+		toggle.BackgroundColor3 = on and Color3.fromRGB(60, 140, 200) or Color3.fromRGB(90, 90, 100)
+	end
+	toggle.Activated:Connect(function()
+		StormEffects.setReduced(not StormEffects.isReduced())
+		show()
+	end)
+	show()
+end
+
 local function refreshShop()
 	if not playerState then
 		return
@@ -638,109 +661,18 @@ Remotes.get("StormState").OnClientEvent:Connect(function(s)
 	local storming = s.Phase == "Storm"
 	setAmbience("Rain", storming and (s.Storm == "Flood" or s.Storm == "Lightning"))
 	setAmbience("Flood", storming and s.Storm == "Flood")
-	setAmbience("Wind", storming and s.Storm == "Wind")
+	StormEffects.setState(s)
+	updateHint()
 end)
 
----------------------------------------------------------------------------- Lightning warnings
+---------------------------------------------------------------------------- Storm effects
 
-local effects = new("Folder", { Name = "ClientEffects", Parent = workspace })
--- Client-only grade for lightning flashes, separate from the server's storm grade.
-local flash = new("ColorCorrectionEffect", { Name = "LightningFlash", Parent = Lighting })
-
-local function lightningFlash(position: Vector3)
-	local camera = workspace.CurrentCamera
-	if not camera or (camera.CFrame.Position - position).Magnitude > 220 then
-		return
-	end
-	local distance = (camera.CFrame.Position - position).Magnitude
-	local closeness = 1 - distance / 220
-	flash.Brightness = 0.35 * closeness
-	TweenService
-		:Create(
-			flash,
-			TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			{ Brightness = 0 }
-		)
-		:Play()
-	-- Thunder arrives a beat after the flash, quieter with distance.
-	task.delay(distance / 400, playSound, "Thunder", 0.4 + closeness * 0.6)
-end
-
-Remotes.get("LightningWarning").OnClientEvent
-	:Connect(function(position: Vector3, radius: number, delay: number)
-		local disc = new("Part", {
-			Parent = effects,
-			Anchored = true,
-			CanCollide = false,
-			CanQuery = false,
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(0.2, 1, 1),
-			CFrame = CFrame.new(position + Vector3.new(0, 0.35, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-			Material = Enum.Material.Neon,
-			Color = Color3.fromRGB(255, 230, 80),
-			Transparency = 0.35,
-		})
-		TweenService:Create(disc, TweenInfo.new(delay, Enum.EasingStyle.Linear), {
-			Size = Vector3.new(0.2, radius * 2, radius * 2),
-			Color = Color3.fromRGB(255, 60, 40),
-		}):Play()
-		Debris:AddItem(disc, delay + 0.1)
-		task.delay(delay, lightningFlash, position)
-	end)
-
----------------------------------------------------------------------------- Weather: rain + wind push
-
-local rainAnchor = new("Part", {
-	Parent = effects,
-	Anchored = true,
-	CanCollide = false,
-	CanQuery = false,
-	Transparency = 1,
-	Size = Vector3.new(90, 1, 90),
-})
-local rain = new("ParticleEmitter", {
-	Parent = rainAnchor,
-	Enabled = false,
-	Rate = 600,
-	Lifetime = NumberRange.new(0.8, 1.2),
-	Speed = NumberRange.new(70, 90),
-	EmissionDirection = Enum.NormalId.Bottom,
-	Size = NumberSequence.new(0.18),
-	Squash = NumberSequence.new(2.5), -- stretch into streaks
-	Color = ColorSequence.new(Color3.fromRGB(190, 210, 235)),
-	Transparency = NumberSequence.new(0.2),
-	Orientation = Enum.ParticleOrientation.VelocityParallel,
-	LightEmission = 0.3,
-})
-
--- Wind streaks blow past the camera from upwind during windstorms.
-local windAnchor = new("Part", {
-	Parent = effects,
-	Anchored = true,
-	CanCollide = false,
-	CanQuery = false,
-	Transparency = 1,
-	Size = Vector3.new(120, 40, 1),
-})
-local windStreaks = new("ParticleEmitter", {
-	Parent = windAnchor,
-	Enabled = false,
-	Rate = 160,
-	Lifetime = NumberRange.new(1, 1.4),
-	Speed = NumberRange.new(90, 120),
-	EmissionDirection = Enum.NormalId.Front,
-	Size = NumberSequence.new(0.14),
-	Squash = NumberSequence.new(3),
-	Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 1),
-		NumberSequenceKeypoint.new(0.2, 0.5),
-		NumberSequenceKeypoint.new(0.8, 0.5),
-		NumberSequenceKeypoint.new(1, 1),
-	}),
-	Color = ColorSequence.new(Color3.fromRGB(225, 220, 205)),
-	Orientation = Enum.ParticleOrientation.VelocityParallel,
-	LightEmission = 0.1,
-})
+StormEffects.init({
+	PlaySound = playSound,
+	SetAmbience = setAmbience,
+	HudRoot = hudRoot,
+	Font = FONT,
+}, Remotes.get("LightningWarning"))
 
 ---------------------------------------------------------------------------- Loot bob
 
@@ -776,40 +708,13 @@ local function animateLoot(cameraPosition: Vector3)
 	end
 end
 
-local windForce: VectorForce? = nil
-local function getWindForce(): VectorForce?
-	local character = player.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if not root then
-		return nil
-	end
-	if windForce and windForce.Parent == root then
-		return windForce
-	end
-	local attachment = root:FindFirstChild("RootAttachment") or new("Attachment", { Parent = root })
-	windForce = new("VectorForce", {
-		Parent = root,
-		Attachment0 = attachment,
-		RelativeTo = Enum.ActuatorRelativeTo.World,
-		ApplyAtCenterOfMass = true,
-		Enabled = false,
-	})
-	return windForce
-end
-
-local function inSafeZone(position: Vector3): boolean
-	return position.Z < Config.SafeZoneMaxZ and position.Y > 20
-end
-
-local shelterCheckAt = 0
-local sheltered = false
-
 RunService.RenderStepped:Connect(function()
 	local now = workspace:GetServerTimeNow()
 	local remaining = math.max(0, math.ceil(stormState.EndsAt - now))
 	local phase = stormState.Phase
 	local storm = stormState.Storm and Config.Storms[stormState.Storm]
 
+	bannerSub.TextColor3 = SUBTLE
 	if phase == "Calm" then
 		bannerTitle.Text = "CALM SKIES"
 		bannerTitle.TextColor3 = Color3.fromRGB(150, 230, 160)
@@ -821,7 +726,9 @@ RunService.RenderStepped:Connect(function()
 	elseif phase == "Storm" and storm then
 		bannerTitle.Text = storm.DisplayName
 		bannerTitle.TextColor3 = (os.clock() % 0.6 < 0.3) and storm.Color or WHITE
-		bannerSub.Text = ("Survive in town for a bonus!  %ds"):format(remaining)
+		local line, lineColor = StormEffects.statusLine(now, remaining)
+		bannerSub.Text = line or ("Survive in town for a bonus!  %ds"):format(remaining)
+		bannerSub.TextColor3 = lineColor or SUBTLE
 	elseif phase == "Aftermath" then
 		bannerTitle.Text = "STORM PASSED"
 		bannerTitle.TextColor3 = Color3.fromRGB(255, 220, 90)
@@ -836,31 +743,8 @@ RunService.RenderStepped:Connect(function()
 	end
 
 	local camera = workspace.CurrentCamera
-	local stormActive = phase == "Storm"
-	rain.Enabled = stormActive and (stormState.Storm == "Flood" or stormState.Storm == "Lightning")
-	windStreaks.Enabled = stormActive and stormState.Storm == "Wind"
 	if camera then
-		local camPos = camera.CFrame.Position
-		rainAnchor.CFrame = CFrame.new(camPos + Vector3.new(0, 40, 0))
-		if windStreaks.Enabled then
-			local dir = stormState.WindDir
-			windAnchor.CFrame =
-				CFrame.lookAt(camPos - dir * 60 + Vector3.new(0, 4, 0), camPos + Vector3.new(0, 4, 0))
-		end
-		animateLoot(camPos)
+		animateLoot(camera.CFrame.Position)
 	end
-
-	local force = getWindForce()
-	if force then
-		local root = force.Parent :: BasePart
-		if os.clock() > shelterCheckAt then
-			shelterCheckAt = os.clock() + 0.25
-			sheltered = Shelter.isSheltered(root.Position) or inSafeZone(root.Position)
-		end
-		local windy = stormActive and stormState.Storm == "Wind" and not sheltered
-		force.Enabled = windy
-		if windy then
-			force.Force = stormState.WindDir * root.AssemblyMass * Config.StormTuning.WindPush
-		end
-	end
+	StormEffects.step(now)
 end)

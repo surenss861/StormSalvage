@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
+local StormStats = require(script.Parent.StormStats)
 
 local PlayerService = {}
 
@@ -194,6 +195,7 @@ function PlayerService.sell(player: Player)
 	session.Data.Stats.ItemsSold += #session.Carried
 	session.Carried = {}
 	PlayerService.addCoins(player, earned)
+	StormStats.sold(player, earned)
 	PlayerService.notify(player, ("Sold for %d coins!"):format(earned), Color3.fromRGB(120, 255, 140))
 end
 

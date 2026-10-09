@@ -19,16 +19,29 @@ Config.Cycle = {
 Config.StormTuning = {
 	SurvivorBonus = 25,
 	SurvivorMinTownFraction = 0.5, -- must spend this share of the storm in town to earn the bonus
+	-- Flash flood: water rises in 4-stud steps to the map's flood height. The first rise waits a
+	-- few seconds so players caught low when the storm starts still get a head start.
 	FloodDamagePerSecond = 5, -- ~20s in the water from full health
-	FloodRiseFraction = 0.4, -- water reaches full height after this share of the storm
+	FloodFirstRiseSeconds = 4,
+	FloodStepSeconds = 6, -- 4 -> 8 -> 12 studs at 4s, 10s, 16s
+	-- Lightning: one telegraphed disc at a time per area, so a strike is always dodgeable.
 	LightningDamage = 35,
 	LightningRadius = 9,
-	LightningWarnSeconds = 1.6,
-	LightningInterval = { 0.8, 1.4 },
+	LightningWarnSeconds = 2.0,
+	LightningInterval = { 1.1, 1.7 },
 	LightningTargetChance = 0.5, -- chance a strike aims near an exposed player
+	LightningMinSpacing = 22, -- pending strike discs never overlap (2 x radius + a step)
+	-- Windstorm: steady wind with telegraphed gusts. Gusts carry most of the push and debris;
+	-- the lulls between them are the windows to cross open ground.
 	DebrisDamage = 14,
-	DebrisInterval = 0.3,
-	WindPush = 110, -- client-side push acceleration (studs/s²); 55 barely moved players in testing
+	DebrisInterval = 1.0, -- between gusts
+	GustDebrisInterval = 0.22, -- during a gust
+	DebrisSpread = 6, -- aimed debris lands within this many studs of the player's path
+	WindPush = 30, -- steady client-side push (studs/s²)
+	GustPush = 150, -- push during a gust; 55 barely moved players, 110 was the old constant
+	GustWarnSeconds = 2.0,
+	GustSeconds = 3.5,
+	GustLull = { 4, 6 }, -- calm seconds between a gust ending and the next warning
 }
 
 -- Death drops: only the owner can pick their bag back up for this long, then anyone can.
@@ -39,17 +52,17 @@ Config.Storms = {
 	Wind = {
 		DisplayName = "WINDSTORM",
 		Color = Color3.fromRGB(170, 200, 220),
-		Hint = "Debris is flying! Stay behind walls.",
+		Hint = "Cross open ground between gusts. Hide during them.",
 	},
 	Flood = {
 		DisplayName = "FLASH FLOOD",
 		Color = Color3.fromRGB(60, 140, 220),
-		Hint = "Water is rising! Get to high ground.",
+		Hint = "Water is rising! Climb a yellow ladder or head uphill.",
 	},
 	Lightning = {
 		DisplayName = "LIGHTNING STORM",
 		Color = Color3.fromRGB(250, 230, 90),
-		Hint = "Watch for glowing circles on the ground!",
+		Hint = "Step out of red circles before they strike!",
 	},
 }
 

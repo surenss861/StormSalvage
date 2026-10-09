@@ -1,5 +1,9 @@
 -- Runs the weather cycle: Calm -> Warning -> Storm -> Aftermath, forever.
--- Storms: Wind (flying debris), Flood (rising terrain water), Lightning (telegraphed strikes).
+-- Storms play differently:
+--   Wind: steady wind plus telegraphed gusts that carry the push and the debris. Cross open
+--         ground in the lulls.
+--   Flood: terrain water rises in announced steps. Get onto a roof (yellow ladders) or uphill.
+--   Lightning: telegraphed strikes whose discs never overlap, so each one can be dodged.
 
 local Debris = game:GetService("Debris")
 local Lighting = game:GetService("Lighting")
@@ -12,6 +16,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Shelter = require(ReplicatedStorage.Shared.Shelter)
 local PlayerService = require(script.Parent.PlayerService)
 local LootService = require(script.Parent.LootService)
+local StormStats = require(script.Parent.StormStats)
 
 local StormService = {}
 
@@ -22,7 +27,19 @@ local lightningRemote = Remotes.get("LightningWarning")
 
 local map
 local rng = Random.new()
-local state = { Phase = "Calm", Storm = nil :: string?, EndsAt = 0, WindDir = Vector3.new(1, 0, 0) }
+-- Replicated to every client (and re-sent to anyone who joins). Gust and flood fields are
+-- server timestamps so all clients agree on timing.
+local state = {
+	Phase = "Calm",
+	Storm = nil :: string?,
+	EndsAt = 0,
+	WindDir = Vector3.new(1, 0, 0),
+	GustAt = 0, -- next (or current) gust start
+	GustEnd = 0,
+	FloodLevel = 0,
+	FloodMax = 0,
+	FloodNextAt = 0, -- 0 when the water isn't rising
+}
 local stormToken = 0 -- incremented to stop the running storm effect loop
 local skipRequested = false
 local forcedStorm: string? = nil
@@ -59,6 +76,17 @@ local function exposedPlayers(): { { Player: Player, Root: BasePart } }
 		end
 	end
 	return list
+end
+
+-- All storm damage goes through here so StormStats can count what armor let through.
+local function hurt(player: Player, amount: number)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local before = humanoid and humanoid.Health or 0
+	PlayerService.damage(player, amount)
+	if humanoid then
+		StormStats.damage(player, before - humanoid.Health)
+	end
 end
 
 local function randomTownPoint(): Vector3
@@ -120,34 +148,60 @@ local function launchDebris(origin: Vector3, velocity: Vector3)
 		local player = Players:GetPlayerFromCharacter(hit.Parent)
 		if player and os.clock() - (debrisCooldown[player] or 0) > 0.8 then
 			debrisCooldown[player] = os.clock()
-			PlayerService.damage(player, T.DebrisDamage)
+			hurt(player, T.DebrisDamage)
 		end
 	end)
 	Debris:AddItem(p, 5)
 end
 
-local function runWind(token: number)
+-- Launch velocity that carries a piece from origin to target under gravity in `flight` seconds.
+local function ballistic(origin: Vector3, target: Vector3, flight: number): Vector3
+	local g = workspace.Gravity
+	local delta = target - origin
+	return Vector3.new(delta.X / flight, (delta.Y + 0.5 * g * flight * flight) / flight, delta.Z / flight)
+end
+
+-- One piece of debris, aimed at chest height near an exposed player some of the time.
+local function throwDebris(aimChance: number)
 	local dir = state.WindDir
 	local perp = Vector3.new(-dir.Z, 0, dir.X)
-	while stormToken == token do
-		local exposed = exposedPlayers()
-		local origin, target
-		if #exposed > 0 and rng:NextNumber() < 0.55 then
-			local root = exposed[rng:NextInteger(1, #exposed)].Root
-			target = root.Position + perp * rng:NextNumber(-8, 8)
-			origin = target - dir * 70 + Vector3.new(0, rng:NextNumber(4, 9), 0)
-		else
-			target = randomTownPoint()
-			origin = target
-				- dir * 120
-				+ perp * rng:NextNumber(-60, 60)
-				+ Vector3.new(0, rng:NextNumber(5, 14), 0)
-		end
-		local speed = rng:NextNumber(70, 95)
-		local flatDir = Vector3.new(target.X - origin.X, 0, target.Z - origin.Z).Unit
-		launchDebris(origin, flatDir * speed + Vector3.new(0, 12, 0))
-		task.wait(T.DebrisInterval)
+	local exposed = exposedPlayers()
+	local origin, target
+	if #exposed > 0 and rng:NextNumber() < aimChance then
+		local root = exposed[rng:NextInteger(1, #exposed)].Root
+		target = root.Position + perp * rng:NextNumber(-T.DebrisSpread, T.DebrisSpread)
+		origin = target - dir * 45 + Vector3.new(0, rng:NextNumber(3, 6), 0)
+	else
+		target = randomTownPoint() + Vector3.new(0, 2, 0)
+		origin = target - dir * 70 + perp * rng:NextNumber(-40, 40) + Vector3.new(0, rng:NextNumber(5, 12), 0)
 	end
+	local speed = rng:NextNumber(70, 95)
+	local flight = (Vector3.new(target.X - origin.X, 0, target.Z - origin.Z)).Magnitude / speed
+	launchDebris(origin, ballistic(origin, target, flight))
+end
+
+-- Lull -> warning -> gust, repeating. Clients read GustAt/GustEnd from the storm state to
+-- show the warning and apply the stronger push, so everyone sees the same gust.
+local function runWind(token: number)
+	local function now(): number
+		return workspace:GetServerTimeNow()
+	end
+	local function schedule(lull: number)
+		state.GustAt = now() + lull + T.GustWarnSeconds
+		state.GustEnd = state.GustAt + T.GustSeconds
+		broadcast()
+	end
+	schedule(rng:NextNumber(1, 2)) -- first gust shortly after the storm starts
+	while stormToken == token do
+		local t = now()
+		if t >= state.GustEnd then
+			schedule(rng:NextNumber(T.GustLull[1], T.GustLull[2]))
+		end
+		local gusting = t >= state.GustAt and t < state.GustEnd
+		throwDebris(if gusting then 0.55 else 0.15)
+		task.wait(if gusting then T.GustDebrisInterval else T.DebrisInterval)
+	end
+	state.GustAt, state.GustEnd = 0, 0
 end
 
 ---------------------------------------------------------------------------- Flood
@@ -173,21 +227,31 @@ end
 
 local function runFlood(token: number)
 	local maxY = map.FloodMaxY
-	local riseStep = (Config.Cycle.Storm * T.FloodRiseFraction) / (maxY / 4)
+	state.FloodMax = maxY
 	task.spawn(function()
 		local bottom = 0
+		local wait = T.FloodFirstRiseSeconds
 		while stormToken == token and bottom < maxY do
+			state.FloodNextAt = workspace:GetServerTimeNow() + wait
+			broadcast()
+			task.wait(wait)
+			if stormToken ~= token then
+				return
+			end
 			setWaterLayer(bottom, Enum.Material.Water)
 			bottom += 4
 			floodLevel = bottom
-			task.wait(riseStep)
+			state.FloodLevel = bottom
+			wait = T.FloodStepSeconds
 		end
+		state.FloodNextAt = 0
+		broadcast()
 	end)
 	while stormToken == token do
 		for _, player in Players:GetPlayers() do
 			local root = rootOf(player)
 			if root and floodLevel > 0 and root.Position.Y < floodLevel and not inSafeZone(root.Position) then
-				PlayerService.damage(player, T.FloodDamagePerSecond / 2)
+				hurt(player, T.FloodDamagePerSecond / 2)
 			end
 		end
 		task.wait(0.5)
@@ -201,9 +265,13 @@ local function recedeFlood()
 			top -= 4
 			setWaterLayer(top, Enum.Material.Air)
 			floodLevel = top
+			state.FloodLevel = top
+			broadcast()
 			task.wait(2)
 		end
 		clearFlood()
+		state.FloodLevel = 0
+		broadcast()
 	end)
 end
 
@@ -244,30 +312,75 @@ local function bolt(target: Vector3)
 	Debris:AddItem(flash, 0.2)
 end
 
+-- Strikes that have been announced but haven't landed yet.
+local pending: { { Position: Vector3, Target: Player? } } = {}
+
+local function clearOfPending(position: Vector3): boolean
+	for _, strike in pending do
+		if ((strike.Position - position) * Vector3.new(1, 0, 1)).Magnitude < T.LightningMinSpacing then
+			return false
+		end
+	end
+	return true
+end
+
+local function isTargeted(player: Player): boolean
+	for _, strike in pending do
+		if strike.Target == player then
+			return true
+		end
+	end
+	return false
+end
+
+-- Picks where the next strike lands. Never overlaps a pending disc (so stepping out of one
+-- disc can't put you in another), and never aims twice at the same player at once.
+local function pickStrike(): (Vector3?, Player?)
+	local exposed = exposedPlayers()
+	if #exposed > 0 and rng:NextNumber() < T.LightningTargetChance then
+		local entry = exposed[rng:NextInteger(1, #exposed)]
+		if not isTargeted(entry.Player) then
+			local spot = entry.Root.Position * Vector3.new(1, 0, 1)
+				+ Vector3.new(rng:NextNumber(-5, 5), 0, rng:NextNumber(-5, 5))
+			if clearOfPending(spot) then
+				return spot, entry.Player
+			end
+		end
+	end
+	for _ = 1, 6 do
+		local spot = randomTownPoint()
+		if clearOfPending(spot) then
+			return spot, nil
+		end
+	end
+	return nil, nil
+end
+
 local function runLightning(token: number)
 	local radius, warnTime = T.LightningRadius, T.LightningWarnSeconds
 	while stormToken == token do
-		local exposed = exposedPlayers()
-		local target
-		if #exposed > 0 and rng:NextNumber() < T.LightningTargetChance then
-			target = exposed[rng:NextInteger(1, #exposed)].Root.Position * Vector3.new(1, 0, 1)
-				+ Vector3.new(rng:NextNumber(-5, 5), 0, rng:NextNumber(-5, 5))
-		else
-			target = randomTownPoint()
-		end
-		lightningRemote:FireAllClients(target, radius, warnTime)
-		task.delay(warnTime, function()
-			if stormToken ~= token then
-				return
-			end
-			bolt(target)
-			for _, entry in exposedPlayers() do
-				local flat = (entry.Root.Position - target) * Vector3.new(1, 0, 1)
-				if flat.Magnitude <= radius then
-					PlayerService.damage(entry.Player, T.LightningDamage)
+		local target, aimedAt = pickStrike()
+		if target then
+			local strike = { Position = target, Target = aimedAt }
+			table.insert(pending, strike)
+			lightningRemote:FireAllClients(target, radius, warnTime)
+			task.delay(warnTime, function()
+				local index = table.find(pending, strike)
+				if index then
+					table.remove(pending, index)
 				end
-			end
-		end)
+				if stormToken ~= token then
+					return
+				end
+				bolt(target)
+				for _, entry in exposedPlayers() do
+					local flat = (entry.Root.Position - target) * Vector3.new(1, 0, 1)
+					if flat.Magnitude <= radius then
+						hurt(entry.Player, T.LightningDamage)
+					end
+				end
+			end)
+		end
 		task.wait(rng:NextNumber(T.LightningInterval[1], T.LightningInterval[2]))
 	end
 end
@@ -298,8 +411,12 @@ local function trackTownTime(token: number)
 	while stormToken == token do
 		for _, player in Players:GetPlayers() do
 			local root = rootOf(player)
-			if root and not inSafeZone(root.Position) then
-				townSeconds[player] = (townSeconds[player] or 0) + 1
+			if root then
+				local inTown = not inSafeZone(root.Position)
+				if inTown then
+					townSeconds[player] = (townSeconds[player] or 0) + 1
+				end
+				StormStats.sample(player, inTown, Shelter.isSheltered(root.Position))
 			end
 		end
 		task.wait(1)
@@ -315,6 +432,7 @@ local function rewardSurvivors(stormSeconds: number)
 		local root = rootOf(player)
 		if session and root and not inSafeZone(root.Position) and (townSeconds[player] or 0) >= needed then
 			session.Data.Stats.StormsSurvived += 1
+			StormStats.survived(player)
 			PlayerService.addCoins(player, T.SurvivorBonus)
 			PlayerService.notify(
 				player,
@@ -352,6 +470,7 @@ local function cycle()
 
 		stormToken += 1
 		local token = stormToken
+		StormStats.beginStorm(storm)
 		setPhase("Storm", Config.Cycle.Storm)
 		task.spawn(runners[storm], token)
 		task.spawn(trackTownTime, token)
@@ -365,7 +484,9 @@ local function cycle()
 		waitPhase(Config.Cycle.Storm)
 
 		stormToken += 1
+		state.GustAt, state.GustEnd, state.FloodNextAt = 0, 0, 0
 		rewardSurvivors(os.clock() - stormStarted)
+		StormStats.endStorm()
 		if storm == "Flood" then
 			recedeFlood()
 		end
@@ -391,6 +512,8 @@ function StormService.getState()
 		Storm = state.Storm,
 		FloodLevel = floodLevel,
 		EndsIn = state.EndsAt - workspace:GetServerTimeNow(),
+		GustIn = if state.GustAt > 0 then state.GustAt - workspace:GetServerTimeNow() else nil,
+		FloodNextIn = if state.FloodNextAt > 0 then state.FloodNextAt - workspace:GetServerTimeNow() else nil,
 	}
 end
 
@@ -416,6 +539,7 @@ function StormService.init(mapInfo)
 	PlayerService.onDied(function(player)
 		if state.Phase == "Storm" then
 			townSeconds[player] = -math.huge
+			StormStats.died(player)
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)

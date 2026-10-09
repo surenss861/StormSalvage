@@ -8,6 +8,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Shelter = require(ReplicatedStorage.Shared.Shelter)
 local PlayerService = require(script.Parent.PlayerService)
+local StormStats = require(script.Parent.StormStats)
 
 local LootService = {}
 
@@ -187,6 +188,7 @@ local function createLoot(
 		if not PlayerService.tryCarry(player, lootId) then
 			return
 		end
+		StormStats.collected(player, lootId)
 		taken = true
 		item:Destroy()
 		if def.Rarity == "Legendary" or def.Rarity == "Epic" then

@@ -4,6 +4,7 @@
 
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 
@@ -86,8 +87,13 @@ function DataService.load(player: Player): (Data?, boolean)
 		end
 		if not ok then
 			warn("[DataService] load failed for", player.Name, err)
-			-- Studio without API access enabled: play with a temporary profile.
-			if tostring(err):find("StudioAccessToApisNotAllowed") or tostring(err):find("403") then
+			-- Studio without working API access (not enabled, or solo Play returning 401 "User is
+			-- not authenticated"): play with a temporary profile instead of being kicked.
+			if
+				RunService:IsStudio()
+				or tostring(err):find("StudioAccessToApisNotAllowed")
+				or tostring(err):find("403")
+			then
 				return DataService.default(), false
 			end
 		elseif locked then
