@@ -53,7 +53,15 @@ Large files are stored with Git LFS (`git lfs install` before cloning).
 | `src/server/DataService.luau` | DataStore persistence with a session lock |
 | `src/server/MonetizationService.luau` | Game passes and idempotent developer-product receipts |
 | `src/server/DebugService.luau` | Studio-only QA hooks (skip phase, force storm, grant coins) |
-| `src/client/Main.client.luau` | HUD, shop, tutorial hint, sounds, lightning warnings, rain/wind effects, wind push |
+| `src/client/Main.client.luau` | Wires server state and events into the client modules below |
+| `src/client/UI.luau` | Design tokens and builders (see [`docs/ui-design-spec.md`](docs/ui-design-spec.md)) |
+| `src/client/Hud.luau` | Storm strip, coins, bag, Shop and Settings buttons |
+| `src/client/Notifications.luau` | Which message shows where: event cards, notices, danger alerts, hint |
+| `src/client/Shop.luau`, `Settings.luau` | Gear Shop and Settings panels |
+| `src/client/Audio.luau` | Sound groups, volume settings, cue throttling, ambience crossfades |
+| `src/client/SalvageFeedback.luau` | Pickup pops, find cards, sale receipts, Storm Core and dropped-bag beacons |
+| `src/client/StormEffects.luau` | Storm visuals, wind push, climb markers, personal danger alerts |
+| `src/client/Districts.luau` | District titles when you enter an area |
 
 ## Before launch
 

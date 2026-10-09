@@ -6,7 +6,7 @@
 --   Flood: water level and next rise, "climb here" markers on every ladder and the ramp.
 --   Lightning: full-size strike zone from the first frame, a beam to spot it from afar,
 --              impact flash, scorch and sparks.
--- A personal alert line appears only when *you* are in danger.
+-- A personal alert (Notifications.danger) appears only when *you* are in danger.
 
 local Debris = game:GetService("Debris")
 local Lighting = game:GetService("Lighting")
@@ -16,20 +16,15 @@ local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Shelter = require(ReplicatedStorage.Shared:WaitForChild("Shelter"))
+local Audio = require(script.Parent:WaitForChild("Audio"))
+local Notifications = require(script.Parent:WaitForChild("Notifications"))
+local UI = require(script.Parent:WaitForChild("UI"))
 
 local T = Config.StormTuning
 local player = Players.LocalPlayer
 
 local StormEffects = {}
 
-export type Hooks = {
-	PlaySound: (name: string, volumeScale: number?) -> (),
-	SetAmbience: (name: string, on: boolean, volumeScale: number?) -> (),
-	HudRoot: Frame,
-	Font: Enum.Font,
-}
-
-local hooks: Hooks
 local state: any = { Phase = "Calm", EndsAt = 0 }
 local reduced = false
 
@@ -39,7 +34,6 @@ local rain: ParticleEmitter
 local rainAnchor: Part
 local windStreaks: ParticleEmitter
 local windAnchor: Part
-local alert: TextLabel
 
 local function new(className: string, props: { [string]: any }): any
 	local inst = Instance.new(className)
@@ -146,9 +140,13 @@ end
 
 ---------------------------------------------------------------------------- Flood
 
-local markers: { BillboardGui } = {}
+-- Climb markers are guidance, not decoration: small, shown only during a flood warning or
+-- flood while you're below the flood line, and only for routes near you (no labels floating
+-- over the skyline from across town).
+type Marker = { Gui: BillboardGui, Position: Vector3, Range: number }
+local markers: { Marker } = {}
 
-local function marker(adornee: BasePart, offset: Vector3, text: string)
+local function marker(adornee: BasePart, offset: Vector3, text: string, range: number)
 	-- Parented to the ladder itself and drawn in the world (not AlwaysOnTop): in Studio
 	-- captures, billboards in a loose folder or drawn on top didn't show up at all.
 	local gui = new("BillboardGui", {
@@ -156,30 +154,30 @@ local function marker(adornee: BasePart, offset: Vector3, text: string)
 		Parent = adornee,
 		Adornee = adornee,
 		AlwaysOnTop = false,
-		Size = UDim2.fromOffset(120, 34),
+		Size = UDim2.fromOffset(if #text > 8 then 128 else 84, 24),
 		StudsOffsetWorldSpace = offset,
-		MaxDistance = 260,
+		MaxDistance = range + 20,
 		LightInfluence = 0,
 		Enabled = false,
 	})
 	local frame = new("Frame", {
 		Parent = gui,
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.fromRGB(230, 180, 40),
-		BackgroundTransparency = 0.1,
+		BackgroundColor3 = Color3.fromRGB(240, 190, 50),
+		BackgroundTransparency = 0.05,
 	})
-	new("UICorner", { Parent = frame, CornerRadius = UDim.new(0.3, 0) })
-	new("UIStroke", { Parent = frame, Thickness = 2, Color = Color3.new(0, 0, 0) })
+	new("UICorner", { Parent = frame, CornerRadius = UDim.new(0, UI.Radius.Chip) })
+	new("UIStroke", { Parent = frame, Thickness = 2, Color = UI.Color.Outline })
 	new("TextLabel", {
 		Parent = frame,
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 		Text = text,
-		Font = hooks.Font,
-		TextScaled = true,
-		TextColor3 = Color3.fromRGB(30, 25, 10),
+		Font = UI.Font.Title,
+		TextSize = 15,
+		TextColor3 = Color3.fromRGB(35, 28, 8),
 	})
-	table.insert(markers, gui)
+	table.insert(markers, { Gui = gui, Position = adornee.Position + offset, Range = range })
 end
 
 local function collectMarkers()
@@ -189,22 +187,36 @@ local function collectMarkers()
 	end
 	for _, d in map:GetDescendants() do
 		if d:IsA("TrussPart") then
-			marker(d, Vector3.new(0, d.Size.Y / 2 + 2.5, 0), "▲ CLIMB")
+			marker(d, Vector3.new(0, d.Size.Y / 2 + 2, 0), "▲ CLIMB", 110)
 		end
 	end
 	local ramp = map:FindFirstChild("Ramp")
 	if ramp and ramp:IsA("BasePart") then
-		marker(ramp, Vector3.new(0, ramp.Size.Y / 2 + 4, 0), "▲ HIGH GROUND")
+		marker(ramp, Vector3.new(0, ramp.Size.Y / 2 + 4, 0), "▲ HIGH GROUND", 170)
 	end
 end
 
 local markersShown = false
-local function showMarkers(on: boolean)
-	if on ~= markersShown then
-		markersShown = on
-		for _, gui in markers do
-			gui.Enabled = on
+local markerCheckAt = 0
+
+-- `near` is where the player is, or nil to hide every marker.
+local function showMarkers(near: Vector3?)
+	if not near then
+		if markersShown then
+			markersShown = false
+			for _, m in markers do
+				m.Gui.Enabled = false
+			end
 		end
+		return
+	end
+	if os.clock() < markerCheckAt then
+		return
+	end
+	markerCheckAt = os.clock() + 0.25
+	markersShown = true
+	for _, m in markers do
+		m.Gui.Enabled = (m.Position - near).Magnitude <= m.Range
 	end
 end
 
@@ -219,20 +231,17 @@ local function lightningFlash(position: Vector3)
 		return
 	end
 	local distance = (camera.CFrame.Position - position).Magnitude
-	if distance > 220 then
-		return
-	end
-	local closeness = 1 - distance / 220
-	if not reduced then
-		flash.Brightness = 0.35 * closeness
+	if distance <= 220 and not reduced then
+		flash.Brightness = 0.35 * (1 - distance / 220)
 		TweenService:Create(
 			flash,
 			TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
 			{ Brightness = 0 }
 		):Play()
 	end
-	-- Thunder arrives a beat after the flash, quieter with distance.
-	task.delay(distance / 400, hooks.PlaySound, "Thunder", 0.4 + closeness * 0.6)
+	-- Thunder comes from the strike itself, a beat after the flash; the pitch varies a little
+	-- so a run of strikes doesn't sound like one sample on repeat.
+	task.delay(distance / 400, Audio.playAt, "Thunder", position, 1, 0.9 + math.random() * 0.2)
 end
 
 local function impact(position: Vector3, radius: number)
@@ -337,51 +346,37 @@ end
 
 local shelterCheckAt = 0
 local sheltered = false
-local lastAlert = ""
-
+local lastGust: string? = nil
+local lastFloodLevel = 0
 local function setAlert(text: string, color: Color3?)
-	if text ~= lastAlert then
-		lastAlert = text
-		alert.Text = text
-		alert.Visible = text ~= ""
-	end
-	if color then
-		alert.TextColor3 = color
-	end
+	Notifications.danger(text, color)
 end
 
--- The banner's second line during a storm: what the storm is doing right now.
-function StormEffects.statusLine(now: number, remaining: number): (string?, Color3?)
+-- The storm strip's status line: what the storm is doing right now. The strip shows the
+-- time left separately.
+function StormEffects.statusLine(now: number): (string?, Color3?)
 	if state.Phase ~= "Storm" then
 		return nil, nil
 	end
 	if state.Storm == "Wind" then
 		local phase, secs = StormEffects.gustPhase(now)
 		if phase == "gust" then
-			return ("GUST! Hold cover  %ds"):format(math.ceil(secs)), Color3.fromRGB(255, 110, 90)
+			return ("GUST! Hold cover for %ds"):format(math.ceil(secs)), UI.Color.Danger
 		elseif phase == "warn" then
-			return ("Gust in %.1fs - get behind a wall!"):format(secs), Color3.fromRGB(255, 190, 90)
+			return ("Gust in %.1fs - get behind a wall!"):format(secs), UI.Color.Warn
 		elseif phase == "lull" then
-			return ("Lull: move now!  Next gust in %ds  |  %ds"):format(
-				math.ceil(secs + T.GustWarnSeconds),
-				remaining
-			),
-				Color3.fromRGB(150, 230, 160)
+			return ("Lull: move now! Next gust in %ds"):format(math.ceil(secs + T.GustWarnSeconds)),
+				UI.Color.Safe
 		end
 	elseif state.Storm == "Flood" then
 		local level, max = state.FloodLevel or 0, state.FloodMax or 0
 		if (state.FloodNextAt or 0) > now then
-			return ("Water %d/%d - rising in %ds  |  %ds"):format(
-				level,
-				max,
-				math.ceil(state.FloodNextAt - now),
-				remaining
-			),
-				Color3.fromRGB(140, 200, 255)
+			return ("Water %d/%d - rising in %ds"):format(level, max, math.ceil(state.FloodNextAt - now)),
+				UI.Color.Water
 		end
-		return ("Water at its peak - stay high  |  %ds"):format(remaining), Color3.fromRGB(140, 200, 255)
+		return "Water at its peak - stay high", UI.Color.Water
 	elseif state.Storm == "Lightning" then
-		return ("Step out of red circles!  |  %ds"):format(remaining), nil
+		return "Step out of red circles!", Color3.fromRGB(255, 225, 120)
 	end
 	return nil, nil
 end
@@ -390,13 +385,13 @@ function StormEffects.step(now: number)
 	local camera = workspace.CurrentCamera
 	local stormActive = state.Phase == "Storm"
 	local storm = state.Storm
-	local gust, gustSecs = StormEffects.gustPhase(now)
+	local gust = StormEffects.gustPhase(now)
 
 	rain.Enabled = stormActive and (storm == "Flood" or storm == "Lightning")
 	windStreaks.Enabled = stormActive and storm == "Wind"
 	local streakRate = if gust == "gust" then 340 elseif gust == "warn" then 200 else 80
 	windStreaks.Rate = if reduced then streakRate * 0.5 else streakRate
-	hooks.SetAmbience("Wind", stormActive and storm == "Wind", if gust == "gust" then 1 else 0.55)
+	Audio.setAmbience("Wind", stormActive and storm == "Wind", if gust == "gust" then 1 else 0.55)
 
 	if camera then
 		local camPos = camera.CFrame.Position
@@ -413,11 +408,21 @@ function StormEffects.step(now: number)
 		end
 	end
 
-	showMarkers(storm == "Flood" and (state.Phase == "Warning" or stormActive))
+	-- Gust impact and each rise of the water get their own sound.
+	if gust == "gust" and lastGust ~= "gust" then
+		Audio.play("Gust")
+	end
+	lastGust = gust
+	local level = state.FloodLevel or 0
+	if stormActive and storm == "Flood" and level > lastFloodLevel then
+		Audio.play("WarnFlood", 0.6, 1.1)
+	end
+	lastFloodLevel = if stormActive then level else 0
 
 	local root = rootPart()
 	local force = getWindForce()
 	if not root then
+		showMarkers(nil)
 		setAlert("")
 		return
 	end
@@ -426,6 +431,7 @@ function StormEffects.step(now: number)
 		sheltered = Shelter.isSheltered(root.Position) or inSafeZone(root.Position)
 	end
 	local exposed = not sheltered
+	local pos = root.Position
 
 	if force then
 		local windy = stormActive and storm == "Wind" and exposed
@@ -436,37 +442,39 @@ function StormEffects.step(now: number)
 		end
 	end
 
-	-- Personal danger, most urgent first.
-	local pos = root.Position
+	-- Flood guidance only for players who need it: below the flood line during the warning
+	-- or the flood, and only the routes near them.
+	local floodDanger = storm == "Flood" and (state.Phase == "Warning" or stormActive) and not inSafeZone(pos)
+	local feet = pos.Y - 3
+	local floodMax = if (state.FloodMax or 0) > 0 then state.FloodMax else 12
+	local belowLine = floodDanger and feet < floodMax
+	showMarkers(if belowLine then pos else nil)
+
+	-- Personal danger, most urgent first. The strip already shows timers, so these stay
+	-- short and steady.
 	for _, s in strikes do
 		if ((pos - s.Position) * Vector3.new(1, 0, 1)).Magnitude <= s.Radius + 1 and exposed then
-			setAlert("MOVE! Lightning is about to strike here", Color3.fromRGB(255, 90, 70))
+			setAlert("MOVE! Lightning is about to strike here", UI.Color.Danger)
 			return
 		end
 	end
 	if storm == "Wind" and stormActive and exposed and (gust == "warn" or gust == "gust") then
 		setAlert(
-			if gust == "warn"
-				then ("Gust in %.1fs - you're in the open!"):format(gustSecs)
-				else "You're in the open - get behind a wall!",
-			Color3.fromRGB(255, 170, 80)
+			if gust == "warn" then "You're in the open - gust coming!" else "Get behind a wall!",
+			UI.Color.Warn
 		)
 		return
 	end
-	if storm == "Flood" and (state.Phase == "Warning" or stormActive) and not inSafeZone(pos) then
-		local feet = pos.Y - 3
-		local level = state.FloodLevel or 0
-		local max = if (state.FloodMax or 0) > 0 then state.FloodMax else 12
+	if belowLine then
 		if level > 0 and feet < level then
-			setAlert("You're in the flood! Climb a ▲ ladder or head uphill", Color3.fromRGB(110, 180, 255))
-			return
-		elseif feet < max then
+			setAlert("You're in the flood! Climb a ▲ ladder or head uphill", UI.Color.Water)
+		else
 			setAlert(
 				"Below the flood line - get to a ▲ ladder or high ground",
 				Color3.fromRGB(150, 200, 255)
 			)
-			return
 		end
+		return
 	end
 	setAlert("")
 end
@@ -486,8 +494,7 @@ function StormEffects.isReduced(): boolean
 	return reduced
 end
 
-function StormEffects.init(h: Hooks, lightningRemote: RemoteEvent)
-	hooks = h
+function StormEffects.init(lightningRemote: RemoteEvent)
 	effects = new("Folder", { Name = "ClientEffects", Parent = workspace })
 	-- Client-only grade for lightning flashes, separate from the server's storm grade.
 	flash = new("ColorCorrectionEffect", { Name = "LightningFlash", Parent = Lighting })
@@ -543,23 +550,6 @@ function StormEffects.init(h: Hooks, lightningRemote: RemoteEvent)
 		Orientation = Enum.ParticleOrientation.VelocityParallel,
 		LightEmission = 0.1,
 	})
-
-	-- Personal danger line, just under the stats strip.
-	alert = new("TextLabel", {
-		Name = "StormAlert",
-		Parent = h.HudRoot,
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 142),
-		Size = UDim2.new(0.6, 0, 0, 30),
-		BackgroundTransparency = 1,
-		Font = h.Font,
-		TextScaled = true,
-		TextColor3 = Color3.fromRGB(255, 170, 80),
-		TextStrokeTransparency = 0.2,
-		Text = "",
-		Visible = false,
-	})
-	new("UITextSizeConstraint", { Parent = alert, MaxTextSize = 26 })
 
 	lightningRemote.OnClientEvent:Connect(onLightningWarning)
 	task.spawn(collectSwayers)

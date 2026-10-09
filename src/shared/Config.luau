@@ -255,18 +255,65 @@ Config.Upgrades = {
 }
 Config.UpgradeOrder = { "Backpack", "Boots", "Armor" }
 
--- Sound effects. All from Roblox's licensed libraries (ProSoundEffects / APM Music uploads),
--- which any experience may use. Set an id to "" to mute that cue.
-Config.Sounds = {
-	Pickup = { Id = "rbxassetid://9113244443", Volume = 0.6 }, -- Bag Drop Bag Bumping Wall 2
-	Sell = { Id = "rbxassetid://9113849492", Volume = 0.8 }, -- Coins Or Keys Jingle 6
-	Upgrade = { Id = "rbxassetid://9045119921", Volume = 0.5 }, -- Mascot Party - Mnemonic1 (APM)
-	Siren = { Id = "rbxassetid://9113073742", Volume = 0.35 }, -- Air Raid Siren Old Fashioned 1
-	Thunder = { Id = "rbxassetid://9113169432", Volume = 0.9 }, -- Artillery Distant 2 ("possible use: thunder")
-	Rain = { Id = "rbxassetid://9112793871", Volume = 0.45 }, -- Heavy Rain 2 (loop)
-	Flood = { Id = "rbxassetid://9114492638", Volume = 0.35 }, -- Flood Massive Flowing Water 1 (loop)
-	Wind = { Id = "rbxassetid://9125742262", Volume = 0.5 }, -- Constant Airy Whooshing Windy (loop)
+-- Sound effects. All from Roblox's licensed libraries (ProSoundEffects / APM Music uploads,
+-- published by those accounts on the Creator Store), which any experience may use. Set an id
+-- to "" to mute that cue.
+--   Group: "Effects" (UI, pickups, sales, warnings) or "Weather" (rain, flood, wind, thunder);
+--          the Settings volumes act on these groups.
+--   MinInterval: a repeat inside this many seconds is dropped, so fast collecting or many
+--          strikes don't pile up. Pool: copies that can overlap. Pitch: default playback speed.
+--   Loop: ambience that crossfades in and out.
+export type SoundDef = {
+	Id: string,
+	Volume: number,
+	Group: string,
+	MinInterval: number?,
+	Pool: number?,
+	Pitch: number?,
+	Loop: boolean?,
 }
+Config.Sounds = {
+	-- Salvage
+	Pickup = {
+		Id = "rbxassetid://9113244443",
+		Volume = 0.55,
+		Group = "Effects",
+		MinInterval = 0.06,
+		Pool = 3,
+	}, -- Bag Drop Bag Bumping Wall 2
+	FindRare = { Id = "rbxassetid://9116394545", Volume = 0.45, Group = "Effects", MinInterval = 0.25 }, -- Magic Glows Soft Clusters Of Chiming Hits 1
+	FindEpic = { Id = "rbxassetid://9116395089", Volume = 0.55, Group = "Effects", MinInterval = 0.25 }, -- Magic Glows Soft Clusters Of Chiming Hits 4
+	FindCore = { Id = "rbxassetid://9119447936", Volume = 0.5, Group = "Effects", MinInterval = 0.5 }, -- Sparkle Bell Tree Wind Chimes 1
+	-- Selling and upgrades
+	Sell = { Id = "rbxassetid://9113849492", Volume = 0.75, Group = "Effects", MinInterval = 0.2 }, -- Coins Or Keys Jingle 6
+	SellBig = { Id = "rbxassetid://9113849583", Volume = 0.6, Group = "Effects", MinInterval = 0.3 }, -- Coin Throws 2
+	CoreDelivered = { Id = "rbxassetid://9043511769", Volume = 0.4, Group = "Effects", MinInterval = 1 }, -- Rising Together (sting a) (APM)
+	Upgrade = { Id = "rbxassetid://9045119921", Volume = 0.45, Group = "Effects", MinInterval = 0.3 }, -- Mascot Party - Mnemonic1 (APM)
+	Click = { Id = "rbxassetid://9119727934", Volume = 0.3, Group = "Effects", MinInterval = 0.05, Pool = 2 }, -- Switch In-Line Plastic Switch Clicks 14
+	-- Storm warnings: the shared siren plus one identity cue per storm
+	Siren = { Id = "rbxassetid://9113073742", Volume = 0.3, Group = "Effects", MinInterval = 2 }, -- Air Raid Siren Old Fashioned 1
+	WarnWind = { Id = "rbxassetid://9114373454", Volume = 0.7, Group = "Effects", MinInterval = 1 }, -- Fast Pass By Airy Whooshes Windy 1
+	WarnFlood = { Id = "rbxassetid://9120607126", Volume = 0.7, Group = "Effects", MinInterval = 1 }, -- Water Surge 4
+	WarnLightning = {
+		Id = "rbxassetid://9113169432",
+		Volume = 0.6,
+		Group = "Effects",
+		MinInterval = 1,
+		Pitch = 0.7,
+	}, -- Artillery Distant 2, slowed into a low rumble
+	-- Weather
+	Gust = { Id = "rbxassetid://9120704324", Volume = 0.5, Group = "Weather", MinInterval = 1 }, -- Whoosh Combo Of Impacts Bys 6
+	Thunder = {
+		Id = "rbxassetid://9113169432",
+		Volume = 0.9,
+		Group = "Weather",
+		MinInterval = 0.15,
+		Pool = 3,
+	}, -- Artillery Distant 2 ("possible use: thunder")
+	Rain = { Id = "rbxassetid://9112793871", Volume = 0.45, Group = "Weather", Loop = true }, -- Heavy Rain 2
+	Flood = { Id = "rbxassetid://9114492638", Volume = 0.35, Group = "Weather", Loop = true }, -- Flood Massive Flowing Water 1
+	Wind = { Id = "rbxassetid://9125742262", Volume = 0.5, Group = "Weather", Loop = true }, -- Constant Airy Whooshing Windy
+} :: { [string]: SoundDef }
 
 -- Monetization. Set IDs after creating products on the Creator Dashboard; 0 disables.
 Config.GamePasses = {

@@ -65,25 +65,6 @@ local function wedge(props: { [string]: any }): WedgePart
 	return w
 end
 
-local function sign(parent: Instance, text: string, color: Color3, offsetY: number, maxDistance: number?)
-	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(220, 50)
-	gui.StudsOffset = Vector3.new(0, offsetY, 0)
-	gui.MaxDistance = maxDistance or 250
-	gui.LightInfluence = 0
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Text = text
-	label.TextColor3 = color
-	label.TextStrokeTransparency = 0.2
-	label.Font = Enum.Font.FredokaOne
-	label.TextScaled = true
-	label.Parent = gui
-	gui.Parent = parent
-	return gui
-end
-
 -- Text painted onto one face of a part (storefront signs, the yard gate).
 local function surfaceSign(
 	target: BasePart,
@@ -205,7 +186,6 @@ export type BuildingOptions = {
 	Sign: string?, -- storefront board above the door
 	SignColor: Color3?,
 	SignTextColor: Color3?,
-	Label: string | false | nil, -- floating name; false hides it
 	Gable: number?, -- pitched roof height (houses)
 	Parapet: boolean?,
 	Awning: boolean?, -- covered walkway along the front; counts as shelter
@@ -505,10 +485,6 @@ local function building(
 		truss.Position = center + Vector3.new(w / 2 - 4, (h + 4) / 2, backZ)
 		truss.Color = Color3.fromRGB(230, 180, 40)
 		truss.Parent = model
-	end
-
-	if o.Label ~= false then
-		sign(roof, (o.Label or name) :: string, Color3.fromRGB(255, 255, 255), 8, 180)
 	end
 
 	local points = {}
@@ -1365,7 +1341,6 @@ function MapBuilder.build()
 			true, -- ladder: flood escape onto the roof
 			{
 				Gable = i % 2 == 1 and 7 or 6, -- ridge heights of HouseA / HouseB in build_town.py
-				Label = false,
 				Shell = {
 					Name = i % 2 == 1 and "HouseA" or "HouseB",
 					Porch = i % 2 == 1 and 17 or 32, -- porch roof widths in build_town.py
@@ -1426,14 +1401,6 @@ function MapBuilder.build()
 		Color = Color3.fromRGB(150, 140, 120),
 		Material = Enum.Material.Pebble,
 	})
-	local houseLabel = prop({
-		Name = "HousesLabel",
-		Size = Vector3.one,
-		Position = Vector3.new(-122, 22, 88),
-		Transparency = 1,
-		CanCollide = false,
-	})
-	sign(houseLabel, "Houses", Color3.new(1, 1, 1), 0, 180)
 	zones.Houses = { Points = housePoints, Label = "Houses" }
 
 	zones.Warehouse = {
@@ -1743,7 +1710,6 @@ function MapBuilder.build()
 	spray.Transparency = NumberSequence.new(0.3, 1)
 	spray.Color = ColorSequence.new(Color3.fromRGB(200, 230, 255))
 	spray.Parent = fountainWater
-	sign(fountainWater, "Town Square", Color3.fromRGB(255, 255, 255), 10, 180)
 	local squarePoints = {}
 	for x = -75, -25, 10 do
 		for z = -80, -30, 10 do
@@ -1909,6 +1875,54 @@ function MapBuilder.build()
 	end
 
 	upgradeDistricts()
+
+	-- District footprints for the client's "you've entered the Warehouse" titles, which replace
+	-- the big floating district names. Invisible, no collision, no queries, no touches.
+	local districts = Instance.new("Folder")
+	districts.Name = "Districts"
+	local function footprint(
+		name: string,
+		label: string,
+		zone: string?,
+		min: Vector3,
+		max: Vector3,
+		sub: string?
+	)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.Transparency = 1
+		p.Size = Vector3.new(max.X - min.X, 70, max.Z - min.Z)
+		p.Position = Vector3.new((min.X + max.X) / 2, 25, (min.Z + max.Z) / 2)
+		p:SetAttribute("Label", label)
+		if zone then
+			p:SetAttribute("Zone", zone)
+		end
+		if sub then
+			p:SetAttribute("Sub", sub)
+		end
+		p.Parent = districts
+	end
+	for key, zone in zones do
+		local min, max = Vector3.one * math.huge, -Vector3.one * math.huge
+		for _, point in zone.Points do
+			min, max = min:Min(point), max:Max(point)
+		end
+		local pad = Vector3.new(10, 0, 10)
+		footprint(key, zone.Label, key, min - pad, max + pad)
+	end
+	footprint(
+		"Scrapyard",
+		"Scrapyard",
+		nil,
+		PLATEAU_CENTER - PLATEAU_SIZE / 2,
+		PLATEAU_CENTER + PLATEAU_SIZE / 2,
+		"Safe from storms · sell and upgrade here"
+	)
+	districts.Parent = map
 
 	return {
 		Zones = zones,
