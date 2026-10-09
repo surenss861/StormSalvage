@@ -27,7 +27,7 @@ All tests ran in Roblox Studio Play mode through the Studio MCP connection, with
 
 ## Defects found and fixed
 
-1. **Bed sideways in the room**: it stuck 7 studs out from the wall toward the loot grid. Now runs along the east wall (the interior screenshot was taken before this fix).
+1. **Bed sideways in the room**: it stuck 7 studs out from the wall toward the loot grid. Now runs along the east wall; verified in `houses-after-interior-bed-fixed.jpg` (the earlier interior shot shows the bug).
 2. **Porches looked like cover but weren't**: added shelter parts.
 3. **Crane jib pointed off the plateau**: Blender +X becomes Roblox −X on import, so the model is now rotated 180°.
 4. **CorrodedMetal painted every metal surface brown**: now limited to rust swatches.
