@@ -144,6 +144,56 @@ local function wall(
 	seg(0, doorWidth, doorHeight + (height - doorHeight) / 2, height - doorHeight)
 end
 
+-- Blender asset library (assets/roblox, synced by Rojo into ServerStorage.Assets). Each model's
+-- pivot is its base center and its front faces -Z, so CFrame.lookAt(base, base + facing) places it.
+local assetRoot = ServerStorage:FindFirstChild("Assets")
+
+local function placeAsset(set: string, name: string, cf: CFrame, parent: Instance): Model?
+	local folder = assetRoot and assetRoot:FindFirstChild(set)
+	local source = folder and folder:FindFirstChild(name)
+	if not source then
+		warn("[MapBuilder] missing asset", set, name)
+		return nil
+	end
+	local model = source:Clone() :: Model
+	model:PivotTo(cf)
+	model.Parent = parent
+	return model
+end
+
+local function facing(base: Vector3, direction: Vector3): CFrame
+	return CFrame.lookAt(base, base + direction)
+end
+
+-- Adds text to the one MeshPart of a model whose name contains `swatchKey`.
+local function labelAsset(model: Model?, swatchKey: string, face: Enum.NormalId, text: string, color: Color3)
+	if not model then
+		return
+	end
+	for _, p in model:GetChildren() do
+		if p:IsA("BasePart") and string.find(p.Name, swatchKey, 1, true) then
+			surfaceSign(p, face, text, color, Enum.Font.LuckiestGuy)
+			return
+		end
+	end
+end
+
+-- Recolors a placed asset: every MeshPart whose swatch (last "__" segment) is a key of `map`.
+local function recolor(model: Model?, swatchColors: { [string]: Color3? })
+	if not model then
+		return
+	end
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") then
+			local swatch = string.match(p.Name, "__(%w+)$")
+			local color = swatch and swatchColors[swatch]
+			if color then
+				p.Color = color
+			end
+		end
+	end
+end
+
 local FACES = {
 	N = { Normal = Vector3.new(0, 0, -1), Tangent = Vector3.new(1, 0, 0), Id = Enum.NormalId.Front },
 	S = { Normal = Vector3.new(0, 0, 1), Tangent = Vector3.new(1, 0, 0), Id = Enum.NormalId.Back },
@@ -160,6 +210,9 @@ export type BuildingOptions = {
 	Parapet: boolean?,
 	Awning: boolean?, -- covered walkway along the front; counts as shelter
 	Trim: Color3?,
+	-- Blender shell drawn over invisible gameplay walls/roof (assets/roblox/town/<Name>).
+	Shell: { Name: string, Wall: Color3?, Roof: Color3?, Interior: boolean? }?,
+	LootMargin: number?, -- distance from the walls to the loot grid (default 4)
 }
 
 -- Builds a hollow building. Returns interior loot points.
@@ -205,8 +258,35 @@ local function building(
 	wall(model, center + Vector3.new(w / 2, 0, 0), d, h, false, doorFace == "E", color, material)
 	wall(model, center + Vector3.new(-w / 2, 0, 0), d, h, false, doorFace == "W", color, material)
 
+	local face = FACES[doorFace]
+	local shell = o.Shell and placeAsset("town", o.Shell.Name, facing(center, face.Normal), model)
+	if shell and o.Shell then
+		-- Walls and roof stay for collision, shelter raycasts, and flood/lightning rules; the
+		-- shell draws the house. Its meshes never collide.
+		for _, p in model:GetChildren() do
+			if p:IsA("BasePart") and p.Name ~= "Floor" then
+				p.Transparency = 1
+			end
+		end
+		roof.Transparency = 1
+		recolor(shell, { Plaster = o.Shell.Wall, RoofRed = o.Shell.Roof })
+		if o.Shell.Interior then
+			local frame = facing(center, face.Normal)
+			-- Furniture hugs the walls, outside the loot grid (LootMargin keeps loot >= 5 studs in).
+			local layout = {
+				{ "Sofa", CFrame.new(-13.2, 0, 2) * CFrame.Angles(0, -math.pi / 2, 0) },
+				{ "Bed", CFrame.new(13.0, 0, 6) * CFrame.Angles(0, math.pi / 2, 0) },
+				{ "Kitchen", CFrame.new(-3, 0, 12.1) },
+				{ "Shelf", CFrame.new(9, 0, -12.6) * CFrame.Angles(0, math.pi, 0) },
+			}
+			for _, item in layout do
+				placeAsset("town", item[1], frame * CFrame.new(0, 1, 0) * item[2], model)
+			end
+		end
+	end
+
 	-- Windows on the side walls (cosmetic)
-	for _, sx in { -1, 1 } do
+	for _, sx in (if shell then {} else { -1, 1 }) :: { number } do
 		local glassPos = center + Vector3.new(sx * (w / 2 + 0.5), h * 0.55, 0)
 		prop({
 			Parent = model,
@@ -228,7 +308,6 @@ local function building(
 	end
 
 	-- Front face: door frame, shop windows, storefront sign
-	local face = FACES[doorFace]
 	local faceWidth = face.Tangent.X ~= 0 and w or d
 	local halfDepth = face.Tangent.X ~= 0 and d / 2 or w / 2
 	local function onFace(along: number, y: number, out: number): Vector3
@@ -238,7 +317,7 @@ local function building(
 		return face.Tangent.X ~= 0 and Vector3.new(width, height, thickness)
 			or Vector3.new(thickness, height, width)
 	end
-	for _, s in { -1, 1 } do
+	for _, s in (if shell then {} else { -1, 1 }) :: { number } do
 		prop({
 			Parent = model,
 			Size = faceSize(0.8, 9.6, 0.6),
@@ -247,14 +326,16 @@ local function building(
 			Material = Enum.Material.SmoothPlastic,
 		})
 	end
-	prop({
-		Parent = model,
-		Size = faceSize(9.6, 0.8, 0.6),
-		Position = onFace(0, 9.4, 0.4),
-		Color = trim,
-		Material = Enum.Material.SmoothPlastic,
-	})
-	if faceWidth >= 26 then
+	if not shell then
+		prop({
+			Parent = model,
+			Size = faceSize(9.6, 0.8, 0.6),
+			Position = onFace(0, 9.4, 0.4),
+			Color = trim,
+			Material = Enum.Material.SmoothPlastic,
+		})
+	end
+	if faceWidth >= 26 and not shell then
 		local windowWidth = math.min(10, faceWidth * 0.2)
 		for _, s in { -1, 1 } do
 			prop({
@@ -315,7 +396,7 @@ local function building(
 		end
 	end
 
-	if o.Gable then
+	if o.Gable and not shell then
 		local rh = o.Gable
 		local rd = (d + 3) / 2
 		local baseY = h + 1
@@ -377,7 +458,7 @@ local function building(
 	end
 
 	local points = {}
-	local margin = 4
+	local margin = o.LootMargin or 4
 	for x = -w / 2 + margin, w / 2 - margin, 7 do
 		for z = -d / 2 + margin, d / 2 - margin, 7 do
 			table.insert(points, center + Vector3.new(x, 2.5, z))
@@ -387,7 +468,30 @@ local function building(
 end
 
 local treeRng = Random.new(11)
+
+-- Town props come from the Blender kit when it's present; the primitive versions remain as a
+-- fallback so the map still builds without assets.
+local function townAsset(name: string, cf: CFrame, scale: number?): Model?
+	if not (assetRoot and assetRoot:FindFirstChild("town")) then
+		return nil
+	end
+	local model = placeAsset("town", name, cf, map)
+	if model and scale and scale ~= 1 then
+		model:ScaleTo(scale)
+	end
+	return model
+end
+
 local function tree(pos: Vector3)
+	if
+		townAsset(
+			"TreeBlocky",
+			CFrame.new(pos) * CFrame.Angles(0, treeRng:NextNumber(0, math.pi * 2), 0),
+			treeRng:NextNumber(0.9, 1.35)
+		)
+	then
+		return
+	end
 	local height = treeRng:NextNumber(9, 13)
 	prop({
 		Size = Vector3.new(height, 1.6, 1.6),
@@ -423,6 +527,9 @@ local function tree(pos: Vector3)
 end
 
 local function bush(pos: Vector3, s: number)
+	if townAsset("BushRound", CFrame.new(pos) * CFrame.Angles(0, treeRng:NextNumber(0, 6.28), 0), s / 4) then
+		return
+	end
 	prop({
 		Size = Vector3.new(s, s * 0.7, s),
 		Position = pos + Vector3.new(0, s * 0.3, 0),
@@ -433,7 +540,21 @@ local function bush(pos: Vector3, s: number)
 	})
 end
 
-local function streetLight(pos: Vector3)
+-- facing: the direction the lamp arm reaches (over the road).
+local function streetLight(pos: Vector3, facingDir: Vector3?)
+	local lampModel = townAsset("StreetLamp", facing(pos, facingDir or Vector3.new(-1, 0, 0)))
+	if lampModel then
+		for _, p in lampModel:GetChildren() do
+			if p:IsA("BasePart") and p.Material == Enum.Material.Neon then
+				local light = Instance.new("PointLight")
+				light.Range = 24
+				light.Brightness = 1.5
+				light.Color = Color3.fromRGB(255, 230, 180)
+				light.Parent = p
+			end
+		end
+		return
+	end
 	prop({
 		Size = Vector3.new(0.6, 14, 0.6),
 		Position = pos + Vector3.new(0, 7, 0),
@@ -487,6 +608,10 @@ end
 
 -- Power pole; returns the wire attachment height for stringing lines between poles.
 local function powerPole(pos: Vector3): Vector3
+	-- Turned so the crossarm runs across the line of wires (wires run along X).
+	if townAsset("PowerPole", CFrame.new(pos) * CFrame.Angles(0, math.pi / 2, 0)) then
+		return pos + Vector3.new(0, 19.2, 0)
+	end
 	prop({
 		Size = Vector3.new(1, 20, 1),
 		Position = pos + Vector3.new(0, 10, 0),
@@ -560,40 +685,6 @@ local function setupEnvironment()
 end
 
 ---------------------------------------------------------------------------- Scrapyard
-
--- Blender asset library (assets/roblox, synced by Rojo into ServerStorage.Assets). Each model's
--- pivot is its base center and its front faces -Z, so CFrame.lookAt(base, base + facing) places it.
-local assetRoot = ServerStorage:FindFirstChild("Assets")
-
-local function placeAsset(set: string, name: string, cf: CFrame, parent: Instance): Model?
-	local folder = assetRoot and assetRoot:FindFirstChild(set)
-	local source = folder and folder:FindFirstChild(name)
-	if not source then
-		warn("[MapBuilder] missing asset", set, name)
-		return nil
-	end
-	local model = source:Clone() :: Model
-	model:PivotTo(cf)
-	model.Parent = parent
-	return model
-end
-
-local function facing(base: Vector3, direction: Vector3): CFrame
-	return CFrame.lookAt(base, base + direction)
-end
-
--- Adds text to the one MeshPart of a model whose name contains `swatchKey`.
-local function labelAsset(model: Model?, swatchKey: string, face: Enum.NormalId, text: string, color: Color3)
-	if not model then
-		return
-	end
-	for _, p in model:GetChildren() do
-		if p:IsA("BasePart") and string.find(p.Name, swatchKey, 1, true) then
-			surfaceSign(p, face, text, color, Enum.Font.LuckiestGuy)
-			return
-		end
-	end
-end
 
 local yardRng = Random.new(7)
 
@@ -971,16 +1062,16 @@ function MapBuilder.build()
 
 	local housePoints = {}
 	local houseColors = {
-		Color3.fromRGB(230, 200, 150),
-		Color3.fromRGB(170, 200, 220),
-		Color3.fromRGB(220, 160, 160),
-		Color3.fromRGB(200, 220, 170),
+		Palette.Swatches.Mustard,
+		Palette.Swatches.Cobalt,
+		Palette.Swatches.Coral,
+		Palette.Swatches.Teal,
 	}
 	local roofColors = {
-		Color3.fromRGB(110, 60, 50),
-		Color3.fromRGB(60, 70, 90),
-		Color3.fromRGB(90, 85, 80),
-		Color3.fromRGB(120, 75, 45),
+		Palette.Swatches.RoofRed,
+		Palette.Swatches.RoofSlate,
+		Palette.Swatches.RoofBrown,
+		Palette.Swatches.RoofRed,
 	}
 	local housePositions = {
 		Vector3.new(-150, 0, 55),
@@ -998,7 +1089,17 @@ function MapBuilder.build()
 			"N",
 			roofColors[i],
 			false,
-			{ Gable = 6, Label = false }
+			{
+				Gable = 6,
+				Label = false,
+				Shell = {
+					Name = i % 2 == 1 and "HouseA" or "HouseB",
+					Wall = houseColors[i],
+					Roof = roofColors[i],
+					Interior = true,
+				},
+				LootMargin = 6,
+			}
 		)
 		for _, p in pts do
 			table.insert(housePoints, p)
@@ -1012,20 +1113,35 @@ function MapBuilder.build()
 			Color = CONCRETE,
 			Material = Enum.Material.Concrete,
 		})
-		prop({
-			Size = Vector3.new(0.4, 3.5, 0.4),
-			Position = Vector3.new(pos.X + 5, 1.75, pathEnd + 2),
-			Color = Color3.fromRGB(90, 70, 50),
-			Material = Enum.Material.Wood,
-		})
-		prop({
-			Size = Vector3.new(1.2, 1, 1.8),
-			Position = Vector3.new(pos.X + 5, 3.9, pathEnd + 2),
-			Color = Color3.fromRGB(60, 80, 140),
-			Material = Enum.Material.Metal,
-		})
-		bush(Vector3.new(pos.X - 10, 0, frontZ - 2), 4)
-		bush(Vector3.new(pos.X + 10, 0, frontZ - 2), 3.5)
+		local town = assetRoot and assetRoot:FindFirstChild("town")
+		if town then
+			placeAsset(
+				"town",
+				"Mailbox",
+				facing(Vector3.new(pos.X + 5, 0, pathEnd + 3), Vector3.new(0, 0, -1)),
+				map
+			)
+			-- Picket fence along the front yard, with a gap for the path.
+			local fenceZ = pathEnd + 4
+			for _, x in { -16.5, -7.5, 7.5, 16.5 } do
+				local fence = placeAsset("town", "PicketFence", CFrame.new(pos.X + x, 0, fenceZ), map)
+				if fence and (i * 7 + x) % 3 < 1 then
+					-- One leaning, storm-battered section per yard or so.
+					fence:PivotTo(fence:GetPivot() * CFrame.Angles(math.rad(-14), 0, 0))
+				end
+			end
+			placeAsset("town", "BushRound", CFrame.new(pos.X - 10, 0, frontZ - 6.5), map)
+			placeAsset(
+				"town",
+				"BushRound",
+				CFrame.new(pos.X + 10, 0, frontZ - 6.5) * CFrame.Angles(0, 2, 0),
+				map
+			)
+			placeAsset("town", "TrashCan", CFrame.new(pos.X + 18, 0, pos.Z + 8), map)
+		else
+			bush(Vector3.new(pos.X - 10, 0, frontZ - 2), 4)
+			bush(Vector3.new(pos.X + 10, 0, frontZ - 2), 3.5)
+		end
 	end
 	-- Lane between the two rows of houses, joining the main road sidewalk.
 	prop({
@@ -1326,6 +1442,9 @@ function MapBuilder.build()
 		}
 	do
 		local cf = CFrame.new(info[1]) * CFrame.Angles(0, math.rad(info[2]), 0)
+		if townAsset("Bench", cf) then
+			continue
+		end
 		prop({
 			Size = Vector3.new(6, 0.4, 1.8),
 			CFrame = cf * CFrame.new(0, 1.5, 0),
@@ -1423,8 +1542,8 @@ function MapBuilder.build()
 		bush(pos, 4)
 	end
 	for z = -135, 90, 45 do
-		streetLight(Vector3.new(14, 0, z))
-		streetLight(Vector3.new(-14, 0, z + 22))
+		streetLight(Vector3.new(14, 0, z), Vector3.new(-1, 0, 0))
+		streetLight(Vector3.new(-14, 0, z + 22), Vector3.new(1, 0, 0))
 	end
 	-- Power lines along the cross road
 	local previous: Vector3? = nil
@@ -1435,6 +1554,34 @@ function MapBuilder.build()
 			wire(previous - Vector3.new(0, 0, 2.5), top - Vector3.new(0, 0, 2.5))
 		end
 		previous = top
+	end
+
+	-- Street furniture and storm damage (Blender kit only).
+	if assetRoot and assetRoot:FindFirstChild("town") then
+		for _, info in
+			{
+				{ "StopSign", Vector3.new(20, 0, -9), Vector3.new(0, 0, 1) },
+				{ "StopSign", Vector3.new(-20, 0, 29), Vector3.new(0, 0, -1) },
+				{ "Hydrant", Vector3.new(-20, 0, 33), nil },
+				{ "Hydrant", Vector3.new(-122, 0, 30), nil },
+				{ "Hydrant", Vector3.new(20, 0, -13), nil },
+				{ "TrashCan", Vector3.new(-20, 0, -16), nil },
+				{ "TrashCan", Vector3.new(-84, 0, -30), nil },
+				{ "Planter", Vector3.new(-62, 0, -89), Vector3.new(0, 0, -1) },
+				{ "Planter", Vector3.new(-38, 0, -89), Vector3.new(0, 0, -1) },
+				-- The houses took the last storm hardest: branches, sheet metal, a closed lane.
+				{ "DebrisBranch", Vector3.new(-122, 0, 46), Vector3.new(1, 0, 0.4) },
+				{ "DebrisBranch", Vector3.new(-176, 0, 95), Vector3.new(0.3, 0, 1) },
+				{ "DebrisSheet", Vector3.new(-128, 0, 100), Vector3.new(-1, 0, 0.2) },
+				{ "DebrisSheet", Vector3.new(-60, 0, 36), Vector3.new(0.5, 0, -1) },
+				{ "Barrier", Vector3.new(-178, 0, 72), Vector3.new(1, 0, 0) },
+				{ "Cone", Vector3.new(-174, 0, 68), nil },
+				{ "Cone", Vector3.new(-174, 0, 76), nil },
+			}
+		do
+			local dir = info[3] or Vector3.new(math.cos(#info[1]), 0, math.sin(#info[1]))
+			townAsset(info[1], facing(info[2], dir))
+		end
 	end
 
 	return {

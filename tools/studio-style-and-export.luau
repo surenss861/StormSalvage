@@ -39,7 +39,11 @@ end
 -- Assets with open interiors or gaps (doorways, the gate) need real collision shapes; a box
 -- around their joined walls would block them. Everything else uses a cheap box. Salvage never
 -- collides (LootService turns collisions off).
-local PRECISE = { SellShack = true, GearShack = true, GateArch = true, Crane = true, Crusher = true, Workbench = true }
+local PRECISE =
+	{ SellShack = true, GearShack = true, GateArch = true, Crane = true, Crusher = true, Workbench = true }
+-- Pure visuals: house shells sit over invisible gameplay walls, and debris is set dressing.
+local VISUAL_ONLY =
+	{ HouseA = true, HouseB = true, DebrisBranch = true, DebrisSheet = true, BushRound = true }
 
 -- Applies palette material/color to one model; returns how many MeshParts were styled.
 local function style(model: Instance): (number, { string })
@@ -61,6 +65,10 @@ local function style(model: Instance): (number, { string })
 			d.CollisionFidelity = if PRECISE[model.Name]
 				then Enum.CollisionFidelity.PreciseConvexDecomposition
 				else Enum.CollisionFidelity.Box
+			if VISUAL_ONLY[model.Name] then
+				d.CanCollide = false
+				d.CanQuery = false
+			end
 			if material == Enum.Material.Glass then
 				d.Transparency = 0.3
 			end

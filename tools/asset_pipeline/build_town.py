@@ -104,7 +104,11 @@ def trim(c):
     for sx in (-1, 1):
         for sy in (-1, 1):
             box(c, "Corner", "Smooth", "Cream", (1.4, 1.4, H), pos=(sx * W / 2, sy * D / 2, H / 2), bevel=0.15)
-    box(c, "Base", "Concrete", "Stone", (W + 1.2, D + 1.2, 1.2), pos=(0, 0, 0.6), bevel=0.15)
+    # Foundation as a ring around the walls, so the gameplay floor inside stays visible.
+    for sy in (-1, 1):
+        box(c, "Base", "Concrete", "Stone", (W + 1.2, 1.6, 1.2), pos=(0, sy * D / 2, 0.6), bevel=0.15)
+    for sx in (-1, 1):
+        box(c, "Base", "Concrete", "Stone", (1.6, D + 1.2, 1.2), pos=(sx * W / 2, 0, 0.6), bevel=0.15)
     # Door frame and step on the front wall (y = -D/2)
     for sx in (-1, 1):
         box(c, "DoorFrame", "Smooth", "Cream", (0.8, 1.2, DOOR_H + 0.4), pos=(sx * (DOOR_W / 2 + 0.4), -D / 2 - 0.2, (DOOR_H + 0.4) / 2), bevel=0.12)
