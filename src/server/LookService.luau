@@ -93,11 +93,11 @@ local profiles: { [string]: Profile } = {
 		Name = "A: Storm-Scarred Arcade",
 		Calm = {
 			Lighting = {
-				ClockTime = 16.3,
-				Brightness = 2.9,
+				ClockTime = 17.05, -- low golden sun with long shadows (past ~17.3 the moon shows)
+				Brightness = 3.1,
 				Ambient = Color3.fromRGB(78, 70, 88),
 				OutdoorAmbient = Color3.fromRGB(150, 132, 128),
-				ColorShift_Top = Color3.fromRGB(255, 222, 170),
+				ColorShift_Top = Color3.fromRGB(255, 200, 140),
 				ColorShift_Bottom = Color3.fromRGB(70, 80, 130), -- cool bounce fill under eaves
 				EnvironmentDiffuseScale = 0.75,
 				EnvironmentSpecularScale = 0.8,
@@ -105,15 +105,15 @@ local profiles: { [string]: Profile } = {
 				ShadowSoftness = 0.12,
 			},
 			Grade = {
-				Saturation = 0.22,
-				Contrast = 0.14,
+				Saturation = 0.24,
+				Contrast = 0.16,
 				Brightness = 0.01,
-				TintColor = Color3.fromRGB(255, 242, 226),
+				TintColor = Color3.fromRGB(255, 236, 212),
 			},
 			Atmosphere = {
-				Density = 0.33,
-				Offset = 0.15,
-				Haze = 1.1,
+				Density = 0.38,
+				Offset = 0.2,
+				Haze = 1.6,
 				Glare = 0.45,
 				Color = Color3.fromRGB(255, 222, 186),
 				Decay = Color3.fromRGB(150, 112, 140),
@@ -136,12 +136,12 @@ local profiles: { [string]: Profile } = {
 		PaletteSaturation = 1.1,
 		PaletteValue = 1,
 		Materials = {
-			Metal = "V3A_PaintedMetal",
-			CorrodedMetal = "V3A_RustedSheet",
+			Metal = "V3A_PaintedMetal3",
+			CorrodedMetal = "V3A_RustedSheet1",
 			Concrete = "V3A_PatchedConcrete",
 			Asphalt = "V3A_PatchedAsphalt",
-			WoodPlanks = "V3A_WeatheredPlanks",
-			Brick = "V3A_StylizedBrick",
+			WoodPlanks = "V3A_WeatheredPlanks2",
+			Brick = "V3A_StylizedBrick3",
 		},
 		Water = { WaterColor = Color3.fromRGB(70, 92, 84), WaterTransparency = 0.3, WaterReflectance = 0.3 },
 	},
@@ -170,9 +170,9 @@ local profiles: { [string]: Profile } = {
 				TintColor = Color3.fromRGB(246, 248, 255),
 			},
 			Atmosphere = {
-				Density = 0.38,
-				Offset = 0.05,
-				Haze = 1.7,
+				Density = 0.44,
+				Offset = 0.1,
+				Haze = 2.3,
 				Glare = 0.2,
 				Color = Color3.fromRGB(200, 210, 222),
 				Decay = Color3.fromRGB(96, 110, 128),
@@ -196,11 +196,11 @@ local profiles: { [string]: Profile } = {
 		PaletteValue = 0.92,
 		Materials = {
 			Metal = "V3B_Metal",
-			CorrodedMetal = "V3B_Rust",
-			Concrete = "V3B_Concrete",
-			Asphalt = "V3B_Asphalt",
-			WoodPlanks = "V3B_Planks",
-			Brick = "V3B_Brick",
+			CorrodedMetal = "V3B_Rust3",
+			Concrete = "V3B_Concrete1",
+			Asphalt = "V3B_Asphalt1",
+			WoodPlanks = "V3B_Planks3",
+			Brick = "V3B_Brick3",
 		},
 		Water = { WaterColor = Color3.fromRGB(78, 76, 62), WaterTransparency = 0.4, WaterReflectance = 0.35 },
 	},
@@ -254,11 +254,11 @@ local profiles: { [string]: Profile } = {
 		PaletteSaturation = 1.22,
 		PaletteValue = 1.05,
 		Materials = {
-			Metal = "V3C_ToyMetal",
-			Concrete = "V3C_PaintedConcrete",
-			Asphalt = "V3C_CartoonAsphalt",
-			WoodPlanks = "V3C_PaintedPlanks",
-			Brick = "V3C_CartoonBrick",
+			-- No metal variant: all four generated "toy metal" options painted literal toys on it.
+			Concrete = "V3C_PaintedConcrete1",
+			Asphalt = "V3C_CartoonAsphalt2",
+			WoodPlanks = "V3C_PaintedPlanks1",
+			Brick = "V3C_CartoonBrick1",
 		},
 		Water = {
 			WaterColor = Color3.fromRGB(60, 120, 150),
@@ -319,7 +319,25 @@ local function recolor(profile: Profile)
 	end
 end
 
+-- The study MaterialVariants are saved in the repo (assets/roblox/materials/V3Studies.rbxm,
+-- synced to ServerStorage.Assets); variants only render from MaterialService, so copy them
+-- there if the place doesn't already have them.
+local function ensureVariants()
+	if MaterialService:FindFirstChild("V3Studies") then
+		return
+	end
+	local assets = game:GetService("ServerStorage"):FindFirstChild("Assets")
+	local materials = assets and assets:FindFirstChild("materials")
+	local source = materials and materials:FindFirstChild("V3Studies")
+	if source then
+		source:Clone().Parent = MaterialService
+	end
+end
+
 local function applyMaterials(profile: Profile)
+	if next(profile.Materials) then
+		ensureVariants()
+	end
 	for _, material in Enum.Material:GetEnumItems() do
 		local variant = profile.Materials[material.Name]
 		local ok = pcall(function()
