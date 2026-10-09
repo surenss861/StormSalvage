@@ -239,6 +239,12 @@ local function onPlayerAdded(player: Player)
 	coins.Parent = leaderstats
 	leaderstats.Parent = player
 
+	-- A profile still held by another server can take ~40s of retries; say so.
+	task.delay(3, function()
+		if player.Parent and not sessions[player] then
+			PlayerService.notify(player, "Loading your save...", Color3.fromRGB(255, 220, 120))
+		end
+	end)
 	local data, canSave = DataService.load(player)
 	if not player.Parent then
 		if data and canSave then
@@ -295,7 +301,19 @@ function PlayerService.save(player: Player, release: boolean): boolean
 	if not session or not session.CanSave then
 		return false
 	end
-	return DataService.save(player, session.Data, release)
+	local saved, lostLock = DataService.save(player, session.Data, release)
+	if lostLock then
+		-- Another server took over this profile. Stop saving (and granting purchases) here
+		-- instead of letting the player keep earning progress that can never be written.
+		session.CanSave = false
+		PlayerService.pushState(player)
+		PlayerService.notify(
+			player,
+			"Your save is open in another server. Rejoin to keep your progress.",
+			Color3.fromRGB(255, 120, 90)
+		)
+	end
+	return saved
 end
 
 local function onPlayerRemoving(player: Player)

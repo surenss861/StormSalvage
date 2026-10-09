@@ -7,12 +7,15 @@
 --   debug:Invoke("skip")                -- end the current phase now
 --   debug:Invoke("coins", 500)          -- give every player coins
 --   debug:Invoke("state")               -- storm + player summary
+--   debug:Invoke("receipt", "Player1", "purchase-1")  -- simulated receipt -> decision name
+--   debug:Invoke("save", "Player1")     -- save now -> true if persisted
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+local MonetizationService = require(script.Parent.MonetizationService)
 local PlayerService = require(script.Parent.PlayerService)
 local StormService = require(script.Parent.StormService)
 
@@ -37,6 +40,16 @@ local commands: { [string]: (...any) -> any } = {
 			PlayerService.addCoins(player, amount)
 		end
 		return "granted " .. amount
+	end,
+	receipt = function(playerName: string, purchaseId: string)
+		local player = Players:FindFirstChild(playerName)
+		assert(player and player:IsA("Player"), "no player " .. tostring(playerName))
+		return MonetizationService.simulateReceipt(player, purchaseId).Name
+	end,
+	save = function(playerName: string)
+		local player = Players:FindFirstChild(playerName)
+		assert(player and player:IsA("Player"), "no player " .. tostring(playerName))
+		return PlayerService.save(player, false)
 	end,
 	state = function()
 		local players = {}

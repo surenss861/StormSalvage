@@ -101,9 +101,11 @@ function DataService.load(player: Player): (Data?, boolean)
 	return nil, false
 end
 
-function DataService.save(player: Player, data: Data, release: boolean): boolean
+-- Returns (saved, lostLock). lostLock means another server now owns the profile, so this
+-- session must never write it again.
+function DataService.save(player: Player, data: Data, release: boolean): (boolean, boolean)
 	if not store then
-		return false
+		return false, false
 	end
 	local lostLock = false
 	local ok, err = pcall(function()
@@ -122,9 +124,9 @@ function DataService.save(player: Player, data: Data, release: boolean): boolean
 		warn("[DataService] save failed for", player.Name, err)
 	elseif lostLock then
 		warn("[DataService] save skipped, another server owns the profile:", player.Name)
-		return false
+		return false, true
 	end
-	return ok
+	return ok, false
 end
 
 return DataService

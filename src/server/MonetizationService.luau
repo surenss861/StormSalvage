@@ -32,15 +32,20 @@ local function refreshPasses(player: Player)
 	PlayerService.pushState(player)
 end
 
-local productHandlers: { [number]: (Player, any) -> () } = {}
+-- Each handler grants its reward and returns a function that undoes it, used when the grant
+-- could not be saved (Roblox re-delivers the receipt later, so it must not stick around).
+local productHandlers: { [number]: (Player, any) -> () -> () } = {}
 
 local function registerProducts()
 	local boost = Config.DevProducts.SalvageBoost
 	if boost.Id ~= 0 then
 		productHandlers[boost.Id] = function(player, session)
-			local now = os.time()
-			session.Data.BoostUntil = math.max(session.Data.BoostUntil, now) + boost.BoostSeconds
+			local previous = session.Data.BoostUntil
+			session.Data.BoostUntil = math.max(previous, os.time()) + boost.BoostSeconds
 			PlayerService.notify(player, "2x Salvage active!", Color3.fromRGB(255, 220, 90))
+			return function()
+				session.Data.BoostUntil = previous
+			end
 		end
 	end
 	local coins = Config.DevProducts.CoinPackSmall
@@ -52,6 +57,9 @@ local function registerProducts()
 				("+%d coins. Thanks for the support!"):format(coins.Coins),
 				Color3.fromRGB(255, 220, 90)
 			)
+			return function()
+				session.Data.Coins = math.max(0, session.Data.Coins - coins.Coins)
+			end
 		end
 	end
 end
@@ -69,13 +77,14 @@ local function processReceipt(receipt)
 	end
 
 	local receipts = session.Data.ProcessedReceipts
+	local undo: (() -> ())? = nil
 	if not table.find(receipts, receipt.PurchaseId) then
 		local handler = productHandlers[receipt.ProductId]
 		if not handler then
 			warn("[Monetization] no handler for product", receipt.ProductId)
 			return Enum.ProductPurchaseDecision.NotProcessedYet
 		end
-		handler(player, session)
+		undo = handler(player, session)
 		table.insert(receipts, receipt.PurchaseId)
 		while #receipts > MAX_RECEIPT_HISTORY do
 			table.remove(receipts, 1)
@@ -83,11 +92,47 @@ local function processReceipt(receipt)
 		PlayerService.pushState(player)
 	end
 
-	-- Only confirm once the grant is safely persisted.
+	-- Only confirm once the grant is safely persisted. Otherwise take the grant back: Roblox
+	-- re-delivers the receipt later and it is granted then, exactly once.
 	if not PlayerService.save(player, false) then
+		if undo then
+			undo()
+			local index = table.find(receipts, receipt.PurchaseId)
+			if index then
+				table.remove(receipts, index)
+			end
+			PlayerService.pushState(player)
+			PlayerService.notify(
+				player,
+				"Your purchase couldn't be saved yet. It will be delivered automatically.",
+				Color3.fromRGB(255, 200, 80)
+			)
+		end
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	return Enum.ProductPurchaseDecision.PurchaseGranted
+end
+
+-- Studio QA only (DebugService): run a simulated receipt through the real handler. Product
+-- ids are 0 until real products exist, so tests use a test-only product id.
+MonetizationService.TEST_PRODUCT_ID = -1
+MonetizationService.TEST_PRODUCT_COINS = 1000
+function MonetizationService.simulateReceipt(player: Player, purchaseId: string): Enum.ProductPurchaseDecision
+	productHandlers[MonetizationService.TEST_PRODUCT_ID] = function(p, session)
+		session.Data.Coins += MonetizationService.TEST_PRODUCT_COINS
+		PlayerService.notify(p, "Test purchase granted.", Color3.fromRGB(255, 220, 90))
+		return function()
+			session.Data.Coins = math.max(0, session.Data.Coins - MonetizationService.TEST_PRODUCT_COINS)
+		end
+	end
+	return processReceipt({
+		PlayerId = player.UserId,
+		ProductId = MonetizationService.TEST_PRODUCT_ID,
+		PurchaseId = purchaseId,
+		CurrencySpent = 0,
+		CurrencyType = Enum.CurrencyType.Robux,
+		PlaceIdWherePurchased = game.PlaceId,
+	})
 end
 
 function MonetizationService.init()
