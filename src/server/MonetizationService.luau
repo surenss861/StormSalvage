@@ -62,6 +62,11 @@ local function processReceipt(receipt)
 	if not player or not session then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
+	-- Never grant what we can't persist: with DataStores unavailable the reward would vanish on
+	-- leave, and Roblox would not retry. Leaving it unprocessed lets Roblox retry on a later join.
+	if not session.CanSave then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
 
 	local receipts = session.Data.ProcessedReceipts
 	if not table.find(receipts, receipt.PurchaseId) then
@@ -78,8 +83,8 @@ local function processReceipt(receipt)
 		PlayerService.pushState(player)
 	end
 
-	-- Only confirm once the grant is safely persisted (or saving is impossible in this session).
-	if session.CanSave and not PlayerService.save(player, false) then
+	-- Only confirm once the grant is safely persisted.
+	if not PlayerService.save(player, false) then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	return Enum.ProductPurchaseDecision.PurchaseGranted

@@ -484,6 +484,13 @@ for _, pass in Config.GamePasses do
 			shopRow(pass.DisplayName, order, pass.DisplayName, pass.Description, Color3.fromRGB(40, 170, 90))
 		buy.Text = "R$ Pass"
 		buy.Activated:Connect(function()
+			if playerState and not playerState.CanSave then
+				toast(
+					"Purchases are paused: your progress can't be saved right now.",
+					Color3.fromRGB(255, 120, 90)
+				)
+				return
+			end
 			MarketplaceService:PromptGamePassPurchase(player, pass.Id)
 		end)
 	end
@@ -500,6 +507,13 @@ for _, product in Config.DevProducts do
 		)
 		buy.Text = "R$ Buy"
 		buy.Activated:Connect(function()
+			if playerState and not playerState.CanSave then
+				toast(
+					"Purchases are paused: your progress can't be saved right now.",
+					Color3.fromRGB(255, 120, 90)
+				)
+				return
+			end
 			MarketplaceService:PromptProductPurchase(player, product.Id)
 		end)
 	end
