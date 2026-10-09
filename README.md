@@ -21,6 +21,15 @@ In Studio playtests, `ServerStorage.StormSalvageDebug` (a BindableFunction, neve
 Progress only saves in a **published** place with *Game Settings → Security → Enable Studio Access to API
 Services* turned on. Otherwise the game runs with a temporary profile and tells the player.
 
+## Art assets
+
+Models are made in Blender by scripts in `tools/asset_pipeline/` (`blender -b --python tools/asset_pipeline/build_<set>.py`),
+which save the `.blend` source to `assets/blender/`, export FBX to `assets/exports/`, and render previews to
+`docs/art/previews/`. FBX files are imported with Studio's 3D Importer, styled with `tools/studio-style-and-export.luau`
+(run `python3 tools/asset_server.py` first), and saved to `assets/roblox/`, which Rojo syncs into `ServerStorage.Assets`.
+See [`docs/art/ART-DIRECTION.md`](docs/art/ART-DIRECTION.md) and [`assets/ASSET-MANIFEST.md`](assets/ASSET-MANIFEST.md).
+Large files are stored with Git LFS (`git lfs install` before cloning).
+
 ## The loop
 
 1. Spawn on the Scrapyard plateau (safe zone).

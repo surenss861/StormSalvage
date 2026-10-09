@@ -211,7 +211,7 @@ export type BuildingOptions = {
 	Awning: boolean?, -- covered walkway along the front; counts as shelter
 	Trim: Color3?,
 	-- Blender shell drawn over invisible gameplay walls/roof (assets/roblox/town/<Name>).
-	Shell: { Name: string, Wall: Color3?, Roof: Color3?, Interior: boolean? }?,
+	Shell: { Name: string, Wall: Color3?, Roof: Color3?, Interior: boolean?, Porch: number? }?,
 	LootMargin: number?, -- distance from the walls to the loot grid (default 4)
 }
 
@@ -270,12 +270,24 @@ local function building(
 		end
 		roof.Transparency = 1
 		recolor(shell, { Plaster = o.Shell.Wall, RoofRed = o.Shell.Roof })
+		if o.Shell.Porch then
+			-- The porch roof looks like cover, so make it count as shelter.
+			local porchRoof = part({
+				Parent = roofs,
+				Name = name .. "Porch",
+				Size = Vector3.new(o.Shell.Porch, 0.6, 6),
+				CFrame = facing(center, face.Normal) * CFrame.new(0, 10.4, -d / 2 - 2.6),
+				Transparency = 1,
+				CanCollide = false,
+			})
+			CollectionService:AddTag(porchRoof, "Shelter")
+		end
 		if o.Shell.Interior then
 			local frame = facing(center, face.Normal)
 			-- Furniture hugs the walls, outside the loot grid (LootMargin keeps loot >= 5 studs in).
 			local layout = {
 				{ "Sofa", CFrame.new(-13.2, 0, 2) * CFrame.Angles(0, -math.pi / 2, 0) },
-				{ "Bed", CFrame.new(13.0, 0, 6) * CFrame.Angles(0, math.pi / 2, 0) },
+				{ "Bed", CFrame.new(13.2, 0, 9.9) }, -- length along the east wall, headboard on the back wall
 				{ "Kitchen", CFrame.new(-3, 0, 12.1) },
 				{ "Shelf", CFrame.new(9, 0, -12.6) * CFrame.Angles(0, math.pi, 0) },
 			}
@@ -1094,6 +1106,7 @@ function MapBuilder.build()
 				Label = false,
 				Shell = {
 					Name = i % 2 == 1 and "HouseA" or "HouseB",
+					Porch = i % 2 == 1 and 17 or 32, -- porch roof widths in build_town.py
 					Wall = houseColors[i],
 					Roof = roofColors[i],
 					Interior = true,
