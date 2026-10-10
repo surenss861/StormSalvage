@@ -39,8 +39,22 @@ end
 -- Assets with open interiors or gaps (doorways, the gate) need real collision shapes; a box
 -- around their joined walls would block them. Everything else uses a cheap box. Salvage never
 -- collides (LootService turns collisions off).
-local PRECISE =
-	{ SellShack = true, GearShack = true, GateArch = true, Crane = true, Crusher = true, Workbench = true }
+local PRECISE = {
+	SellShack = true,
+	GearShack = true,
+	GateArch = true,
+	Crane = true,
+	Crusher = true,
+	Workbench = true,
+	-- V3 hero assets: joined posts and frames would otherwise box off the road and counters.
+	GearWorkshop = true,
+	WeighStation = true,
+	Shredder = true,
+	ClockTowerV3 = true,
+	ArrivalGantry = true,
+	StorefrontA = true,
+	StorefrontB = true,
+}
 -- Pure visuals: house shells sit over invisible gameplay walls, and debris is set dressing.
 local VISUAL_ONLY = {
 	HouseA = true,

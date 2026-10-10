@@ -224,6 +224,7 @@ end
 
 -- Strikes announced to this client that haven't landed yet (for the personal alert).
 local strikes: { { Position: Vector3, Radius: number, LandsAt: number } } = {}
+local strikeHook: ((position: Vector3, radius: number) -> ())? = nil
 
 local function lightningFlash(position: Vector3)
 	local camera = workspace.CurrentCamera
@@ -339,6 +340,9 @@ local function onLightningWarning(position: Vector3, radius: number, delay: numb
 		end
 		lightningFlash(position)
 		impact(position, radius)
+		if strikeHook then
+			strikeHook(position, radius)
+		end
 	end)
 end
 
@@ -477,6 +481,11 @@ function StormEffects.step(now: number)
 		return
 	end
 	setAlert("")
+end
+
+-- Called when a strike lands (EnvironmentFX lights up and shorts out the area around it).
+function StormEffects.setStrikeHook(fn: (position: Vector3, radius: number) -> ())
+	strikeHook = fn
 end
 
 function StormEffects.getState(): any

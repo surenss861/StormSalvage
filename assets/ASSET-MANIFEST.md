@@ -90,3 +90,21 @@ Regenerate the meshes with the Blender script, re-import the FBX, then rerun `to
 | districts | SupermarketShell | 71.6 x 25.0 x 56.9 | `tools/asset_pipeline/build_districts.py` | `assets/exports/districts/SupermarketShell.fbx` | `assets/roblox/districts/SupermarketShell.rbxm` | `SupermarketShell10__Metal__Cream` 130122357726751<br>`SupermarketShell11__Smooth__Mustard` 81729072254616<br>`SupermarketShell1__Brick__Plaster` 115574925634715<br>`SupermarketShell2__Glass__Glass` 132007643886303<br>`SupermarketShell3__Smooth__Cream` 90629034420931<br>`SupermarketShell4__Metal__Steel` 114989050847909<br>`SupermarketShell5__Concrete__Stone` 134791250490435<br>`SupermarketShell6__Smooth__ContainerGreen` 82050815480033<br>`SupermarketShell7__Concrete__Concrete` 97909683349272<br>`SupermarketShell8__Metal__Gunmetal` 134697659866491<br>`SupermarketShell9__Smooth__Signboard` 90960566281799 |
 | districts | VendingMachine | 3.0 x 6.0 x 2.5 | `tools/asset_pipeline/build_districts.py` | `assets/exports/districts/VendingMachine.fbx` | `assets/roblox/districts/VendingMachine.rbxm` | `VendingMachine1__Smooth__Coral` 94094545203654<br>`VendingMachine2__Glass__WindowWarm` 109711663026898<br>`VendingMachine3__Smooth__HazardBlack` 98707847315777 |
 | districts | WarehouseShell | 71.6 x 28.1 x 64.1 | `tools/asset_pipeline/build_districts.py` | `assets/exports/districts/WarehouseShell.fbx` | `assets/roblox/districts/WarehouseShell.rbxm` | `WarehouseShell10__Smooth__Signboard` 73542461865930<br>`WarehouseShell11__Smooth__HazardBlack` 106056504257382<br>`WarehouseShell1__Metal__Steel` 87076888817180<br>`WarehouseShell2__Glass__Glass` 91553114235555<br>`WarehouseShell3__Smooth__Gunmetal` 88012271411953<br>`WarehouseShell4__Concrete__Concrete` 77297561313304<br>`WarehouseShell5__Metal__ContainerBlue` 116875465864082<br>`WarehouseShell6__Smooth__SafetyYellow` 74552979291081<br>`WarehouseShell7__Rubber__HazardBlack` 99884511873546<br>`WarehouseShell8__Concrete__Gunmetal` 110057191018650<br>`WarehouseShell9__Metal__Gunmetal` 96631392000963 |
+
+## v3hero (Milestone B2, pending import)
+
+Source `tools/asset_pipeline/build_v3hero.py`, blend `assets/blender/v3hero.blend`. Mesh IDs are
+recorded here after the 3D Importer upload.
+
+| Set | Asset | Size (studs, X × Y × Z) | Triangles | FBX | Model | Mesh IDs |
+| --- | --- | --- | --- | --- | --- | --- |
+| v3hero | GearWorkshop | 30.1 x 17.7 x 18.1 | 8,136 | `assets/exports/v3hero/GearWorkshop.fbx` | pending | pending |
+| v3hero | WeighStation | 23.0 x 13.3 x 17.4 | 5,656 | `assets/exports/v3hero/WeighStation.fbx` | pending | pending |
+| v3hero | Shredder | 29.0 x 24.0 x 11.3 | 5,336 | `assets/exports/v3hero/Shredder.fbx` | pending | pending |
+| v3hero | ClockTowerV3 | 14.0 x 56.7 x 15.2 | 6,960 | `assets/exports/v3hero/ClockTowerV3.fbx` | pending | pending |
+| v3hero | ArrivalGantry | 31.4 x 19.6 x 3.6 | 6,296 | `assets/exports/v3hero/ArrivalGantry.fbx` | pending | pending |
+| v3hero | StorefrontA | 16.8 x 18.7 x 13.4 | 1,852 | `assets/exports/v3hero/StorefrontA.fbx` | pending | pending |
+| v3hero | StorefrontB | 16.8 x 18.7 x 13.4 | 1,852 | `assets/exports/v3hero/StorefrontB.fbx` | pending | pending |
+
+Storm skyboxes: `assets/textures/sky/*.png` (from `tools/asset_pipeline/make_storm_skies.py`),
+uploaded image IDs in `src/server/LookService.luau` (`STORM_SKIES`).

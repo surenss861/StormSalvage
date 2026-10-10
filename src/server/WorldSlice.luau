@@ -238,6 +238,18 @@ local function patch(
 	})
 end
 
+-- Builds `fn`'s pieces into a named sub-folder, so a hero asset can replace the whole set.
+local function group(name: string, fn: () -> ()): Folder
+	local sub = Instance.new("Folder")
+	sub.Name = name
+	sub.Parent = folder
+	local saved = folder
+	folder = sub
+	fn()
+	folder = saved
+	return sub
+end
+
 ---------------------------------------------------------------------------- Scrapyard
 
 local function buildScrapyard()
@@ -275,58 +287,60 @@ local function buildScrapyard()
 	hazardStripes(-11, 11, -227, 3.5, top + 0.33)
 	-- Arrival gantry in front of the spawn: the first thing a player sees.
 	local gz = -285
-	for _, x in { -14, 14 } do
-		solid({
-			Name = "GantryLeg",
-			Size = Vector3.new(1.6, 18, 1.6),
-			Position = Vector3.new(x, top + 9, gz),
+	group("GantryPrimitive", function()
+		for _, x in { -14, 14 } do
+			solid({
+				Name = "GantryLeg",
+				Size = Vector3.new(1.6, 18, 1.6),
+				Position = Vector3.new(x, top + 9, gz),
+				Color = S.SafetyYellow,
+				Material = Enum.Material.Metal,
+			})
+			solid({
+				Name = "GantryFoot",
+				Size = Vector3.new(3, 1, 3),
+				Position = Vector3.new(x, top + 0.5, gz),
+				Color = S.Concrete,
+				Material = Enum.Material.Concrete,
+			})
+			-- Diagonal bracing, the crane's lattice language at a smaller scale.
+			for i = 0, 2 do
+				beam(
+					Vector3.new(x, top + 2 + i * 5, gz),
+					Vector3.new(x, top + 6.5 + i * 5, gz + if i % 2 == 0 then 0.01 else -0.01),
+					0.35,
+					{ Color = S.HazardBlack, Material = Enum.Material.Metal }
+				)
+			end
+		end
+		deco({
+			Name = "GantryBeam",
+			Size = Vector3.new(31, 1.6, 1.6),
+			Position = Vector3.new(0, top + 18.4, gz),
 			Color = S.SafetyYellow,
 			Material = Enum.Material.Metal,
 		})
-		solid({
-			Name = "GantryFoot",
-			Size = Vector3.new(3, 1, 3),
-			Position = Vector3.new(x, top + 0.5, gz),
-			Color = S.Concrete,
-			Material = Enum.Material.Concrete,
+		local gantrySign = deco({
+			Name = "GantrySign",
+			Size = Vector3.new(24, 4.4, 0.8),
+			Position = Vector3.new(0, top + 15, gz),
+			Color = S.HazardBlack,
+			Material = Enum.Material.Metal,
 		})
-		-- Diagonal bracing, the crane's lattice language at a smaller scale.
-		for i = 0, 2 do
-			beam(
-				Vector3.new(x, top + 2 + i * 5, gz),
-				Vector3.new(x, top + 6.5 + i * 5, gz + if i % 2 == 0 then 0.01 else -0.01),
-				0.35,
-				{ Color = S.HazardBlack, Material = Enum.Material.Metal }
-			)
+		sign(gantrySign, Enum.NormalId.Front, "STORM SALVAGE CO.", S.SafetyYellow)
+		sign(gantrySign, Enum.NormalId.Back, "WE BUY WHAT THE STORM LEAVES", S.SafetyYellow)
+		for i = 0, 5 do
+			local bulb = deco({
+				Name = "GantryBulb",
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.one * 0.7,
+				Position = Vector3.new(-11 + i * 4.4, top + 12.4, gz + 0.5),
+				Color = Color3.fromRGB(255, 214, 140),
+				Material = Enum.Material.Neon,
+			})
+			CollectionService:AddTag(bulb, "V3Bulb")
 		end
-	end
-	deco({
-		Name = "GantryBeam",
-		Size = Vector3.new(31, 1.6, 1.6),
-		Position = Vector3.new(0, top + 18.4, gz),
-		Color = S.SafetyYellow,
-		Material = Enum.Material.Metal,
-	})
-	local gantrySign = deco({
-		Name = "GantrySign",
-		Size = Vector3.new(24, 4.4, 0.8),
-		Position = Vector3.new(0, top + 15, gz),
-		Color = S.HazardBlack,
-		Material = Enum.Material.Metal,
-	})
-	sign(gantrySign, Enum.NormalId.Front, "STORM SALVAGE CO.", S.SafetyYellow)
-	sign(gantrySign, Enum.NormalId.Back, "WE BUY WHAT THE STORM LEAVES", S.SafetyYellow)
-	for i = 0, 5 do
-		local bulb = deco({
-			Name = "GantryBulb",
-			Shape = Enum.PartType.Ball,
-			Size = Vector3.one * 0.7,
-			Position = Vector3.new(-11 + i * 4.4, top + 12.4, gz + 0.5),
-			Color = Color3.fromRGB(255, 214, 140),
-			Material = Enum.Material.Neon,
-		})
-		CollectionService:AddTag(bulb, "V3Bulb")
-	end
+	end)
 
 	-- Festoon lights over the counters: gantry to both shacks and across the aisle.
 	stringLights(Vector3.new(-14, top + 16.5, gz), Vector3.new(-29, top + 11.5, -257), 9, 1.4, 2)
@@ -360,84 +374,89 @@ local function buildScrapyard()
 			Material = Enum.Material.SmoothPlastic,
 		})
 	end
-	solid({
-		Name = "ScalePost",
-		Size = Vector3.new(0.6, 5, 0.6),
-		Position = Vector3.new(-25.5, top + 2.5, -273),
-		Color = S.Gunmetal,
-		Material = Enum.Material.Metal,
-	})
-	local dial = deco({
-		Name = "ScaleDial",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.5, 3, 3),
-		CFrame = CFrame.new(-25.5, top + 6, -273) * CFrame.Angles(0, math.rad(90), 0),
-		Color = S.Cream,
-		Material = Enum.Material.SmoothPlastic,
-	})
-	sign(dial, Enum.NormalId.Right, "KG", S.HazardBlack)
-	sign(dial, Enum.NormalId.Left, "KG", S.HazardBlack)
-	beam(
-		Vector3.new(-25.5, top + 6, -273) + Vector3.new(0, 0, 0.3),
-		Vector3.new(-25.5, top + 7, -272.5) + Vector3.new(0, 0, 0.3),
-		0.14,
-		{ Color = S.Coral, Material = Enum.Material.Neon }
-	)
+	group("ScaleDialPrimitive", function()
+		solid({
+			Name = "ScalePost",
+			Size = Vector3.new(0.6, 5, 0.6),
+			Position = Vector3.new(-25.5, top + 2.5, -273),
+			Color = S.Gunmetal,
+			Material = Enum.Material.Metal,
+		})
+		local dial = deco({
+			Name = "ScaleDial",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.5, 3, 3),
+			CFrame = CFrame.new(-25.5, top + 6, -273) * CFrame.Angles(0, math.rad(90), 0),
+			Color = S.Cream,
+			Material = Enum.Material.SmoothPlastic,
+		})
+		sign(dial, Enum.NormalId.Right, "KG", S.HazardBlack)
+		sign(dial, Enum.NormalId.Left, "KG", S.HazardBlack)
+		beam(
+			Vector3.new(-25.5, top + 6, -273) + Vector3.new(0, 0, 0.3),
+			Vector3.new(-25.5, top + 7, -272.5) + Vector3.new(0, 0, 0.3),
+			0.14,
+			{ Color = S.Coral, Material = Enum.Material.Neon }
+		)
+	end)
 
 	-- Workshop lean-to beside the Gear Shop: the mechanic's corner (yard is storm-safe, so its
 	-- roof isn't a shelter question).
-	local lx0, lx1, lz0, lz1 = 45, 63, -259, -241
-	for _, p in { { lx0, lz0 }, { lx1, lz0 }, { lx0, lz1 }, { lx1, lz1 } } do
-		solid({
-			Name = "LeanToPost",
-			Size = Vector3.new(0.8, 12, 0.8),
-			Position = Vector3.new(p[1], top + 6, p[2]),
+	group("LeanToPrimitive", function()
+		local lx0, lx1, lz0, lz1 = 45, 63, -259, -241
+		for _, p in { { lx0, lz0 }, { lx1, lz0 }, { lx0, lz1 }, { lx1, lz1 } } do
+			solid({
+				Name = "LeanToPost",
+				Size = Vector3.new(0.8, 12, 0.8),
+				Position = Vector3.new(p[1], top + 6, p[2]),
+				Color = S.Rust,
+				Material = Enum.Material.Metal,
+			})
+		end
+		deco({
+			Name = "LeanToRoof",
+			Size = Vector3.new(lx1 - lx0 + 3, 0.4, lz1 - lz0 + 3),
+			CFrame = CFrame.new((lx0 + lx1) / 2, top + 12.4, (lz0 + lz1) / 2)
+				* CFrame.Angles(math.rad(6), 0, 0),
 			Color = S.Rust,
+			Material = Enum.Material.CorrodedMetal,
+		})
+		-- A patch panel in a different colour: storm repair.
+		deco({
+			Size = Vector3.new(6, 0.45, 5),
+			CFrame = CFrame.new(50, top + 12.75, -247) * CFrame.Angles(math.rad(6), 0, 0),
+			Color = S.ContainerBlue,
 			Material = Enum.Material.Metal,
 		})
-	end
-	deco({
-		Name = "LeanToRoof",
-		Size = Vector3.new(lx1 - lx0 + 3, 0.4, lz1 - lz0 + 3),
-		CFrame = CFrame.new((lx0 + lx1) / 2, top + 12.4, (lz0 + lz1) / 2) * CFrame.Angles(math.rad(6), 0, 0),
-		Color = S.Rust,
-		Material = Enum.Material.CorrodedMetal,
-	})
-	-- A patch panel in a different colour: storm repair.
-	deco({
-		Size = Vector3.new(6, 0.45, 5),
-		CFrame = CFrame.new(50, top + 12.75, -247) * CFrame.Angles(math.rad(6), 0, 0),
-		Color = S.ContainerBlue,
-		Material = Enum.Material.Metal,
-	})
-	ctx.PlaceAsset(
-		"scrapyard",
-		"TireStack",
-		CFrame.new(60, top, -255) * CFrame.Angles(0, math.rad(15), 0),
-		folder
-	)
-	ctx.PlaceAsset(
-		"scrapyard",
-		"OilDrums",
-		CFrame.new(59, top, -244) * CFrame.Angles(0, math.rad(-35), 0),
-		folder
-	)
-	local lamp = deco({
-		Name = "WorkLamp",
-		Size = Vector3.new(1.4, 0.5, 1.4),
-		Position = Vector3.new(54, top + 11.6, -250),
-		Color = Color3.fromRGB(255, 226, 170),
-		Material = Enum.Material.Neon,
-	})
-	local light = Instance.new("SpotLight")
-	light.Face = Enum.NormalId.Bottom
-	light.Range = 18
-	light.Angle = 80
-	light.Brightness = 1.6
-	light.Color = Color3.fromRGB(255, 220, 160)
-	light.Shadows = false
-	light.Parent = lamp
-	CollectionService:AddTag(lamp, "V3Lamp")
+		ctx.PlaceAsset(
+			"scrapyard",
+			"TireStack",
+			CFrame.new(60, top, -255) * CFrame.Angles(0, math.rad(15), 0),
+			folder
+		)
+		ctx.PlaceAsset(
+			"scrapyard",
+			"OilDrums",
+			CFrame.new(59, top, -244) * CFrame.Angles(0, math.rad(-35), 0),
+			folder
+		)
+		local lamp = deco({
+			Name = "WorkLamp",
+			Size = Vector3.new(1.4, 0.5, 1.4),
+			Position = Vector3.new(54, top + 11.6, -250),
+			Color = Color3.fromRGB(255, 226, 170),
+			Material = Enum.Material.Neon,
+		})
+		local light = Instance.new("SpotLight")
+		light.Face = Enum.NormalId.Bottom
+		light.Range = 18
+		light.Angle = 80
+		light.Brightness = 1.6
+		light.Color = Color3.fromRGB(255, 220, 160)
+		light.Shadows = false
+		light.Parent = lamp
+		CollectionService:AddTag(lamp, "V3Lamp")
+	end)
 
 	-- Front corners: container stacks and a scrap wall frame the gate approach so the yard
 	-- reads as enclosed, not a plateau with props on it.
@@ -838,15 +857,18 @@ local function buildSquare()
 		S.Cream
 	)
 	-- Boarded panels leaning on the clock tower base: the last storm cracked its windows.
-	for i, x in { -55, -45 } do
-		deco({
-			Name = "Boards",
-			Size = Vector3.new(4, 6, 0.4),
-			CFrame = CFrame.new(x, 3, -91.5) * CFrame.Angles(math.rad(-12), math.rad(i == 1 and 8 or -6), 0),
-			Color = S.Bark:Lerp(S.Sand, 0.4),
-			Material = Enum.Material.WoodPlanks,
-		})
-	end
+	group("ClockBoardsPrimitive", function()
+		for i, x in { -55, -45 } do
+			deco({
+				Name = "Boards",
+				Size = Vector3.new(4, 6, 0.4),
+				CFrame = CFrame.new(x, 3, -91.5)
+					* CFrame.Angles(math.rad(-12), math.rad(i == 1 and 8 or -6), 0),
+				Color = S.Bark:Lerp(S.Sand, 0.4),
+				Material = Enum.Material.WoodPlanks,
+			})
+		end
+	end)
 	-- Planting along the west edge, between the siren and the statue.
 	for _, z in { -72, -62, -50 } do
 		ctx.Bush(Vector3.new(-87, 0, z), rng:NextNumber(3, 4))
@@ -855,6 +877,334 @@ local function buildSquare()
 		local spot = deco({ Name = "PuddleSpot", Size = Vector3.one, Position = pos, Transparency = 1 })
 		CollectionService:AddTag(spot, "V3PuddleSpot")
 	end
+end
+
+---------------------------------------------------------------------------- Roadside midground
+
+-- Breaks up the open lawn either side of the departure road with deliberate pieces: grass
+-- banks with stone retaining walls, a fenced utility substation, a storm-wrecked billboard and a
+-- couple of dense tree groups. Everything stays clear of the tow-yard gate, the footpath and the
+-- road. All of it is parts (terrain inside the town would be wiped by the flood).
+local function bank(x0: number, x1: number, z0: number, z1: number, height: number, wallSide: number)
+	-- A grass berm rising away from the road, faced on the road side by a low stone wall.
+	local w, d = x1 - x0, z1 - z0
+	local cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
+	local slope = ctx.Wedge({
+		Parent = folder,
+		Name = "Bank",
+		Size = Vector3.new(d, height, w),
+		-- the wedge's tall end faces local +Z; turned so it's tall at the wall
+		CFrame = CFrame.new(cx, height / 2, cz) * CFrame.Angles(0, math.rad(wallSide > 0 and 90 or -90), 0),
+		Color = S.GrassDark:Lerp(S.Grass, 0.5),
+		Material = Enum.Material.Grass,
+		CastShadow = false,
+	})
+	slope.CanQuery = false
+	local wx = if wallSide > 0 then x1 else x0
+	deco({
+		Name = "RetainingWall",
+		Size = Vector3.new(1.2, height + 0.6, d),
+		Position = Vector3.new(wx, (height + 0.6) / 2, cz),
+		Color = S.Stone,
+		Material = Enum.Material.Concrete,
+		CanCollide = true,
+	})
+	deco({
+		Name = "WallCap",
+		Size = Vector3.new(1.6, 0.4, d + 0.4),
+		Position = Vector3.new(wx, height + 0.8, cz),
+		Color = S.Concrete,
+		Material = Enum.Material.Concrete,
+	})
+end
+
+local function grove(center: Vector3, trees: number, bushes: number, spread: number)
+	for i = 1, trees do
+		local a = (i / trees) * math.pi * 2 + rng:NextNumber(-0.4, 0.4)
+		local r = rng:NextNumber(spread * 0.2, spread)
+		ctx.Tree(center + Vector3.new(math.cos(a) * r, 0, math.sin(a) * r))
+	end
+	for _ = 1, bushes do
+		ctx.Bush(
+			center + Vector3.new(rng:NextNumber(-spread, spread), 0, rng:NextNumber(-spread, spread)),
+			rng:NextNumber(3, 5)
+		)
+	end
+end
+
+local function buildRoadside()
+	-- Banks: east (between road and tow yard, gap left at the tow-yard gate z -192..-180) and
+	-- west (stopping short of the footpath at x -70).
+	bank(22, 33, -210, -194, 2.6, -1)
+	bank(22, 33, -178, -150, 2.2, -1)
+	bank(-40, -26, -205, -160, 2.4, 1)
+
+	-- Utility substation west of the road: fenced transformer yard with a corrugated hut.
+	local sx, sz = -56, -194
+	deco({
+		Name = "SubstationPad",
+		Size = Vector3.new(16, 0.4, 12),
+		Position = Vector3.new(sx, 0.2, sz),
+		Color = S.Concrete,
+		Material = Enum.Material.Concrete,
+		CanCollide = true,
+	})
+	solid({
+		Name = "Hut",
+		Size = Vector3.new(6, 6, 5),
+		Position = Vector3.new(sx - 4, 3.4, sz + 2),
+		Color = S.ContainerGreen,
+		Material = Enum.Material.Metal,
+	})
+	deco({
+		Name = "HutRoof",
+		Size = Vector3.new(7, 0.4, 6),
+		CFrame = CFrame.new(sx - 4, 6.6, sz + 2) * CFrame.Angles(math.rad(8), 0, 0),
+		Color = S.Rust,
+		Material = Enum.Material.CorrodedMetal,
+	})
+	for i = 0, 1 do
+		solid({
+			Name = "Transformer",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(5, 3.2, 3.2),
+			CFrame = CFrame.new(sx + 2 + i * 4, 2.9, sz - 1) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = S.Steel,
+			Material = Enum.Material.Metal,
+		})
+		for k = 0, 2 do
+			deco({
+				Size = Vector3.new(0.3, 1.4, 0.3),
+				Position = Vector3.new(sx + 1 + i * 4 + k, 6.1, sz - 1),
+				Color = S.Cream,
+				Material = Enum.Material.SmoothPlastic,
+			})
+		end
+	end
+	local fenceY = 2.6
+	for _, edge in
+		{
+			{ Vector3.new(sx - 8, 0, sz - 6), Vector3.new(sx + 8, 0, sz - 6) },
+			{ Vector3.new(sx + 8, 0, sz - 6), Vector3.new(sx + 8, 0, sz + 6) },
+			{ Vector3.new(sx + 8, 0, sz + 6), Vector3.new(sx - 8, 0, sz + 6) },
+			{ Vector3.new(sx - 8, 0, sz + 6), Vector3.new(sx - 8, 0, sz - 6) },
+		}
+	do
+		local a, b = edge[1], edge[2]
+		for t = 0, 1, 0.25 do
+			solid({
+				Name = "FencePost",
+				Size = Vector3.new(0.4, 5.2, 0.4),
+				Position = a:Lerp(b, t) + Vector3.new(0, fenceY, 0),
+				Color = S.Steel,
+				Material = Enum.Material.Metal,
+			})
+		end
+		beam(
+			a + Vector3.new(0, 5, 0),
+			b + Vector3.new(0, 5, 0),
+			0.15,
+			{ Color = S.Steel, Material = Enum.Material.Metal }
+		)
+		local mesh = beam(a + Vector3.new(0, 2.5, 0), b + Vector3.new(0, 2.5, 0), 0.1, {
+			Color = S.Steel,
+			Material = Enum.Material.Metal,
+		})
+		mesh.Size = Vector3.new(0.1, 5, mesh.Size.Z)
+		mesh.Transparency = 0.6
+		mesh.CanCollide = true
+	end
+	postSign(
+		Vector3.new(sx + 8.4, 0, sz),
+		Vector3.new(1, 0, 0),
+		5,
+		2.4,
+		2.4,
+		"DANGER\nHIGH VOLTAGE",
+		nil,
+		S.SafetyYellow,
+		S.HazardBlack
+	)
+
+	-- A billboard the last windstorm folded over, east of the road near the ramp foot.
+	local bx, bz = 46, -142
+	for i, x in { -6, 6 } do
+		solid({
+			Name = "BillboardLeg",
+			Size = Vector3.new(0.8, 9, 0.8),
+			CFrame = CFrame.new(bx + x, 4.4, bz) * CFrame.Angles(0, 0, math.rad(i == 1 and 4 or 18)),
+			Color = S.Gunmetal,
+			Material = Enum.Material.Metal,
+		})
+	end
+	local board = deco({
+		Name = "FallenBillboard",
+		Size = Vector3.new(16, 7, 0.5),
+		CFrame = CFrame.new(bx + 1, 6.5, bz + 1.5) * CFrame.Angles(math.rad(-38), 0, math.rad(9)),
+		Color = S.Cream,
+		Material = Enum.Material.WoodPlanks,
+	})
+	sign(board, Enum.NormalId.Back, "STORM-PROOF\nROOFING", S.Coral)
+	ctx.TownAsset("DebrisSheet", CFrame.new(bx - 6, 0, bz + 5) * CFrame.Angles(0, math.rad(40), 0))
+	ctx.TownAsset("DebrisBranch", CFrame.new(bx + 8, 0, bz + 6) * CFrame.Angles(0, math.rad(-20), 0))
+
+	-- Dense tree groups instead of single trees dotted on the lawn.
+	grove(Vector3.new(-120, 0, -196), 5, 3, 12)
+	grove(Vector3.new(74, 0, -132), 4, 3, 10)
+	grove(Vector3.new(150, 0, -196), 5, 2, 14)
+end
+
+---------------------------------------------------------------------------- Hero assets (B2)
+
+-- Swaps in the Blender hero assets (assets/roblox/v3hero, imported through Studio's 3D Importer)
+-- where they exist. Until then the primitive versions stay as fallbacks.
+local function heroSource(name: string): Model?
+	local assets = game:GetService("ServerStorage"):FindFirstChild("Assets")
+	local set = assets and assets:FindFirstChild("v3hero")
+	local source = set and set:FindFirstChild(name)
+	return if source and source:IsA("Model") then source else nil
+end
+
+local function placeHero(name: string, cf: CFrame, parent: Instance): Model?
+	local source = heroSource(name)
+	if not source then
+		return nil
+	end
+	local model = source:Clone()
+	model:PivotTo(cf)
+	model.Parent = parent
+	-- Neon bulbs join the festoon flicker and lightning shorts.
+	for _, d in model:GetDescendants() do
+		if
+			d:IsA("BasePart")
+			and d.Material == Enum.Material.Neon
+			and string.find(d.Name, "WindowWarm", 1, true)
+		then
+			CollectionService:AddTag(d, "V3Bulb")
+		end
+	end
+	return model
+end
+
+local function heroSign(model: Model, faces: { [Enum.NormalId]: string }, color: Color3)
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and string.find(d.Name, "Signboard", 1, true) then
+			for face, text in faces do
+				sign(d, face, text, color)
+			end
+			return
+		end
+	end
+end
+
+local function replaceModel(parent: Instance, oldName: string, near: Vector3, heroName: string): Model?
+	if not heroSource(heroName) then
+		return nil
+	end
+	local best: Model? = nil
+	local bestD = math.huge
+	for _, d in parent:GetDescendants() do
+		if d:IsA("Model") and d.Name == oldName then
+			local dist = (d:GetPivot().Position - near).Magnitude
+			if dist < bestD then
+				best, bestD = d, dist
+			end
+		end
+	end
+	if not best or bestD > 25 then
+		return nil
+	end
+	local cf = best:GetPivot()
+	local parentOf = best.Parent :: Instance
+	best:Destroy()
+	return placeHero(heroName, cf, parentOf)
+end
+
+local function dropGroup(parent: Instance, name: string)
+	local g = parent:FindFirstChild(name, true)
+	if g then
+		g:Destroy()
+	end
+end
+
+local function buildHeroes()
+	local top = ctx.PlateauTop
+	local yard = ctx.Yard
+	local placed = {}
+
+	local station = replaceModel(yard, "SellShack", Vector3.new(-36, top, -265), "WeighStation")
+	if station then
+		heroSign(station, { [Enum.NormalId.Front] = "SCRAP BUYER" }, S.NeonGreen)
+		dropGroup(yard, "ScaleDialPrimitive")
+		table.insert(placed, "WeighStation")
+	end
+	local workshop = replaceModel(yard, "GearShack", Vector3.new(36, top, -265), "GearWorkshop")
+	if workshop then
+		heroSign(workshop, { [Enum.NormalId.Front] = "GEAR SHOP" }, S.StormCyan)
+		dropGroup(yard, "LeanToPrimitive")
+		table.insert(placed, "GearWorkshop")
+	end
+	local gantry =
+		placeHero("ArrivalGantry", CFrame.lookAt(Vector3.new(0, top, -285), Vector3.new(0, top, -290)), yard)
+	if gantry then
+		heroSign(gantry, {
+			[Enum.NormalId.Front] = "STORM SALVAGE CO.",
+			[Enum.NormalId.Back] = "WE BUY WHAT THE STORM LEAVES",
+		}, S.SafetyYellow)
+		dropGroup(yard, "GantryPrimitive")
+		table.insert(placed, "ArrivalGantry")
+	end
+	-- The shredder stands behind the spawn as the yard's working silhouette, seen from the gate
+	-- and the town; the scrap pile that sat there goes.
+	local shredderCf = CFrame.lookAt(Vector3.new(0, top, -322), Vector3.new(0, top, -310))
+	if heroSource("Shredder") then
+		for _, d in yard:GetChildren() do
+			if
+				d:IsA("Model")
+				and d.Name == "ScrapPile"
+				and (d:GetPivot().Position - shredderCf.Position).Magnitude < 14
+			then
+				d:Destroy()
+			end
+		end
+		local machine = placeHero("Shredder", shredderCf, yard)
+		if machine then
+			heroSign(machine, { [Enum.NormalId.Front] = "SHREDDER #2" }, S.SafetyYellow)
+			table.insert(placed, "Shredder")
+		end
+	end
+
+	-- Town Square: the clock tower and two storefronts framing the plaza's north side.
+	local tower = replaceModel(ctx.Map, "ClockTower", Vector3.new(-50, 0, -98), "ClockTowerV3")
+	if tower then
+		dropGroup(ctx.Map, "ClockBoardsPrimitive")
+		table.insert(placed, "ClockTowerV3")
+	end
+	if heroSource("StorefrontA") then
+		-- A dressing tree stood where the east storefront goes.
+		for _, d in ctx.Map:GetChildren() do
+			if
+				d:IsA("Model")
+				and d.Name == "TreeBlocky"
+				and (d:GetPivot().Position - Vector3.new(-20, 0, -110)).Magnitude < 4
+			then
+				d:Destroy()
+			end
+		end
+	end
+	for _, info in
+		{
+			{ "StorefrontA", Vector3.new(-92, 0, -112), "GALE HARDWARE & BAIT" },
+			{ "StorefrontB", Vector3.new(-27, 0, -112), "STORMY'S DINER" },
+		}
+	do
+		local shop = placeHero(info[1], CFrame.lookAt(info[2], info[2] + Vector3.new(0, 0, 1)), folder)
+		if shop then
+			heroSign(shop, { [Enum.NormalId.Front] = info[3] }, S.Cream)
+			table.insert(placed, info[1])
+		end
+	end
+	ctx.Map:SetAttribute("V3Heroes", table.concat(placed, ","))
 end
 
 ---------------------------------------------------------------------------- World edge
@@ -1071,6 +1421,8 @@ function WorldSlice.build(c: Context)
 	buildScrapyard()
 	buildRoad()
 	buildSquare()
+	buildRoadside()
+	buildHeroes()
 	local t1 = os.clock()
 	buildWorldEdge()
 	-- Startup cost, for the performance report.

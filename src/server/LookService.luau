@@ -206,31 +206,31 @@ local profiles: { [string]: Profile } = {
 				},
 				Grade = { Saturation = -0.12, Contrast = 0.12, TintColor = Color3.fromRGB(255, 236, 200) },
 				Atmosphere = {
-					Density = 0.52,
+					Density = 0.44, -- 0.52 hid the warehouse once the storm sky made haze render
 					Offset = 0.1,
-					Haze = 2.6,
+					Haze = 2.2,
 					Glare = 0.1,
 					Color = Color3.fromRGB(196, 168, 120),
 					Decay = Color3.fromRGB(150, 120, 90),
 				},
-				Clouds = { Cover = 0.85, Density = 0.6 },
+				Clouds = { Cover = 1, Density = 0.5 }, -- full cover: below 1 a clear band opens under the deck
 			},
 			-- Flood: dark teal-grey, heavy and wet.
 			Flood = {
 				Lighting = {
 					ClockTime = 16.9,
-					Brightness = 1,
-					OutdoorAmbient = Color3.fromRGB(72, 96, 104),
+					Brightness = 1.9,
+					OutdoorAmbient = Color3.fromRGB(110, 134, 140),
 					ColorShift_Top = Color3.fromRGB(170, 200, 210),
-					ExposureCompensation = -0.25,
+					ExposureCompensation = 0,
 				},
 				Grade = { Saturation = -0.25, Contrast = 0.2, TintColor = Color3.fromRGB(180, 215, 220) },
 				Atmosphere = {
-					Density = 0.56,
+					Density = 0.42, -- darker read as unplayable once storm skies made haze render
 					Offset = 0.05,
-					Haze = 2.8,
+					Haze = 2.1,
 					Glare = 0,
-					Color = Color3.fromRGB(70, 98, 104),
+					Color = Color3.fromRGB(104, 132, 138),
 					Decay = Color3.fromRGB(50, 70, 80),
 				},
 				Clouds = { Cover = 1, Density = 0.95 },
@@ -539,6 +539,56 @@ function LookService.targetsFor(phase: string, storm: string?, stormColor: Color
 		shared.Atmosphere = atmosphere
 	end
 	return shared
+end
+
+-- Storm skyboxes (assets/textures/sky, made by tools/asset_pipeline/make_storm_skies.py and
+-- uploaded to Roblox). Below the cloud deck the skybox shows at the horizon; Atmosphere haze is
+-- meant to tint it, but haze isn't always drawn (it wasn't in Studio at automatic quality), which
+-- left a bright cyan band under storm clouds. A storm-coloured sky fixes it at every quality.
+-- Only the V3 look uses them; other looks keep the default sky.
+local STORM_SKIES: { [string]: { Up: string, Side: string, Dn: string } } = {
+	Wind = {
+		Up = "rbxassetid://118627989969058",
+		Side = "rbxassetid://88285616675760",
+		Dn = "rbxassetid://134296757455405",
+	},
+	Flood = {
+		Up = "rbxassetid://96015216678942",
+		Side = "rbxassetid://97247261444511",
+		Dn = "rbxassetid://126266757018048",
+	},
+	Lightning = {
+		Up = "rbxassetid://79131501890242",
+		Side = "rbxassetid://75616971342701",
+		Dn = "rbxassetid://100854455536023",
+	},
+}
+
+-- Sets (or clears) the storm skybox for a cycle phase.
+function LookService.applySky(phase: string, storm: string?)
+	local stormy = phase == "Warning" or phase == "Storm"
+	local faces = stormy and active == "V3" and storm and STORM_SKIES[storm]
+	local sky = Lighting:FindFirstChild("StormSky")
+	if not faces then
+		if sky then
+			sky:Destroy()
+		end
+		return
+	end
+	if not sky then
+		sky = Instance.new("Sky")
+		sky.Name = "StormSky"
+		sky.CelestialBodiesShown = false
+		sky.StarCount = 0
+		sky.Parent = Lighting
+	end
+	local s = sky :: Sky
+	s.SkyboxUp = faces.Up
+	s.SkyboxDn = faces.Dn
+	s.SkyboxBk = faces.Side
+	s.SkyboxFt = faces.Side
+	s.SkyboxLf = faces.Side
+	s.SkyboxRt = faces.Side
 end
 
 function LookService.active(): string

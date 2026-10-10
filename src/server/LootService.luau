@@ -129,10 +129,18 @@ local function createLoot(
 	item:SetAttribute("LootId", lootId)
 
 	-- Floating rarity marker (Highlights are capped at 31 on screen, so avoid them here).
+	-- Commons are most of the loot on screen, so their dots are small and short-range (the bob
+	-- and the prompt still find them); rarer finds keep a bigger dot visible from further away.
+	local markerSize, markerRange = 18, 80
+	if def.Rarity == "Common" then
+		markerSize, markerRange = 10, 40
+	elseif def.Rarity == "Uncommon" then
+		markerSize, markerRange = 13, 60
+	end
 	local marker = Instance.new("BillboardGui")
-	marker.Size = UDim2.fromOffset(18, 18)
+	marker.Size = UDim2.fromOffset(markerSize, markerSize)
 	marker.StudsOffset = Vector3.new(0, height / 2 + 1.5, 0)
-	marker.MaxDistance = 80
+	marker.MaxDistance = markerRange
 	marker.LightInfluence = 0
 	local dot = Instance.new("Frame")
 	dot.Size = UDim2.fromScale(1, 1)
@@ -142,7 +150,7 @@ local function createLoot(
 	corner.CornerRadius = UDim.new(0.5, 0)
 	corner.Parent = dot
 	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 2
+	stroke.Thickness = if def.Rarity == "Common" then 1 else 2
 	stroke.Color = Color3.new(0, 0, 0)
 	stroke.Parent = dot
 	dot.Parent = marker

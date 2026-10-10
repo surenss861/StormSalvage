@@ -92,6 +92,7 @@ SalvageFeedback.init()
 StormEffects.init(Remotes.get("LightningWarning"))
 Districts.init()
 EnvironmentFX.init(StormEffects.getState, StormEffects.gustPhase, StormEffects.isReduced)
+StormEffects.setStrikeHook(EnvironmentFX.onStrike)
 
 ---------------------------------------------------------------------------- Tutorial hint
 

@@ -5,6 +5,8 @@
 --   V3Bulb       festoon bulbs: steady in calm, flicker during lightning storms.
 --   V3Lamp       work lamps, plus the Scrapyard floodlights: flicker during storm warnings.
 --   V3PuddleSpot puddles appear after a flood and dry up during the next calm.
+--   Strikes      the strike spot lights up for a moment; lights within 35 studs short out,
+--                the nearest throws sparks, then they stutter back on (onStrike).
 --
 -- Cheap by design: flags are a handful of parts, bulb flicker touches a few bulbs at ~10 Hz,
 -- and nothing runs on the server.
@@ -93,6 +95,82 @@ local function dryPuddles(seconds: number)
 	table.clear(puddles)
 end
 
+---------------------------------------------------------------------------- Lightning
+
+-- A strike landed: light the spot for a moment and short out the lights around it. Lamps and
+-- bulbs within 35 studs black out, the nearest one throws sparks, then they stutter back on.
+local SHORT_RANGE = 35
+local shorted: { [BasePart]: number } = {}
+
+local function sparksAt(position: Vector3)
+	local a = Instance.new("Attachment")
+	a.WorldPosition = position
+	a.Parent = workspace.Terrain
+	local e = Instance.new("ParticleEmitter")
+	e.Enabled = false
+	e.Lifetime = NumberRange.new(0.3, 0.6)
+	e.Speed = NumberRange.new(8, 16)
+	e.SpreadAngle = Vector2.new(70, 70)
+	e.Acceleration = Vector3.new(0, -40, 0)
+	e.Size = NumberSequence.new(0.18, 0)
+	e.LightEmission = 1
+	e.Color = ColorSequence.new(Color3.fromRGB(255, 236, 170))
+	e.Parent = a
+	e:Emit(if isReduced() then 4 else 14)
+	task.delay(1, a.Destroy, a)
+end
+
+function EnvironmentFX.onStrike(position: Vector3, _radius: number)
+	local glow = Instance.new("Part")
+	glow.Anchored = true
+	glow.CanCollide = false
+	glow.CanQuery = false
+	glow.CanTouch = false
+	glow.Transparency = 1
+	glow.Size = Vector3.one
+	glow.Position = position + Vector3.new(0, 6, 0)
+	glow.Parent = effects
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(215, 205, 255)
+	light.Range = 48
+	light.Brightness = if isReduced() then 2 else 7
+	light.Shadows = false
+	light.Parent = glow
+	TweenService:Create(light, TweenInfo.new(0.45, Enum.EasingStyle.Quad), { Brightness = 0 }):Play()
+	task.delay(0.5, glow.Destroy, glow)
+
+	local nearest: BasePart? = nil
+	local nearestD = math.huge
+	local now = os.clock()
+	for _, list in { bulbs, lamps } do
+		for _, part in list do
+			local d = (part.Position - position).Magnitude
+			if d < SHORT_RANGE then
+				shorted[part] = now + 0.6 + math.random() * 0.8
+				setLit(part, false)
+				if d < nearestD then
+					nearest, nearestD = part, d
+				end
+			end
+		end
+	end
+	if nearest then
+		sparksAt(nearest.Position)
+	end
+end
+
+-- Shorted lights come back with a stutter.
+local function stepShorted(now: number)
+	for part, untilTime in shorted do
+		if now >= untilTime then
+			shorted[part] = nil
+			setLit(part, true)
+		elseif untilTime - now < 0.25 then
+			setLit(part, math.random() > 0.5)
+		end
+	end
+end
+
 ---------------------------------------------------------------------------- Per frame
 
 local lastPhase = ""
@@ -149,6 +227,8 @@ function EnvironmentFX.step(now: number)
 		end
 	end
 
+	stepShorted(os.clock())
+
 	-- Lights: warnings make work lamps stutter; lightning storms make festoon bulbs flicker.
 	if now >= flickerAt then
 		flickerAt = now + 0.1
@@ -160,7 +240,9 @@ function EnvironmentFX.step(now: number)
 		if phase == "Storm" and storm == "Lightning" and not isReduced() and #bulbs > 0 then
 			for _ = 1, 6 do
 				local b = bulbs[math.random(1, #bulbs)]
-				setLit(b, math.random() > 0.45)
+				if not shorted[b] then
+					setLit(b, math.random() > 0.45)
+				end
 			end
 		elseif phase == "Storm" then
 			for _, l in lamps do

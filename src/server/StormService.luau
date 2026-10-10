@@ -103,6 +103,7 @@ end
 local function tweenSky(phase: string, storm: string?)
 	local info = TweenInfo.new(6, Enum.EasingStyle.Sine)
 	local goals = LookService.targetsFor(phase, storm, storm and Config.Storms[storm].Color or nil)
+	LookService.applySky(phase, storm)
 	TweenService:Create(Lighting, info, goals.Lighting):Play()
 	local grade = Lighting:FindFirstChild("Grade")
 	if grade then
@@ -499,6 +500,7 @@ end
 
 -- Re-applies the sky for the current phase immediately (after a look profile change).
 function StormService.refreshSky()
+	LookService.applySky(state.Phase, state.Storm)
 	local goals = LookService.targetsFor(
 		state.Phase,
 		state.Storm,
