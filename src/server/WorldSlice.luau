@@ -87,8 +87,8 @@ local function stringLights(a: Vector3, b: Vector3, bulbs: number, sag: number, 
 		beam(
 			points[i],
 			points[i + 1],
-			0.12,
-			{ Color = S.HazardBlack, Material = Enum.Material.SmoothPlastic }
+			0.07,
+			{ Color = Color3.fromRGB(52, 50, 56), Material = Enum.Material.SmoothPlastic }
 		)
 	end
 	local litEvery = lit and math.max(1, math.floor(bulbs / lit)) or 0
@@ -273,17 +273,6 @@ local function buildScrapyard()
 		})
 	end
 	hazardStripes(-11, 11, -227, 3.5, top + 0.33)
-	-- Painted arrows toward the counters, readable from the spawn.
-	for _, info in { { -6, -275, -1 }, { 6, -275, 1 } } do
-		local arrow = deco({
-			Size = Vector3.new(6, 0.05, 2.2),
-			Position = Vector3.new(info[1], top + 0.33, info[2]),
-			Color = S.Cream,
-			Material = Enum.Material.SmoothPlastic,
-		})
-		sign(arrow, Enum.NormalId.Top, if info[3] < 0 then "SELL >" else "< GEAR", S.HazardBlack)
-	end
-
 	-- Arrival gantry in front of the spawn: the first thing a player sees.
 	local gz = -285
 	for _, x in { -14, 14 } do
@@ -325,8 +314,8 @@ local function buildScrapyard()
 		Color = S.HazardBlack,
 		Material = Enum.Material.Metal,
 	})
-	sign(gantrySign, Enum.NormalId.Back, "STORM SALVAGE CO.", S.SafetyYellow)
-	sign(gantrySign, Enum.NormalId.Front, "WE BUY WHAT THE STORM LEAVES", S.SafetyYellow)
+	sign(gantrySign, Enum.NormalId.Front, "STORM SALVAGE CO.", S.SafetyYellow)
+	sign(gantrySign, Enum.NormalId.Back, "WE BUY WHAT THE STORM LEAVES", S.SafetyYellow)
 	for i = 0, 5 do
 		local bulb = deco({
 			Name = "GantryBulb",
@@ -353,43 +342,45 @@ local function buildScrapyard()
 	end
 	stringLights(Vector3.new(-12, top + 12.8, -240), Vector3.new(12, top + 12.8, -240), 8, 1.2, 1)
 
-	-- Certified scale in front of the Scrap Buyer: where you stand to sell.
-	solid({
+	-- Certified scale in front of the Scrap Buyer: where you stand to sell. Flush with the pad
+	-- and non-colliding, so the selling spot has no new step (a raised plate here made the QA
+	-- bot's approach fail and wander behind the counter).
+	deco({
 		Name = "ScalePlate",
-		Size = Vector3.new(8, 0.4, 12),
-		Position = Vector3.new(-21, top + 0.5, -265),
+		Size = Vector3.new(8, 0.06, 12),
+		Position = Vector3.new(-21, top + 0.33, -265),
 		Color = S.Steel,
 		Material = Enum.Material.DiamondPlate,
 	})
 	for _, z in { -271.2, -258.8 } do
 		deco({
-			Size = Vector3.new(8.4, 0.45, 0.6),
-			Position = Vector3.new(-21, top + 0.52, z),
+			Size = Vector3.new(8.4, 0.08, 0.6),
+			Position = Vector3.new(-21, top + 0.35, z),
 			Color = S.SafetyYellow,
 			Material = Enum.Material.SmoothPlastic,
 		})
 	end
 	solid({
 		Name = "ScalePost",
-		Size = Vector3.new(0.8, 9, 0.8),
-		Position = Vector3.new(-25.5, top + 4.5, -274),
+		Size = Vector3.new(0.6, 5, 0.6),
+		Position = Vector3.new(-25.5, top + 2.5, -273),
 		Color = S.Gunmetal,
 		Material = Enum.Material.Metal,
 	})
 	local dial = deco({
 		Name = "ScaleDial",
 		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.6, 5, 5),
-		CFrame = CFrame.new(-25.5, top + 9.5, -274) * CFrame.Angles(0, math.rad(90), 0),
+		Size = Vector3.new(0.5, 3, 3),
+		CFrame = CFrame.new(-25.5, top + 6, -273) * CFrame.Angles(0, math.rad(90), 0),
 		Color = S.Cream,
 		Material = Enum.Material.SmoothPlastic,
 	})
 	sign(dial, Enum.NormalId.Right, "KG", S.HazardBlack)
 	sign(dial, Enum.NormalId.Left, "KG", S.HazardBlack)
 	beam(
-		Vector3.new(-25.5, top + 9.5, -274) + Vector3.new(0, 0, 0.35),
-		Vector3.new(-25.5, top + 11.2, -273.2) + Vector3.new(0, 0, 0.35),
-		0.18,
+		Vector3.new(-25.5, top + 6, -273) + Vector3.new(0, 0, 0.3),
+		Vector3.new(-25.5, top + 7, -272.5) + Vector3.new(0, 0, 0.3),
+		0.14,
 		{ Color = S.Coral, Material = Enum.Material.Neon }
 	)
 
@@ -485,7 +476,10 @@ local function buildScrapyard()
 	end
 
 	-- Ground wear: tyre tracks, oil stains and darker dirt patches break up the flat plateau.
-	local dirt = S.RustDark:Lerp(S.Sand, 0.3)
+	-- Close to the yard floor colour (MapBuilder: RustDark -> Sand 0.45) so patches read as wear,
+	-- not holes.
+	local floor = S.RustDark:Lerp(S.Sand, 0.45)
+	local dirt = floor:Lerp(S.RustDark, 0.3)
 	for _, info in
 		{
 			{ Vector3.new(-40, 0, -300), Vector2.new(18, 26), 20 },
@@ -514,8 +508,8 @@ local function buildScrapyard()
 	do
 		patch(
 			Vector3.new(pos.X, top + 0.26, pos.Z),
-			Vector2.new(rng:NextNumber(3, 6), rng:NextNumber(3, 6)),
-			Color3.fromRGB(28, 26, 30),
+			Vector2.new(rng:NextNumber(2, 3.5), rng:NextNumber(2, 3.5)),
+			floor:Lerp(Color3.new(0, 0, 0), 0.4),
 			Enum.Material.SmoothPlastic,
 			rng:NextNumber(0, 180),
 			true
@@ -525,7 +519,7 @@ local function buildScrapyard()
 		deco({
 			Size = Vector3.new(1.6, 0.05, 40),
 			Position = Vector3.new(x - 40, top + 0.25, -300),
-			Color = dirt:Lerp(Color3.new(0, 0, 0), 0.25),
+			Color = dirt:Lerp(Color3.new(0, 0, 0), 0.12),
 			Material = Enum.Material.Ground,
 			Orientation = Vector3.new(0, 25, 0),
 		})
@@ -896,7 +890,7 @@ local function buildWorldEdge()
 	})
 
 	-- Flat terrain ground outside the town (never inside the flood box, |x|,|z| <= 209).
-	local far = 760
+	local far = 1400 -- past the horizon seen from the crane top
 	local inner = TOWN + 4
 	for _, block in
 		{
@@ -933,6 +927,40 @@ local function buildWorldEdge()
 		end
 		task.wait() -- let the server breathe between rings
 	end
+	-- The west and south edges sit closest to the playable box, so the rings leave them flat;
+	-- a row of low hills just outside each edge closes the horizon there.
+	for i = 0, 7 do
+		local along = -260 + i * 70 + rng:NextNumber(-15, 15)
+		for _, pos in
+			{
+				Vector2.new(-(TOWN + 68 + rng:NextNumber(0, 40)), along), -- west
+				Vector2.new(TOWN + 68 + rng:NextNumber(0, 40), along), -- east
+				Vector2.new(along + 40, TOWN + 68 + rng:NextNumber(0, 40)), -- south
+			}
+		do
+			-- Tall enough to break the horizon from the far side of town (peaks ~25-40 studs).
+			local r = rng:NextNumber(44, 66)
+			if not inTown(pos.X, pos.Y, r) then
+				terrain:FillBall(Vector3.new(pos.X, -r * 0.4, pos.Y), r, Enum.Material.Grass)
+				placed += 1
+			end
+		end
+	end
+
+	-- A distant ridge all the way round, tall enough to break the skyline from the raised
+	-- Scrapyard (camera ~y 35); hazed out by the atmosphere so it reads as far away.
+	for i = 0, 17 do
+		local angle = i / 18 * math.pi * 2 + rng:NextNumber(-0.05, 0.05)
+		local dist = rng:NextNumber(560, 620)
+		local r = rng:NextNumber(95, 125)
+		terrain:FillBall(
+			Vector3.new(math.cos(angle) * dist, -r * 0.5, math.sin(angle) * dist - 60),
+			r,
+			if i % 3 == 0 then Enum.Material.Rock else Enum.Material.Grass
+		)
+		placed += 1
+	end
+	task.wait()
 
 	-- Tree lines on the near hills; far fewer on the distant ring. Named apart from town trees
 	-- so the client's wind sway ignores them (they're too far to see sway).
@@ -1039,10 +1067,15 @@ function WorldSlice.build(c: Context)
 	folder = Instance.new("Folder")
 	folder.Name = "V3Slice"
 	folder.Parent = c.Map
+	local t0 = os.clock()
 	buildScrapyard()
 	buildRoad()
 	buildSquare()
+	local t1 = os.clock()
 	buildWorldEdge()
+	-- Startup cost, for the performance report.
+	c.Map:SetAttribute("SliceBuildMs", math.floor((t1 - t0) * 1000))
+	c.Map:SetAttribute("WorldEdgeBuildMs", math.floor((os.clock() - t1) * 1000))
 end
 
 return WorldSlice

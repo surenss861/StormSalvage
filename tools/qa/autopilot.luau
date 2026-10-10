@@ -134,6 +134,12 @@ local function buyUpgrades()
 end
 
 while true do
+	-- In Studio Play sessions driven over MCP, the camera was found switched to Scriptable
+	-- (not by game code), which hides proximity prompts; keep the default camera.
+	local cam = workspace.CurrentCamera
+	if cam.CameraType ~= Enum.CameraType.Custom then
+		cam.CameraType = Enum.CameraType.Custom
+	end
 	local hum, root = character()
 	if not hum or not root or not state then
 		report("waiting for character")
