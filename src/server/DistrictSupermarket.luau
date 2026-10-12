@@ -218,10 +218,7 @@ function DistrictSupermarket.build(ctx: Context)
 		local sign = place(
 			"v3market",
 			"AisleSign",
-			CFrame.lookAt(
-				CENTER + Vector3.new(info[1], 13, 17.5),
-				CENTER + Vector3.new(info[1], 13, 16.5)
-			),
+			CFrame.lookAt(CENTER + Vector3.new(info[1], 13, 17.5), CENTER + Vector3.new(info[1], 13, 16.5)),
 			folder
 		)
 		local board = sign and meshWith(sign, "Signboard")

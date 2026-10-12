@@ -88,6 +88,10 @@ local VISUAL_ONLY = {
 	SpilledGoods = true,
 	RoofLeak = true,
 	BoardedWindow = true,
+	-- C3 Fuel & Go: wall-mounted and hanging dressing; the bag rides on a pump that collides.
+	PumpBag = true,
+	CanopyPanel = true,
+	GarageDoor = true,
 }
 
 -- Applies palette material/color to one model; returns how many MeshParts were styled.
