@@ -107,10 +107,115 @@ function DataService.load(player: Player): (Data?, boolean)
 	return nil, false
 end
 
+-- Studio QA fault injection (MonetizationService tests): the next N calls of an operation fail
+-- as if the DataStore errored. Never set outside Studio.
+local faults: { [string]: number } = {}
+function DataService.failNextForTest(operation: string, count: number)
+	if RunService:IsStudio() then
+		faults[operation] = count
+	end
+end
+local function injectedFailure(operation: string): boolean
+	local n = faults[operation]
+	if n and n > 0 then
+		faults[operation] = n - 1
+		return true
+	end
+	return false
+end
+
+local RECEIPT_HISTORY = 100
+
+-- Applies a developer-product grant to the *stored* profile and records its PurchaseId in the
+-- same write, so the grant and its receipt are durable together before the live session ever
+-- sees the reward. Returns (ok, alreadyGranted, lostLock).
+--   ok=false            nothing was written; safe to retry the receipt later
+--   alreadyGranted=true the stored profile already has this PurchaseId (no second grant)
+function DataService.grantReceipt(
+	player: Player,
+	purchaseId: string,
+	apply: (data: Data) -> ()
+): (boolean, boolean, boolean)
+	if not store then
+		return false, false, false
+	end
+	if injectedFailure("grant") then
+		return false, false, false
+	end
+	local already, lostLock = false, false
+	local ok, err = pcall(function()
+		(store :: DataStore):UpdateAsync(key(player.UserId), function(old)
+			if old and old.Lock and old.Lock.Session ~= SESSION_ID then
+				lostLock = true
+				return nil
+			end
+			local data = reconcile(old or DataService.default())
+			if table.find(data.ProcessedReceipts, purchaseId) then
+				already = true
+				return nil -- nothing to write
+			end
+			apply(data)
+			table.insert(data.ProcessedReceipts, purchaseId)
+			while #data.ProcessedReceipts > RECEIPT_HISTORY do
+				table.remove(data.ProcessedReceipts, 1)
+			end
+			data.Lock = { Session = SESSION_ID, Time = os.time() }
+			return data
+		end)
+	end)
+	if not ok then
+		warn("[DataService] receipt grant failed for", player.Name, err)
+		return false, false, false
+	end
+	return not lostLock, already, lostLock
+end
+
+-- Lifetime purchase history, one record per PurchaseId, never pruned. The profile only keeps
+-- the last 100 receipts; this store is what makes a very old re-delivery still idempotent.
+local history: DataStore? = nil
+pcall(function()
+	history = DataStoreService:GetDataStore(Config.DataStoreName .. "_Purchases")
+end)
+
+-- Returns (ok, recorded): whether the PurchaseId is already in the lifetime history.
+function DataService.purchaseRecorded(purchaseId: string): (boolean, boolean)
+	if not history then
+		return false, false
+	end
+	if injectedFailure("historyRead") then
+		return false, false
+	end
+	local ok, value = pcall(function()
+		return (history :: DataStore):GetAsync("purchase_" .. purchaseId)
+	end)
+	return ok, ok and value ~= nil
+end
+
+function DataService.recordPurchase(purchaseId: string, userId: number, productId: number): boolean
+	if not history then
+		return false
+	end
+	if injectedFailure("historyWrite") then
+		return false
+	end
+	local ok, err = pcall(function()
+		(history :: DataStore):UpdateAsync("purchase_" .. purchaseId, function(old)
+			return old or { UserId = userId, ProductId = productId, Time = os.time() }
+		end)
+	end)
+	if not ok then
+		warn("[DataService] purchase history write failed", purchaseId, err)
+	end
+	return ok
+end
+
 -- Returns (saved, lostLock). lostLock means another server now owns the profile, so this
 -- session must never write it again.
 function DataService.save(player: Player, data: Data, release: boolean): (boolean, boolean)
 	if not store then
+		return false, false
+	end
+	if injectedFailure("save") then
 		return false, false
 	end
 	local lostLock = false

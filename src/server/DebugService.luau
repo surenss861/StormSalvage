@@ -9,6 +9,7 @@
 --   debug:Invoke("state")               -- storm + player summary
 --   debug:Invoke("receipt", "Player1", "purchase-1")  -- simulated receipt -> decision name
 --   debug:Invoke("save", "Player1")     -- save now -> true if persisted
+--   debug:Invoke("faults", "grant", 1)  -- next DataStore grant fails (purchase-safety tests)
 --   debug:Invoke("stats")               -- recent StormStats records
 --   debug:Invoke("session")             -- first-session progression per player
 --   debug:Invoke("spawn", "Safe", pos)  -- one loot item on the floor at pos
@@ -20,6 +21,7 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+local DataService = require(script.Parent.DataService)
 local LookService = require(script.Parent.LookService)
 local LootService = require(script.Parent.LootService)
 local MonetizationService = require(script.Parent.MonetizationService)
@@ -54,6 +56,32 @@ local commands: { [string]: (...any) -> any } = {
 		local player = Players:FindFirstChild(playerName)
 		assert(player and player:IsA("Player"), "no player " .. tostring(playerName))
 		return MonetizationService.simulateReceipt(player, purchaseId).Name
+	end,
+	-- Make the next `count` DataStore calls of one kind fail: "grant", "save", "historyRead",
+	-- "historyWrite" (purchase-safety tests).
+	faults = function(operation: string, count: number)
+		DataService.failNextForTest(operation, count)
+		return ("next %d %s calls fail"):format(count, operation)
+	end,
+	-- Drop a PurchaseId from the live profile's recent-receipt list (simulates history pruning).
+	forgetreceipt = function(playerName: string, purchaseId: string)
+		local player = Players:FindFirstChild(playerName)
+		local session = player and player:IsA("Player") and PlayerService.get(player)
+		assert(session, "no session")
+		local index = table.find(session.Data.ProcessedReceipts, purchaseId)
+		if index then
+			table.remove(session.Data.ProcessedReceipts, index)
+		end
+		return index ~= nil
+	end,
+	-- Set a player's coins (restoring a test account after purchase tests).
+	setcoins = function(playerName: string, amount: number)
+		local player = Players:FindFirstChild(playerName)
+		local session = player and player:IsA("Player") and PlayerService.get(player)
+		assert(session, "no session")
+		session.Data.Coins = amount
+		PlayerService.pushState(player :: Player)
+		return amount
 	end,
 	save = function(playerName: string)
 		local player = Players:FindFirstChild(playerName)
