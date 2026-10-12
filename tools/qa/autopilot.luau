@@ -136,9 +136,15 @@ end
 while true do
 	-- In Studio Play sessions driven over MCP, the camera was found switched to Scriptable
 	-- (not by game code), which hides proximity prompts; keep the default camera.
+	-- QA camera rigs can also leave the camera following a destroyed character; prompts then
+	-- never show, since they're shown relative to the camera's view.
 	local cam = workspace.CurrentCamera
 	if cam.CameraType ~= Enum.CameraType.Custom then
 		cam.CameraType = Enum.CameraType.Custom
+	end
+	local liveHumanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if liveHumanoid and cam.CameraSubject ~= liveHumanoid then
+		cam.CameraSubject = liveHumanoid
 	end
 	local hum, root = character()
 	if not hum or not root or not state then

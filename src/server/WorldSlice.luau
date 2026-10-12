@@ -705,6 +705,23 @@ local function buildRoad()
 		S.HazardBlack
 	)
 
+	-- Stone side walls on the side stairs (V2 left both sides open): a finished edge, and the
+	-- pathfinder stops routing up the sheer side faces, which the QA bot got stuck on.
+	for i = 0, ctx.PlateauTop - 1 do
+		local z = z0 + 1 + 2 * (ctx.PlateauTop - 1 - i)
+		local h = i + 1
+		for _, x in { -76.4, -63.6 } do
+			deco({
+				Name = "StairWall",
+				Size = Vector3.new(0.8, h + 2.6, 2),
+				Position = Vector3.new(x, (h + 2.6) / 2, z),
+				Color = S.Stone,
+				Material = Enum.Material.Concrete,
+				CanCollide = true,
+			})
+		end
+	end
+
 	-- West of the ramp: a worn path from the side stairs to Town Square through a tree grove.
 	local path = {
 		Vector3.new(-70, 0, -158),
@@ -819,7 +836,9 @@ local function buildSquare()
 		Vector3.new(-83, 0, -22),
 	}
 	for _, c in corners do
-		solid({
+		-- Non-colliding: the NE pole sits on the walking line between the square and the ramp,
+		-- and the QA bot wedged itself against it on the way to sell.
+		deco({
 			Name = "FestoonPole",
 			Size = Vector3.new(0.6, 17, 0.6),
 			Position = c + Vector3.new(0, 8.5, 0),
@@ -1147,10 +1166,18 @@ local function buildHeroes()
 	local gantry =
 		placeHero("ArrivalGantry", CFrame.lookAt(Vector3.new(0, top, -285), Vector3.new(0, top, -290)), yard)
 	if gantry then
-		heroSign(gantry, {
-			[Enum.NormalId.Front] = "STORM SALVAGE CO.",
-			[Enum.NormalId.Back] = "WE BUY WHAT THE STORM LEAVES",
-		}, S.SafetyYellow)
+		heroSign(gantry, { [Enum.NormalId.Front] = "STORM SALVAGE CO." }, S.SafetyYellow)
+		-- The sign frame covers the board's back, so the gate-side message goes on a thin panel
+		-- just behind the frame (frame rear face is 0.6 studs in front of the pivot).
+		local back = deco({
+			Name = "GantryBackSign",
+			Size = Vector3.new(21, 3.4, 0.1),
+			CFrame = gantry:GetPivot() * CFrame.new(0, 14, -0.52),
+			Color = S.HazardBlack,
+			Material = Enum.Material.SmoothPlastic,
+		})
+		back.Parent = gantry
+		sign(back, Enum.NormalId.Back, "WE BUY WHAT THE STORM LEAVES", S.SafetyYellow)
 		dropGroup(yard, "GantryPrimitive")
 		table.insert(placed, "ArrivalGantry")
 	end

@@ -1,8 +1,48 @@
-# Storm Salvage V3: Milestone B2 progress (hero assets, storm fixes)
+# Storm Salvage V3: Milestone B2 (hero assets, storm fixes), ready for creative review
 
-Branch `v3-art-direction`. Responds to the B1 creative review of `dbced66`. **Not ready for
-B2 creative review yet:** the hero models are built in Blender but need importing through
-Studio's 3D Importer before they can be placed, retested and photographed in the game.
+Branch `v3-art-direction`. Responds to the B1 creative review of `dbced66`. The seven hero models
+were imported on 2026-10-11, styled, exported to `assets/roblox/v3hero/` and are placed in the
+game. Gameplay regression below. **Stopping here for the B2 creative review; Milestone C not
+started, `main` untouched.**
+
+## Integrated screenshots (Studio, 1920×1080)
+
+| View | File |
+| --- | --- |
+| Arrival from the gate, eye level: Scrap Buyer weigh station, truss gantry, shredder behind, Gear workshop, crane | `v3/b2/hero-arrival-from-gate.jpg` |
+| Spawn looking toward the gate | `v3/b2/hero-yard-eye-level.jpg` |
+| Scrapyard overview | `v3/b2/hero-yard-overview.jpg` |
+| Town Square: new clock tower, Stormy's Diner, hardware store | `v3/b2/hero-square.jpg` |
+| Departure road, roadside, storms | `v3/b2/road-*.jpg`, `v3/b2/storm-*.jpg` |
+
+## Gameplay regression with the heroes in place
+
+| Check | Result |
+| --- | --- |
+| All 7 heroes placed, no console warnings or errors | Pass |
+| Routes from the spawn to 14 targets (both counters, gate, ramp foot, stairs, 3 square points, all districts, tow-yard gate) | Pass, all succeed |
+| Loot blocked by the 113 colliding hero parts | Pass, 0 of 60 |
+| Shelter roofs unchanged | Pass, 15 |
+| QA bot, 5 min, collecting, selling, upgrading | Pass after two fixes below: 3 full 10-item sales, 30 items, coins 242 → 802 (no upgrade affordable at those prices) |
+| Walking to the Gear workshop counter opens the shop | Pass |
+| Two players, lightning storm | Pass: both clients saw all 7 heroes, the same 16 strikes and the same 197 bulb shorts, storm sky on both |
+
+**Defects found and fixed during integration**
+
+1. **Bot wedged on a festoon pole.** The new storefront shifted the route from the square to the
+   ramp onto the plaza's north-east festoon pole. The poles are decoration, so they no longer collide.
+2. **Bot routed up the side of the old side stairs.** Their open sides let the pathfinder climb the
+   sheer side face. Added stepped stone side walls: a finished edge, and routes now use the steps.
+3. **Gantry back sign was blank.** The sign frame covers the board's back; the gate-side message
+   ("WE BUY WHAT THE STORM LEAVES") is now on a thin panel behind the frame.
+
+**Known**
+
+- From the spawn the Scrap Buyer's scale dial covers the end of its sign (readable from the gate).
+  Fix in the next Blender batch (lower or move the dial).
+- Test-tooling note: in Studio sessions where the QA harness destroys and respawns characters,
+  the camera can keep following the destroyed character and prompts stop showing. Not a game bug
+  (clean sessions and normal respawns are fine). The autopilot now re-targets the camera.
 
 ## Done and verified in Studio
 
@@ -14,7 +54,7 @@ Studio's 3D Importer before they can be placed, retested and photographed in the
 | 6. Roadside midground | Grass banks with stone retaining walls along the road, a fenced utility substation with transformers and a "DANGER HIGH VOLTAGE" sign, a storm-folded billboard with debris, and three dense tree groves instead of single trees dotted on the lawn | `b2/road-calm.jpg`, `b2/roadside-eye-level.jpg` |
 | 5. Loot marker noise | Common loot dots are smaller (10 px, from 18) and only show within 40 studs; uncommon 13 px and 60 studs; rare and up unchanged | `b2/storm-lightning-square.jpg` |
 
-## Built in Blender, waiting for import (P0 and P1)
+## Hero assets (P0 and P1)
 
 `tools/asset_pipeline/build_v3hero.py` → `assets/blender/v3hero.blend`, `assets/exports/v3hero/*.fbx`,
 previews in `docs/art/previews/v3hero/`. Every asset is under the 10,000-triangle hero budget.
@@ -28,21 +68,10 @@ previews in `docs/art/previews/v3hero/`. Every asset is under the 10,000-triangl
 | ArrivalGantry | 6,296 | Primitive gantry | Two lattice towers and a truss beam with the company sign and bulbs |
 | StorefrontA / B | 1,852 each | New, north side of the square | Two-storey shops with false fronts, awnings, shutters (one hanging loose), window planters, rooftop AC and a bent dish |
 
-The game swaps each asset in automatically once it exists in `ServerStorage.Assets.v3hero`
+The game swaps each asset in when it exists in `ServerStorage.Assets.v3hero`
 (`WorldSlice.buildHeroes`). Until then the existing models and primitives stay in place. Hero
 signs are painted at runtime ("SCRAP BUYER", "GEAR SHOP", "SHREDDER #2", "GALE HARDWARE & BAIT",
 "STORMY'S DINER").
-
-### Import steps (yours)
-
-1. In Studio: **3D Importer** → import the 7 files in `assets/exports/v3hero/` with
-   **Scale Unit: Studs**, the same as the earlier batches.
-2. Move the imported models into `ServerStorage.ImportedAssets.v3hero`.
-3. With `python3 tools/asset_server.py` running, run `tools/studio-style-and-export.luau` (the
-   same tool as before). It styles them from the palette, gives them precise collision, and
-   writes `assets/roblox/v3hero/*.rbxm`.
-4. Tell me when it's done. I'll then place, test (selling, upgrades, routes, loot, shelter,
-   flood, lightning, two players) and photograph the integrated result for the B2 review.
 
 ## Still open
 
