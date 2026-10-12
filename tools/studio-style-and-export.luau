@@ -70,6 +70,8 @@ local VISUAL_ONLY = {
 	Fountain = true, -- the old basin cylinder stays as invisible collision
 	IndustryLamp = true,
 	VentDuct = true,
+	FountainV3 = true, -- WorldSlice keeps a simple invisible basin collider under it
+	WaterTowerV3 = true, -- backdrop landmark outside the playable area
 }
 
 -- Applies palette material/color to one model; returns how many MeshParts were styled.

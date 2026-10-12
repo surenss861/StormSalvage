@@ -232,18 +232,20 @@ def weigh_station(c):
     box(c, "SignFrame", "Metal", "SafetyYellow", (10.8, 0.4, 3.4), pos=(0, y0 + 0.05, H + 2.6), bevel=0.1)
     for sx in (-4, 4):
         box(c, "SignFrame", "Metal", "HazardBlack", (0.3, 0.3, 2), pos=(sx, y0 + 0.3, H + 1.2), bevel=0.03)
-    # Scale tower on the counter side: a tall pylon with a big dial facing the customer.
+    # Scale post on the counter side with a big dial facing the customer. The dial sits below
+    # the roof sign (it hid the sign's end from the spawn when it stood at 10.5).
     px, py = W / 2 + 2.2, -4.0
-    box(c, "Pylon", "Metal", "Gunmetal", (1.2, 1.2, 9), pos=(px, py, 4.5), bevel=0.12)
+    DZ = 6.2  # dial centre height
+    box(c, "Pylon", "Metal", "Gunmetal", (1.2, 1.2, DZ), pos=(px, py, DZ / 2), bevel=0.12)
     box(c, "Pylon", "Concrete", "Concrete", (2.4, 2.4, 0.8), pos=(px, py, 0.4), bevel=0.12)
-    cyl(c, "Dial", "Metal", "SafetyYellow", 2.6, 0.7, pos=(px, py - 0.3, 10.5), rot=(90, 0, 0), verts=20)
-    cyl(c, "DialFace", "Smooth", "Cream", 2.2, 0.8, pos=(px, py - 0.4, 10.5), rot=(90, 0, 0), verts=20)
+    cyl(c, "Dial", "Metal", "SafetyYellow", 2.6, 0.7, pos=(px, py - 0.3, DZ), rot=(90, 0, 0), verts=20)
+    cyl(c, "DialFace", "Smooth", "Cream", 2.2, 0.8, pos=(px, py - 0.4, DZ), rot=(90, 0, 0), verts=20)
     for i in range(12):
         a = 2 * math.pi * i / 12
         box(c, "Tick", "Smooth", "HazardBlack", (0.12, 0.2, 0.5 if i % 3 else 0.8),
-            pos=(px + math.cos(a) * 1.8, py - 0.85, 10.5 + math.sin(a) * 1.8), rot=(0, -math.degrees(a) + 90, 0), bevel=0.0)
-    box(c, "Needle", "Neon", "Coral", (0.18, 0.2, 1.9), pos=(px + 0.55, py - 0.95, 11.2), rot=(0, -35, 0), bevel=0.0)
-    cyl(c, "Needle", "Metal", "HazardBlack", 0.25, 0.4, pos=(px, py - 0.95, 10.5), rot=(90, 0, 0), verts=8)
+            pos=(px + math.cos(a) * 1.8, py - 0.85, DZ + math.sin(a) * 1.8), rot=(0, -math.degrees(a) + 90, 0), bevel=0.0)
+    box(c, "Needle", "Neon", "Coral", (0.18, 0.2, 1.9), pos=(px + 0.55, py - 0.95, DZ + 0.7), rot=(0, -35, 0), bevel=0.0)
+    cyl(c, "Needle", "Metal", "HazardBlack", 0.25, 0.4, pos=(px, py - 0.95, DZ), rot=(90, 0, 0), verts=8)
     # Hanging scale hook from the canopy.
     chain(c, (-3.5, -6.6, 8.0), (-3.5, -6.6, 5.4), links=6)
     torus(c, "Hook", "Metal", "Steel", 0.45, 0.12, pos=(-3.5, -6.6, 5.0), rot=(90, 0, 0), segments=10)
@@ -516,6 +518,132 @@ def storefront_b(c):
     storefront(c, "Teal", "Cream", "Mustard", "Coral")
 
 
+
+# --------------------------------------------------------------------------- Fountain
+
+def fountain_v3(c):
+    """Town Square centrepiece. Octagonal stone basin (fits the old 14-stud gameplay cylinder),
+    a fluted pedestal, two scalloped bowls, and a bronze storm-vane finial: a cog with a
+    lightning bolt through it. A riveted iron strap holds a storm crack in the basin together.
+    ~15 across, ~12 tall."""
+    R = 7.0
+    # Octagonal basin wall: 8 stone panels with cream coping and corner posts.
+    for i in range(8):
+        a = (i + 0.5) / 8 * math.tau
+        side = 2 * R * math.tan(math.pi / 8)
+        box(c, "Basin", "Concrete", "Stone", (side + 0.2, 0.9, 1.7), pos=(math.cos(a) * R, math.sin(a) * R, 0.85),
+            rot=(0, 0, math.degrees(a) + 90), bevel=0.15)
+        box(c, "Coping", "Concrete", "Cream", (side + 0.6, 1.4, 0.4), pos=(math.cos(a) * R, math.sin(a) * R, 1.9),
+            rot=(0, 0, math.degrees(a) + 90), bevel=0.12)
+        b = i / 8 * math.tau
+        box(c, "Post", "Concrete", "Cream", (1.3, 1.3, 2.5), pos=(math.cos(b) * R * 1.03, math.sin(b) * R * 1.03, 1.25),
+            rot=(0, 0, math.degrees(b)), bevel=0.15)
+        sphere(c, "PostCap", "Concrete", "Cream", 0.5, pos=(math.cos(b) * R * 1.03, math.sin(b) * R * 1.03, 2.75))
+    cyl(c, "BasinFloor", "Concrete", "Stone", R - 0.3, 0.6, pos=(0, 0, 0.3), verts=16, bevel=0.0)
+    cyl(c, "Water", "Glass", "Glass", R - 0.5, 0.2, pos=(0, 0, 1.45), verts=16, bevel=0.0)
+    # Storm repair: an iron strap across a cracked panel, with rivets.
+    a = 2.5 / 8 * math.tau
+    box(c, "Strap", "Metal", "Gunmetal", (0.35, 1.1, 2.0), pos=(math.cos(a) * (R + 0.5), math.sin(a) * (R + 0.5), 1.0),
+        rot=(0, 0, math.degrees(a) + 90), bevel=0.05)
+    for dz in (0.4, 1.0, 1.6):
+        sphere(c, "Rivet", "Metal", "Steel", 0.13, pos=(math.cos(a) * (R + 0.7), math.sin(a) * (R + 0.7), dz))
+    # Pedestal: octagonal plinth, fluted column.
+    cyl(c, "Plinth", "Concrete", "Stone", 2.2, 1.0, pos=(0, 0, 1.6), verts=8, bevel=0.15)
+    cyl(c, "Column", "Concrete", "Cream", 1.0, 4.4, pos=(0, 0, 4.2), verts=12, bevel=0.1)
+    for i in range(8):
+        b = i / 8 * math.tau
+        box(c, "Flute", "Concrete", "Stone", (0.3, 0.3, 4.0), pos=(math.cos(b) * 1.0, math.sin(b) * 1.0, 4.2), bevel=0.04)
+    # Lower bowl, scalloped lip.
+    cyl(c, "Bowl", "Concrete", "Cream", 3.0, 1.0, pos=(0, 0, 6.6), verts=16, radius_top=3.8, bevel=0.15)
+    cyl(c, "BowlWater", "Glass", "Glass", 3.5, 0.15, pos=(0, 0, 7.05), verts=16, bevel=0.0)
+    for i in range(12):
+        b = i / 12 * math.tau
+        sphere(c, "Scallop", "Concrete", "Cream", 0.45, pos=(math.cos(b) * 3.75, math.sin(b) * 3.75, 7.0), scale=(1, 1, 0.6))
+    # Upper column and bowl.
+    cyl(c, "Column2", "Concrete", "Stone", 0.55, 2.2, pos=(0, 0, 8.2), verts=10, bevel=0.08)
+    cyl(c, "Bowl2", "Concrete", "Cream", 1.4, 0.6, pos=(0, 0, 9.5), verts=12, radius_top=1.9, bevel=0.1)
+    # Finial: bronze cog with a lightning bolt through it (the town's storm emblem).
+    cyl(c, "FinialPost", "Metal", "Teal", 0.25, 1.4, pos=(0, 0, 10.4), verts=8)
+    torus(c, "Emblem", "Metal", "Teal", 1.1, 0.22, pos=(0, 0, 12.0), rot=(90, 0, 0), segments=16)
+    for i in range(8):
+        b = i / 8 * math.tau
+        box(c, "Emblem", "Metal", "Teal", (0.4, 0.4, 0.4), pos=(math.cos(b) * 1.45, 0, 12.0 + math.sin(b) * 1.45),
+            rot=(0, -math.degrees(b), 0), bevel=0.05)
+    for (bx, bz, ang, ln) in ((0.25, 12.6, -25, 1.3), (-0.05, 11.9, 35, 1.0), (-0.3, 11.2, -25, 1.3)):
+        box(c, "Bolt", "Metal", "Mustard", (0.35, 0.3, ln), pos=(bx, -0.05, bz), rot=(0, ang, 0), bevel=0.03)
+    # Spouts on the basin's inner side (four, aimed in).
+    for i in range(4):
+        b = i / 4 * math.tau + math.pi / 4
+        cyl(c, "Spout", "Metal", "Teal", 0.25, 1.0, pos=(math.cos(b) * (R - 0.9), math.sin(b) * (R - 0.9), 2.1),
+            rot=(0, 90, math.degrees(b)), verts=8)
+
+
+# --------------------------------------------------------------------------- Props kit
+
+def sandbag_wall(c):
+    """Storm-prep sandbag wall: two staggered courses, 6 then 5 bags. 7.4 long, ~1.3 tall."""
+    for row, (n, z) in enumerate(((6, 0.33), (5, 0.95))):
+        for i in range(n):
+            x = -3.1 + i * 1.24 + row * 0.62
+            jitter(box(c, "Bag", "Fabric", "Sand" if (i + row) % 3 else "Plaster", (1.25, 0.95, 0.62),
+                       pos=(x, rng.uniform(-0.06, 0.06), z), bevel=0.26, segments=2), 4)
+            box(c, "Tie", "Fabric", "Bark", (0.12, 0.98, 0.1), pos=(x + 0.5, 0, z + 0.27), bevel=0.0)
+
+
+def water_tower(c):
+    """Town water tower for the skyline: four splayed legs with X-bracing, a round tank with a
+    conical roof, a catwalk with railing, a ladder, and a sign band. ~22 across, ~56 tall."""
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            box(c, "Leg", "Metal", "Steel", (1.0, 1.0, 36), pos=(sx * 6.8, sy * 6.8, 18), rot=(sy * 5, -sx * 5, 0), bevel=0.08)
+            box(c, "Foot", "Concrete", "Concrete", (2.6, 2.6, 1.2), pos=(sx * 8.4, sy * 8.4, 0.6), bevel=0.15)
+    # X-bracing on each face between the legs (two bays). Euler XYZ: tilt about Y, then yaw.
+    for z0 in (8, 22):
+        off = 7.1 - (z0 - 8) * 0.06  # legs lean in slightly toward the top
+        for side in range(4):
+            yaw = side * 90
+            ang = math.radians(yaw)
+            for d in (-1, 1):
+                box(c, "Brace", "Metal", "Steel", (17, 0.35, 0.35),
+                    pos=(math.sin(ang) * off, -math.cos(ang) * off, z0 + 5), rot=(0, d * 38, yaw), bevel=0.0)
+            box(c, "Strut", "Metal", "Steel", (14, 0.4, 0.4),
+                pos=(math.sin(ang) * off, -math.cos(ang) * off, z0 + 11), rot=(0, 0, yaw), bevel=0.0)
+    cyl(c, "Deck", "Plate", "Gunmetal", 10.5, 0.6, pos=(0, 0, 36.3), verts=20, bevel=0.1)
+    for i in range(20):
+        b = i / 20 * math.tau
+        box(c, "RailPost", "Metal", "Steel", (0.2, 0.2, 1.8), pos=(math.cos(b) * 10.2, math.sin(b) * 10.2, 37.5), bevel=0.0)
+    torus(c, "Rail", "Metal", "Steel", 10.2, 0.12, pos=(0, 0, 38.4), segments=24)
+    cyl(c, "Tank", "Metal", "Cream", 9, 11, pos=(0, 0, 42.1), verts=24, bevel=0.3)
+    cyl(c, "Band", "Smooth", "Coral", 9.08, 1.4, pos=(0, 0, 44.6), verts=24, bevel=0.0)
+    box(c, "Sign", "Smooth", "Signboard", (8.4, 0.6, 3.2), pos=(0, -8.95, 41.6), bevel=0.15)
+    cyl(c, "Roof", "Metal", "Coral", 9.6, 4.6, pos=(0, 0, 49.9), verts=24, radius_top=0.8, bevel=0.15)
+    cyl(c, "Cap", "Metal", "Gunmetal", 0.9, 1.4, pos=(0, 0, 52.9), verts=10)
+    sphere(c, "Beacon", "Neon", "Coral", 0.5, pos=(0, 0, 53.9))
+    box(c, "Ladder", "Metal", "SafetyYellow", (1.0, 0.3, 36), pos=(0, -7.6, 18), rot=(-5, 0, 0), bevel=0.04)
+    # Rust streaks below the band.
+    for x in (-3.5, 1.8, 5):
+        box(c, "Streak", "Rusty", "Rust", (0.5, 0.3, 3.4), pos=(x, -8.9, 38.8), bevel=0.0)
+
+
+def guard_rail(c):
+    """8-stud W-beam guard rail section with two posts and blocking. Origin at the section's
+    centre on the ground; sections butt end to end along X."""
+    for x in (-3.6, 3.6):
+        box(c, "Post", "Metal", "Gunmetal", (0.45, 0.45, 2.6), pos=(x, 0, 1.3), bevel=0.05)
+        box(c, "Block", "Metal", "Gunmetal", (0.4, 0.5, 0.7), pos=(x, -0.45, 2.0), bevel=0.04)
+    for dz, w in ((2.25, 0.32), (1.95, 0.42), (1.65, 0.32)):
+        box(c, "Beam", "Metal", "Steel", (8.1, w, 0.32), pos=(0, -0.8 - (0.08 if w > 0.4 else 0), dz), bevel=0.06)
+    for x in (-3.6, 3.6):
+        box(c, "Reflector", "Neon", "SafetyYellow", (0.25, 0.1, 0.18), pos=(x, -1.05, 1.95), bevel=0.0)
+
+
+def bollard(c):
+    """Concrete bollard with a hazard band: marks edges at the spawn pad and the plaza."""
+    cyl(c, "Body", "Concrete", "Concrete", 0.6, 2.6, pos=(0, 0, 1.3), verts=12, bevel=0.15)
+    cyl(c, "Top", "Concrete", "Concrete", 0.52, 0.4, pos=(0, 0, 2.75), verts=12, bevel=0.18)
+    cyl(c, "Band", "Smooth", "SafetyYellow", 0.63, 0.35, pos=(0, 0, 2.0), verts=12, bevel=0.0)
+    cyl(c, "Band", "Smooth", "HazardBlack", 0.63, 0.35, pos=(0, 0, 1.65), verts=12, bevel=0.0)
+
 if __name__ == "__main__":
     build_set("v3hero", [
         ("GearWorkshop", gear_workshop),
@@ -525,4 +653,9 @@ if __name__ == "__main__":
         ("ArrivalGantry", arrival_gantry),
         ("StorefrontA", storefront_a),
         ("StorefrontB", storefront_b),
+        ("FountainV3", fountain_v3),
+        ("SandbagWall", sandbag_wall),
+        ("WaterTowerV3", water_tower),
+        ("GuardRail", guard_rail),
+        ("Bollard", bollard),
     ], layout_spacing=6)
