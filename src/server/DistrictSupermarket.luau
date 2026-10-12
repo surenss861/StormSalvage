@@ -116,7 +116,7 @@ function DistrictSupermarket.build(ctx: Context)
 	local floor = store and store:FindFirstChild("Floor")
 	if floor and floor:IsA("BasePart") then
 		floor.Material = Enum.Material.Marble
-		floor.Color = Color3.fromRGB(222, 216, 202)
+		floor.Color = Color3.fromRGB(184, 178, 164)
 	end
 
 	-- Departments: the front shelf row becomes produce islands, the back row freezers, the middle
@@ -138,10 +138,7 @@ function DistrictSupermarket.build(ctx: Context)
 		local sign = place(
 			"v3market",
 			"AisleSign",
-			CFrame.lookAt(
-				CENTER + Vector3.new(0.5, 12, info[1]),
-				CENTER + Vector3.new(0.5, 12, info[1] + 1)
-			),
+			CFrame.lookAt(CENTER + Vector3.new(0.5, 12, info[1]), CENTER + Vector3.new(0.5, 12, info[1] + 1)),
 			folder
 		)
 		local board = sign and meshWith(sign, "Signboard")
@@ -155,7 +152,8 @@ function DistrictSupermarket.build(ctx: Context)
 	-- storm is coming.
 	for _, dz in { -10.5, 3.5, 17.5 } do
 		for i, dx in { -22, -7, 8, 23 } do
-			local fixture = place("v3market", "CeilingLight", CFrame.new(CENTER + Vector3.new(dx, 15, dz)), folder)
+			local fixture =
+				place("v3market", "CeilingLight", CFrame.new(CENTER + Vector3.new(dx, 15, dz)), folder)
 			if fixture then
 				tagLamps(fixture, "Neon")
 				local tube = meshWith(fixture, "Neon")
@@ -169,18 +167,26 @@ function DistrictSupermarket.build(ctx: Context)
 	-- Checkout line along the front windows: four lanes in the gaps between loot columns, the
 	-- centre (door) lanes left open. Queue side faces into the store.
 	for lane, dx in { -20.5, -13.5, 14.5, 21.5 } do
-		local counter = place(
-			"v3market",
-			"CheckoutCounter",
-			CFrame.new(CENTER + Vector3.new(dx, FLOOR, 17.5)),
-			folder
-		)
+		local counter =
+			place("v3market", "CheckoutCounter", CFrame.new(CENTER + Vector3.new(dx, FLOOR, 17.5)), folder)
 		if counter then
 			tagLamps(counter, "Mustard")
 			local box = meshWith(counter, "Signboard")
 			if box then
-				ctx.SurfaceSign(box, Enum.NormalId.Front, tostring(lane), S.SafetyYellow, Enum.Font.LuckiestGuy)
-				ctx.SurfaceSign(box, Enum.NormalId.Back, tostring(lane), S.SafetyYellow, Enum.Font.LuckiestGuy)
+				ctx.SurfaceSign(
+					box,
+					Enum.NormalId.Front,
+					tostring(lane),
+					S.SafetyYellow,
+					Enum.Font.LuckiestGuy
+				)
+				ctx.SurfaceSign(
+					box,
+					Enum.NormalId.Back,
+					tostring(lane),
+					S.SafetyYellow,
+					Enum.Font.LuckiestGuy
+				)
 			end
 		end
 	end
@@ -189,10 +195,7 @@ function DistrictSupermarket.build(ctx: Context)
 	local doors = place(
 		"v3market",
 		"StaffDoors",
-		CFrame.lookAt(
-			Vector3.new(CENTER.X, FLOOR, BACK + 0.7),
-			Vector3.new(CENTER.X, FLOOR, BACK + 2)
-		),
+		CFrame.lookAt(Vector3.new(CENTER.X, FLOOR, BACK + 0.7), Vector3.new(CENTER.X, FLOOR, BACK + 2)),
 		folder
 	)
 	local staff = doors and meshWith(doors, "Signboard")
@@ -202,14 +205,27 @@ function DistrictSupermarket.build(ctx: Context)
 
 	-- Storm damage inside: a leak with a bucket, spilled stock in two aisles (flat, no collision).
 	place("v3market", "RoofLeak", CFrame.new(CENTER + Vector3.new(-13.5, FLOOR, -10.5)), folder)
-	place("v3market", "SpilledGoods", CFrame.new(CENTER + Vector3.new(-6.5, FLOOR, 3.5)) * CFrame.Angles(0, 0.6, 0), folder)
-	place("v3market", "SpilledGoods", CFrame.new(CENTER + Vector3.new(19.5, FLOOR, -10.5)) * CFrame.Angles(0, 2.2, 0), folder)
+	place(
+		"v3market",
+		"SpilledGoods",
+		CFrame.new(CENTER + Vector3.new(-6.5, FLOOR, 3.5)) * CFrame.Angles(0, 0.6, 0),
+		folder
+	)
+	place(
+		"v3market",
+		"SpilledGoods",
+		CFrame.new(CENTER + Vector3.new(19.5, FLOOR, -10.5)) * CFrame.Angles(0, 2.2, 0),
+		folder
+	)
 
 	-- Storefront: one cracked window boarded up, with the staff's message.
 	local board = place(
 		"v3market",
 		"BoardedWindow",
-		CFrame.lookAt(Vector3.new(CENTER.X + 24, 2.7, FRONT + 1.1), Vector3.new(CENTER.X + 24, 2.7, FRONT + 5)),
+		CFrame.lookAt(
+			Vector3.new(CENTER.X + 14, 2.7, FRONT + 1.1),
+			Vector3.new(CENTER.X + 14, 2.7, FRONT + 5)
+		),
 		folder
 	)
 	local ply = board and meshWith(board, "Signboard")
@@ -234,16 +250,21 @@ function DistrictSupermarket.build(ctx: Context)
 	do
 		local pos: Vector3 = info[1]
 		removePrimitiveCar(map, pos)
-		local sedan = place(
-			"v3houses",
-			"Sedan",
-			CFrame.new(pos) * CFrame.Angles(0, math.rad(info[2]), 0),
-			folder
-		)
+		local sedan =
+			place("v3houses", "Sedan", CFrame.new(pos) * CFrame.Angles(0, math.rad(info[2]), 0), folder)
 		if sedan then
 			for _, d in sedan:GetDescendants() do
-				if d:IsA("BasePart") and string.match(d.Name, "__Coral$") and d.Material ~= Enum.Material.Neon then
+				if
+					d:IsA("BasePart")
+					and string.match(d.Name, "__Coral$")
+					and d.Material ~= Enum.Material.Neon
+				then
 					d.Color = info[3]
+				elseif
+					d:IsA("BasePart") and (string.match(d.Name, "__Bark$") or string.match(d.Name, "__Leaf$"))
+				then
+					-- The Houses car carries a fallen branch; these lot cars don't.
+					d:Destroy()
 				end
 			end
 		end
