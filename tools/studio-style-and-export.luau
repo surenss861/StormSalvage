@@ -92,6 +92,16 @@ local VISUAL_ONLY = {
 	PumpBag = true,
 	CanopyPanel = true,
 	GarageDoor = true,
+	-- C4 Warehouse: rack-row pieces get solid colliders in DistrictWarehouse; the rest is overhead
+	-- or wall-mounted dressing. The truck and roof fans keep box collision.
+	TallRackA = true,
+	TallRackB = true,
+	FreightStack = true,
+	MeshCage = true,
+	OverheadCrane = true,
+	BreakerPanel = true,
+	SidingPatch = true,
+	DockLight = true,
 }
 
 -- Applies palette material/color to one model; returns how many MeshParts were styled.

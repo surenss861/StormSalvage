@@ -155,11 +155,12 @@ def compressor(c):
     for x in (-1.4, 1.4):
         cyl(c, "Wheel", "Rubber", "Rubber", 0.35, 0.25, pos=(x, 0.95, 0.35), rot=(90, 0, 0), verts=8, bevel=0.0)
         cyl(c, "Wheel", "Rubber", "Rubber", 0.35, 0.25, pos=(x, -0.95, 0.35), rot=(90, 0, 0), verts=8, bevel=0.0)
+    # Coiled hose hung on the tank's side (ring in the XZ plane, just proud of the tank at -Y).
     for k in range(8):
         a = k * 45
         r = math.radians(a)
-        box(c, "Hose", "Rubber", "SafetyYellow", (0.15, 0.7, 0.15), pos=(2.3, math.cos(r) * 0.5, 0.6 + math.sin(r) * 0.5),
-            rot=(a, 0, 0), bevel=0.0)
+        box(c, "Hose", "Rubber", "SafetyYellow", (0.42, 0.15, 0.15),
+            pos=(0.9 + math.cos(r) * 0.55, -0.98, 1.35 + math.sin(r) * 0.55), rot=(0, -(a + 90), 0), bevel=0.0)
 
 
 BUILDERS = [

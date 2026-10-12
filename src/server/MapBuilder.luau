@@ -18,6 +18,7 @@ local LookService = require(script.Parent.LookService)
 local DistrictHouses = require(script.Parent.DistrictHouses)
 local DistrictFuel = require(script.Parent.DistrictFuel)
 local DistrictSupermarket = require(script.Parent.DistrictSupermarket)
+local DistrictWarehouse = require(script.Parent.DistrictWarehouse)
 local WorldSlice = require(script.Parent.WorldSlice)
 
 local MapBuilder = {}
@@ -1918,6 +1919,7 @@ function MapBuilder.build()
 	DistrictHouses.build({ Map = map, Part = part, Prop = prop })
 	DistrictSupermarket.build({ Map = map, Part = part, Prop = prop, SurfaceSign = surfaceSign })
 	DistrictFuel.build({ Map = map, Part = part, Prop = prop, SurfaceSign = surfaceSign })
+	DistrictWarehouse.build({ Map = map, Part = part, Prop = prop, SurfaceSign = surfaceSign })
 
 	-- The look profile's palette applies once everything is built.
 	LookService.apply(LookService.active(), true)
