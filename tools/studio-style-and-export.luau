@@ -72,6 +72,14 @@ local VISUAL_ONLY = {
 	VentDuct = true,
 	FountainV3 = true, -- WorldSlice keeps a simple invisible basin collider under it
 	WaterTowerV3 = true, -- backdrop landmark outside the playable area
+	-- C1 Houses: shells over MapBuilder's invisible walls; the ladder over the climbing truss;
+	-- the oak gets one trunk collider in DistrictHouses; a box round the clothesline would wall
+	-- off the garden.
+	HouseV3A = true,
+	HouseV3B = true,
+	RoofLadder = true,
+	FallenOak = true,
+	Clothesline = true,
 }
 
 -- Applies palette material/color to one model; returns how many MeshParts were styled.
