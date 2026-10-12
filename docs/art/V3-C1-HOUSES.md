@@ -88,3 +88,15 @@ Client frame time, draw calls, triangles on screen, memory and every phone gate:
 5. The ladder's lower wall brackets stick out slightly past the wall.
 6. `PrivacyFence` is 660 triangles, above the 100–500 guideline for a repeated small prop. The 16
    sections are 10,560 triangles. Unbevelling the boards would roughly halve that; not done yet.
+
+## Fence optimisation (C1 review fix 2): done and verified in game
+
+The 308-triangle `PrivacyFence` was imported on 2026-10-12 and replaces the 660-triangle mesh
+(new mesh IDs in `assets/ASSET-MANIFEST.md`).
+
+- All 16 placed sections use the new mesh (checked by mesh ID in Play).
+- Collision unchanged: rays across the fence line hit it at 4 of 4 points; routes from the spawn to
+  both gardens and both ladder feet still succeed.
+- **Savings: 16 × (660 − 308) = 5,632 triangles** (10,560 → 4,928). District total 40,432 → 34,800.
+- Same garden camera, before and after: `v3/c1/fence-before-660.jpg`, `v3/c1/fence-after-308.jpg`.
+  No visible difference.

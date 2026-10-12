@@ -95,4 +95,4 @@ Client frame time, draw calls, triangles on screen, memory and every phone gate:
    left as the V2/B asset, can be toned the same way.
 3. The store floods with the rest of the station, as in V2. Fine for gameplay (roof escape), but
    the store looks like cover.
-4. The C1 `PrivacyFence` (308 triangles) is **still not imported**; the game uses the 660 version.
+4. ~~C1 `PrivacyFence` not imported~~ Done 2026-10-12: see `V3-C1-HOUSES.md`.
