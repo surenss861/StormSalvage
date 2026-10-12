@@ -173,11 +173,12 @@ local profiles: { [string]: Profile } = {
 				TintColor = Color3.fromRGB(255, 236, 212),
 			},
 			Atmosphere = {
-				-- Study B's depth: denser, offset haze so the town edge and backdrop fade out.
-				Density = 0.42,
-				Offset = 0.28,
-				Haze = 2,
-				Glare = 0.45,
+				-- Study B's depth: the backdrop fades into a soft horizon. Lighter than the study's
+				-- values (0.42 / 0.28 / 2), which washed out the town once the CalmSky made haze render.
+				Density = 0.3,
+				Offset = 0.05,
+				Haze = 1.4,
+				Glare = 0.3,
 				Color = Color3.fromRGB(255, 220, 188),
 				Decay = Color3.fromRGB(140, 120, 150),
 			},
@@ -515,6 +516,7 @@ function LookService.apply(name: string, recolorMap: boolean?)
 	if recolorMap ~= false then
 		recolor(profile)
 	end
+	LookService.applySky("Calm")
 	workspace:SetAttribute("Look", name)
 end
 
@@ -569,10 +571,22 @@ function LookService.applySky(phase: string, storm: string?)
 	local stormy = phase == "Warning" or phase == "Storm"
 	local faces = stormy and active == "V3" and storm and STORM_SKIES[storm]
 	local sky = Lighting:FindFirstChild("StormSky")
+	if not faces and sky then
+		sky:Destroy()
+	end
+	-- V3 outside storms: a plain default Sky. Atmosphere haze only renders with a Sky object
+	-- present, and without the haze the far terrain drops out at the client's draw distance,
+	-- leaving the flat ground cut off against the sky from the raised Scrapyard.
+	local calm = Lighting:FindFirstChild("CalmSky")
+	local wantCalm = active == "V3" and not faces
+	if wantCalm and not calm then
+		calm = Instance.new("Sky")
+		calm.Name = "CalmSky"
+		calm.Parent = Lighting
+	elseif not wantCalm and calm then
+		calm:Destroy()
+	end
 	if not faces then
-		if sky then
-			sky:Destroy()
-		end
 		return
 	end
 	if not sky then

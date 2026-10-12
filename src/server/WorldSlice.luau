@@ -1231,7 +1231,272 @@ local function buildHeroes()
 			table.insert(placed, info[1])
 		end
 	end
+	if heroSource("StorefrontA") or heroSource("StorefrontB") then
+		-- Shopfront sidewalk: joins the storefronts to the plaza paving so they don't stand on
+		-- the lawn. Flat like the paving (the ground underneath is what players walk on).
+		ctx.Part({
+			Parent = folder,
+			Name = "ShopSidewalk",
+			Size = Vector3.new(86, 0.1, 8),
+			Position = Vector3.new(-59, 0.06, -104.8),
+			Color = Color3.fromRGB(168, 156, 138),
+			Material = Enum.Material.Pavement,
+			CanCollide = false,
+			CanQuery = false,
+			CastShadow = false,
+		})
+		for _, x in { -102.3, -15.7 } do
+			deco({
+				Name = "SidewalkEdge",
+				Size = Vector3.new(0.6, 0.2, 8),
+				Position = Vector3.new(x, 0.1, -104.8),
+				Color = S.Stone,
+				Material = Enum.Material.Concrete,
+			})
+		end
+		-- Planters either side of each shop door.
+		for _, x in { -97, -87, -32, -22 } do
+			deco({
+				Name = "Planter",
+				Size = Vector3.new(2.6, 1.2, 1.4),
+				Position = Vector3.new(x, 0.6, -103.6),
+				Color = S.Terracotta,
+				Material = Enum.Material.Brick,
+				CanCollide = true,
+			})
+			ctx.Bush(Vector3.new(x, 1.2, -103.6), 1.6)
+		end
+	end
 	ctx.Map:SetAttribute("V3Heroes", table.concat(placed, ","))
+end
+
+---------------------------------------------------------------------------- Yard edges (B2 polish)
+
+-- A concrete bollard: the Blender asset when imported, else a primitive post.
+local function bollard(pos: Vector3, parent: Instance?)
+	local model = placeHero("Bollard", CFrame.new(pos), parent or folder)
+	if model then
+		return
+	end
+	solid({
+		Name = "Bollard",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(2.8, 1.2, 1.2),
+		CFrame = CFrame.new(pos + Vector3.new(0, 1.4, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = S.Concrete,
+		Material = Enum.Material.Concrete,
+		Parent = parent,
+	})
+	deco({
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.4, 1.26, 1.26),
+		CFrame = CFrame.new(pos + Vector3.new(0, 2.1, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = S.SafetyYellow,
+		Material = Enum.Material.SmoothPlastic,
+		Parent = parent,
+	})
+end
+
+-- A painted arrow on the ground pointing along `dir`.
+local function groundArrow(pos: Vector3, dir: Vector3, color: Color3)
+	local cf = CFrame.lookAt(pos, pos + dir)
+	deco({ Size = Vector3.new(1.2, 0.05, 4), CFrame = cf * CFrame.new(0, 0, 0.5), Color = color })
+	for _, s in { -1, 1 } do
+		deco({
+			Size = Vector3.new(0.9, 0.05, 3),
+			CFrame = cf * CFrame.new(s * 0.9, 0, -1.2) * CFrame.Angles(0, math.rad(s * 40), 0),
+			Color = color,
+		})
+	end
+end
+
+-- Spawn and shredder: the spawn plate becomes a framed platform with work areas on either side
+-- (tool wall and bench to the west, loading bay to the east), and the shredder stands on a
+-- concrete plinth with a hazard apron. The aisle from the plate to the gate stays clear.
+local function buildYardEdges()
+	local top = ctx.PlateauTop
+	local yard = ctx.Yard
+	local saved = folder
+	folder = Instance.new("Folder")
+	folder.Name = "V3YardEdges"
+	folder.Parent = yard
+
+	local spawn = yard:FindFirstChildWhichIsA("SpawnLocation")
+	local c = if spawn
+		then Vector3.new(spawn.Position.X, top, spawn.Position.Z)
+		else Vector3.new(0, top, -295)
+	-- Chamfered steel frame: walkable slopes off the 1-stud plate, bollards in the corners.
+	for _, dir in { Vector3.xAxis, -Vector3.xAxis, Vector3.zAxis, -Vector3.zAxis } do
+		local mid = c + dir * 7 + Vector3.new(0, 0.5, 0)
+		local wedge = ctx.Wedge({
+			Parent = folder,
+			Name = "SpawnChamfer",
+			Size = Vector3.new(12, 1, 2),
+			CFrame = CFrame.lookAt(mid, mid + dir),
+			Color = S.Gunmetal,
+			Material = Enum.Material.DiamondPlate,
+			CastShadow = false,
+		})
+		wedge.CanQuery = true
+	end
+	for _, sx in { -1, 1 } do
+		for _, sz in { -1, 1 } do
+			bollard(c + Vector3.new(sx * 7, 0, sz * 7))
+		end
+	end
+	-- Hazard border painted on the concrete just outside the frame.
+	for _, sz in { -1, 1 } do
+		hazardStripes(c.X - 9, c.X + 9, c.Z + sz * 9, 1.4, top + 0.33)
+	end
+	-- Walkway arrows from the plate toward the gate.
+	for _, z in { c.Z + 13, c.Z + 20 } do
+		groundArrow(Vector3.new(c.X, top + 0.33, z), Vector3.zAxis, S.SafetyYellow)
+	end
+
+	-- West: tool wall and workbench facing the plate.
+	local wx, wz = c.X - 19, c.Z - 3
+	local wall = CFrame.lookAt(Vector3.new(wx, top, wz), Vector3.new(wx + 1, top, wz))
+	for _, s in { -1, 1 } do
+		solid({
+			Name = "RackPost",
+			Size = Vector3.new(0.4, 7, 0.4),
+			CFrame = wall * CFrame.new(s * 4, 3.5, 0.3),
+			Color = S.Gunmetal,
+			Material = Enum.Material.Metal,
+		})
+	end
+	deco({
+		Name = "Pegboard",
+		Size = Vector3.new(8, 4, 0.2),
+		CFrame = wall * CFrame.new(0, 4, 0.4),
+		Color = Color3.fromRGB(176, 140, 96),
+		Material = Enum.Material.WoodPlanks,
+	})
+	deco({
+		Size = Vector3.new(8.4, 0.5, 0.5),
+		CFrame = wall * CFrame.new(0, 6.3, 0.3),
+		Color = S.SafetyYellow,
+		Material = Enum.Material.Metal,
+	})
+	-- Hanging tools: wrenches, a saw, a coil of hose.
+	for i, info in
+		{
+			{ -2.9, Vector3.new(0.3, 2.2, 0.15), S.Steel },
+			{ -2.2, Vector3.new(0.3, 1.8, 0.15), S.Steel },
+			{ -1.5, Vector3.new(0.3, 1.4, 0.15), S.Steel },
+			{ 0.2, Vector3.new(2.4, 1.0, 0.1), S.Steel },
+			{ 2.6, Vector3.new(1.6, 1.6, 0.4), S.Coral },
+		}
+	do
+		deco({
+			Name = "Tool",
+			Size = info[2],
+			CFrame = wall * CFrame.new(info[1], 4.4 - (i % 2) * 0.3, 0.15),
+			Color = info[3],
+			Material = Enum.Material.Metal,
+		})
+	end
+	ctx.PlaceAsset(
+		"scrapyard",
+		"Workbench",
+		CFrame.lookAt(Vector3.new(wx, top, c.Z + 5), Vector3.new(wx + 1, top, c.Z + 5)),
+		folder
+	)
+	for i = 0, 1 do
+		solid({
+			Name = "GasCylinder",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(3.4, 1, 1),
+			CFrame = CFrame.new(wx + 0.2, top + 1.7, c.Z - 9 + i * 1.2) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = if i == 0 then S.Teal else S.Coral,
+			Material = Enum.Material.Metal,
+		})
+	end
+	patch(Vector3.new(c.X - 17, top + 0.24, c.Z - 1), Vector2.new(12, 18), S.Concrete, Enum.Material.Concrete)
+
+	-- East: a painted loading bay with pallets, drums and a small sorted salvage pile.
+	local bx, bz = c.X + 17.5, c.Z - 1
+	patch(Vector3.new(bx, top + 0.24, bz), Vector2.new(12, 16), S.Concrete, Enum.Material.Concrete)
+	for _, sx in { -1, 1 } do
+		deco({
+			Size = Vector3.new(0.5, 0.05, 16),
+			Position = Vector3.new(bx + sx * 5.5, top + 0.3, bz),
+			Color = S.SafetyYellow,
+		})
+	end
+	deco({
+		Size = Vector3.new(11.5, 0.05, 0.5),
+		Position = Vector3.new(bx, top + 0.3, bz - 8),
+		Color = S.SafetyYellow,
+	})
+	local stencil = deco({
+		Name = "BayStencil",
+		Size = Vector3.new(8, 0.05, 3),
+		Position = Vector3.new(bx, top + 0.29, bz + 5.5),
+		Color = S.Concrete,
+		Material = Enum.Material.Concrete,
+	})
+	sign(stencil, Enum.NormalId.Top, "LOADING", S.SafetyYellow)
+	ctx.PlaceAsset(
+		"scrapyard",
+		"PalletStack",
+		CFrame.new(bx + 1.5, top, bz - 5) * CFrame.Angles(0, math.rad(8), 0),
+		folder
+	)
+	ctx.PlaceAsset(
+		"scrapyard",
+		"OilDrums",
+		CFrame.new(bx + 2, top, bz + 0.5) * CFrame.Angles(0, math.rad(-20), 0),
+		folder
+	)
+	local sorted = ctx.PlaceAsset(
+		"scrapyard",
+		"ScrapPile",
+		CFrame.new(bx + 9, top, bz - 2) * CFrame.Angles(0, math.rad(200), 0),
+		folder
+	)
+	if sorted then
+		sorted:ScaleTo(0.45)
+	end
+
+	-- Shredder plinth: lift the machine onto a concrete base with a steel edge and a hazard apron
+	-- (behind the spawn, off every route).
+	local shredder = yard:FindFirstChild("Shredder")
+	if shredder and shredder:IsA("Model") then
+		local PLINTH = 1.2
+		local cf, size = shredder:GetBoundingBox()
+		local pz = cf.Position.Z + 0.5
+		ctx.Part({
+			Parent = folder,
+			Name = "ShredderPlinth",
+			Size = Vector3.new(size.X + 3, PLINTH, size.Z + 3),
+			Position = Vector3.new(cf.Position.X, top + PLINTH / 2, pz),
+			Color = S.Concrete:Lerp(S.Stone, 0.4),
+			Material = Enum.Material.Concrete,
+			CanQuery = true,
+			CastShadow = false,
+		})
+		deco({
+			Name = "PlinthEdge",
+			Size = Vector3.new(size.X + 3.2, 0.3, 0.3),
+			Position = Vector3.new(cf.Position.X, top + PLINTH, pz + (size.Z + 3) / 2),
+			Color = S.SafetyYellow,
+			Material = Enum.Material.Metal,
+		})
+		shredder:PivotTo(shredder:GetPivot() + Vector3.new(0, PLINTH, 0))
+		local front = pz + (size.Z + 3) / 2
+		hazardStripes(cf.Position.X - size.X / 2, cf.Position.X + size.X / 2, front + 1.2, 2.4, top + 0.33)
+		local keep = deco({
+			Name = "KeepClear",
+			Size = Vector3.new(12, 0.05, 2.6),
+			Position = Vector3.new(cf.Position.X, top + 0.31, front + 4),
+			Color = S.Concrete,
+			Material = Enum.Material.Concrete,
+		})
+		sign(keep, Enum.NormalId.Top, "KEEP CLEAR", S.SafetyYellow)
+	end
+
+	folder = saved
 end
 
 ---------------------------------------------------------------------------- World edge
@@ -1324,14 +1589,15 @@ local function buildWorldEdge()
 		end
 	end
 
-	-- A distant ridge all the way round, tall enough to break the skyline from the raised
-	-- Scrapyard (camera ~y 35); hazed out by the atmosphere so it reads as far away.
-	for i = 0, 17 do
-		local angle = i / 18 * math.pi * 2 + rng:NextNumber(-0.05, 0.05)
+	-- A distant ridge all the way round, tall enough to break the skyline from the highest
+	-- reachable spots (the Scrapyard and the shredder platform, eye ~y 45): peaks ~75-100 studs,
+	-- overlapping so the flat ground never meets the sky. Hazed out so it reads as far away.
+	for i = 0, 23 do
+		local angle = i / 24 * math.pi * 2 + rng:NextNumber(-0.04, 0.04)
 		local dist = rng:NextNumber(560, 620)
-		local r = rng:NextNumber(95, 125)
+		local r = rng:NextNumber(110, 140)
 		terrain:FillBall(
-			Vector3.new(math.cos(angle) * dist, -r * 0.5, math.sin(angle) * dist - 60),
+			Vector3.new(math.cos(angle) * dist, -r * 0.3, math.sin(angle) * dist - 60),
 			r,
 			if i % 3 == 0 then Enum.Material.Rock else Enum.Material.Grass
 		)
@@ -1450,6 +1716,7 @@ function WorldSlice.build(c: Context)
 	buildSquare()
 	buildRoadside()
 	buildHeroes()
+	buildYardEdges()
 	local t1 = os.clock()
 	buildWorldEdge()
 	-- Startup cost, for the performance report.
