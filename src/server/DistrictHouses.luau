@@ -34,6 +34,9 @@ type Context = {
 	Prop: (props: { [string]: any }) -> Part,
 }
 
+-- Thin repeated pieces don't need shadows (fence boards, ladder rails, the clothesline).
+local NO_SHADOW = { PrivacyFence = true, RoofLadder = true, Clothesline = true }
+
 local function source(name: string): Model?
 	local assets = ServerStorage:FindFirstChild("Assets")
 	local set = assets and assets:FindFirstChild("v3houses")
@@ -49,6 +52,13 @@ local function place(name: string, cf: CFrame, parent: Instance): Model?
 	local model = src:Clone()
 	model:PivotTo(cf)
 	model.Parent = parent
+	if NO_SHADOW[name] then
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.CastShadow = false
+			end
+		end
+	end
 	-- Porch lamps join the bulb flicker and lightning shorts.
 	for _, d in model:GetDescendants() do
 		if
@@ -115,6 +125,34 @@ local function upgradeHouse(house: Model)
 	end
 end
 
+-- A lane lamp: the town street-lamp model with a small, warm, shadowless pool. Tagged V3Lamp,
+-- so EnvironmentFX flickers it in storm warnings and shorts it out when lightning lands within
+-- 35 studs (both skipped or reduced under Reduced Effects).
+local function laneLamp(pos: Vector3, faceDir: Vector3, parent: Instance)
+	local assets = ServerStorage:FindFirstChild("Assets")
+	local town = assets and assets:FindFirstChild("town")
+	local src = town and town:FindFirstChild("StreetLamp")
+	if not src then
+		return
+	end
+	local lamp = src:Clone() :: Model
+	lamp:PivotTo(CFrame.lookAt(pos, pos + faceDir))
+	lamp.Name = "LaneLamp"
+	lamp.Parent = parent
+	for _, d in lamp:GetDescendants() do
+		if d:IsA("BasePart") and d.Material == Enum.Material.Neon then
+			local light = Instance.new("PointLight")
+			light.Range = 22
+			light.Brightness = 1.1
+			light.Color = Color3.fromRGB(255, 200, 140)
+			light.Shadows = false
+			light.Parent = d
+			d:SetAttribute("OnColor", d.Color)
+			CollectionService:AddTag(d, "V3Lamp")
+		end
+	end
+end
+
 function DistrictHouses.build(ctx: Context)
 	if not source("HouseV3A") then
 		return -- assets not imported yet: the V2 district stays
@@ -171,6 +209,11 @@ function DistrictHouses.build(ctx: Context)
 		})
 		trunk.CanCollide = true
 	end
+
+	-- Lane lamps: one beside the oak, one at the lane mouth (the main road's lamp at x -14 lights
+	-- the junction itself). Lightning storms are dark; these keep the route and the oak readable.
+	laneLamp(Vector3.new(-174, 0, 77.5), Vector3.new(0, 0, -1), folder)
+	laneLamp(Vector3.new(-40, 0, 77.5), Vector3.new(0, 0, -1), folder)
 
 	-- Puddles collect in the lane after a flood (EnvironmentFX).
 	for _, pos in { Vector3.new(-140, 0.3, 72), Vector3.new(-60, 0.3, 72) } do

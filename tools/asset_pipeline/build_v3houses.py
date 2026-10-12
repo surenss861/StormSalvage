@@ -238,12 +238,14 @@ def roof_ladder(c):
 
 
 def privacy_fence(c):
-    """8-stud wooden board fence section, 5 tall, posts at the ends."""
+    """8-stud wooden board fence section, 5 tall, posts at the ends. Repeated 16 times, so the
+    boards are unbevelled (a bevel on a 0.15-stud board can't be seen); posts and rails keep
+    theirs. 660 -> ~310 triangles with the same silhouette."""
     for x in (-3.8, 3.8):
         box(c, "Post", "Planks", "Bark", (0.5, 0.5, 5.4), pos=(x, 0, 2.7), bevel=0.06)
     for i in range(11):
         o = box(c, "Board", "Planks", "Sand" if i % 4 else "Bark", (0.68, 0.15, 4.6 + (i % 3) * 0.15),
-                pos=(-3.4 + i * 0.68, -0.25, 2.5), bevel=0.03)
+                pos=(-3.4 + i * 0.68, -0.25, 2.5), bevel=0.0)
         jitter(o, 0.6)
     for z in (1.2, 4.0):
         box(c, "Rail", "Planks", "Bark", (8.0, 0.3, 0.4), pos=(0, 0.1, z), bevel=0.04)
