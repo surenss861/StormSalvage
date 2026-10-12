@@ -136,6 +136,29 @@ local function sedan(cf: CFrame, color: Color3, parent: Instance)
 	end
 end
 
+-- Thin-shelved fixtures (0.12-0.2 stud shelves and backs) slip through the pathfinding navmesh,
+-- so the QA bot and NPC-style routes would cut through them. Give each one a single solid box
+-- the size of its footprint and let its meshes stop colliding.
+local function solidify(model: Model?, ctx: Context, parent: Instance)
+	if not model then
+		return
+	end
+	local cf, size = model:GetBoundingBox()
+	ctx.Part({
+		Parent = parent,
+		Name = model.Name .. "Collider",
+		Size = size,
+		CFrame = cf,
+		Transparency = 1,
+		CastShadow = false,
+	})
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.CanCollide = false
+		end
+	end
+end
+
 function DistrictFuel.build(ctx: Context)
 	if not source("v3fuel", "WallCooler") then
 		return -- assets not imported yet: the V2 station stays
@@ -175,6 +198,7 @@ function DistrictFuel.build(ctx: Context)
 		folder
 	)
 	paint(rack, "Signboard", Enum.NormalId.Front, "AUTO", S.Cream, ctx)
+	solidify(rack, ctx, folder)
 	for _, info in { { -125.5, "SNACKS" }, { -111.5, "CHIPS" } } do
 		local gondola = place(
 			"v3fuel",
@@ -184,15 +208,16 @@ function DistrictFuel.build(ctx: Context)
 		)
 		paint(gondola, "Signboard", Enum.NormalId.Front, info[2], S.Cream, ctx)
 		paint(gondola, "Signboard", Enum.NormalId.Back, info[2], S.Cream, ctx)
+		solidify(gondola, ctx, folder)
 	end
 	local counter = place(
 		"v3fuel",
 		"ShopCounter",
-		CFrame.lookAt(Vector3.new(-104.5, FLOOR, -83), Vector3.new(-104.5, FLOOR, -84)),
+		CFrame.lookAt(Vector3.new(-104.4, FLOOR, -83), Vector3.new(-104.4, FLOOR, -82)),
 		folder
 	)
 	if counter then
-		paint(counter, "Signboard", Enum.NormalId.Left, "LOTTO  •  SMOKES", S.SafetyYellow, ctx)
+		paint(counter, "Signboard", Enum.NormalId.Right, "LOTTO  •  SMOKES", S.SafetyYellow, ctx)
 	end
 	-- Ceiling: two fluorescent strips (the supermarket's fixture), one with a soft light.
 	for i, z in { -86, -73 } do
@@ -248,7 +273,7 @@ function DistrictFuel.build(ctx: Context)
 	place(
 		"v3fuel",
 		"CanopyPanel",
-		CFrame.new(-137.8, 10.6, -35.2) * CFrame.Angles(0, math.rad(-90), 0),
+		CFrame.new(-135, 10.3, -34.4) * CFrame.Angles(0, math.pi, 0), -- swings back under the canopy
 		folder
 	)
 	local pump = findModel(map, "FuelPump", Vector3.new(-98, 0.6, -45), 2)
@@ -283,6 +308,15 @@ function DistrictFuel.build(ctx: Context)
 		folder
 	)
 	paint(door, "Signboard", Enum.NormalId.Front, "SERVICE", S.Cream, ctx)
+	if door then
+		-- Painted steel: the Metal material variant's cracks made the door read as wall.
+		for _, d in door:GetDescendants() do
+			if d:IsA("BasePart") and string.match(d.Name, "__Steel$") then
+				d.Material = Enum.Material.SmoothPlastic
+				d.Color = Color3.fromRGB(150, 158, 166)
+			end
+		end
+	end
 	place("v3fuel", "Compressor", CFrame.new(-160.5, 0.3, -73) * CFrame.Angles(0, math.rad(15), 0), folder)
 	for _, info in
 		{
