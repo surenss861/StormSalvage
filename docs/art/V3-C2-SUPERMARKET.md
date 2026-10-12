@@ -97,3 +97,27 @@ Client frame time, draw calls, on-screen triangles, memory and every phone gate:
 3. The produce island is the most expensive piece at 1,320 triangles × 4.
 4. The tile floor washed out bright in calm light, so I darkened it one step; recheck on device.
 5. Stockroom is a door only (your decision); walk-in stockroom stays on the backlog.
+
+## C2 review fixes (after the review of `a15906d`)
+
+| Fix | Result | Evidence (`docs/art/v3/c2/`) |
+| --- | --- | --- |
+| Shadow optimisation | Inside the store only the big structural surfaces cast shadows (freezer body and top, produce base and canopy, counter body, pantry shelf steel). Goods, signs, lamps, glass and clutter don't. Store-region shadow casters **298 → 95**; whole world **1,548 → 1,346** (−202; the earlier 1,568 included loot that moves around). Same-camera frames look the same. FPS effect not measured | `fix-before-entrance.jpg`, `fix-after-entrance.jpg` |
+| Checkout visibility | Two hanging CHECKOUT 1-2 / CHECKOUT 3-4 boards over the lane pairs (y 13, both faces painted), reusing the AisleSign mesh. They read from the front aisle and from the produce/pantry aisle over the produce islands. Counters, loot, collision and routes unchanged. From the centre aisle between the pantry and freezer rows they're hidden by the 8-stud pantry shelf right in front of the eye, as is everything past it | `fix-after-front-aisle-checkout.jpg`, `fix-after-produce-aisle-checkout.jpg` |
+| Calm lighting | Fluorescent tubes warm off-white (196, 194, 182) instead of pure white; their three lights 0.7 → 0.5; checkout bodies a step under Cream; shell glass reflectance 0 and tinted. Local to the store; no global lighting change. The floor stays on the device-QA list | `fix-after-entrance.jpg` |
+| Four flagged loot positions | All four collected in Play: (110,−73) and (124,−73) by holding the prompt, (138,−94) and (131,−101) by walking up and pressing **E** on the keyboard. The server's bag then held `Register, Can, Register, Can, Can` (the four, plus one picked up on the way) | `fix-pickup-behind-freezers.jpg` |
+
+Note from the pickups: in the 6-stud gap behind the freezers the default camera can jam against
+the back wall, and Roblox only shows prompts that are on screen, so the prompt doesn't appear
+until the player turns the camera toward the item. It works, but it's a usability nit to keep an
+eye on in playtests (the V2 shelves left the same gap).
+
+**Regression after the fixes:** 188 colliders (unchanged), 63/63 loot grid points clear and
+reachable from the door, 8/8 routes, 15 roofs, no false shelter; 2 players in Lightning: inside
+0 damage, parking lot 145 and 1 death; both clients the same 31 strikes. Server heartbeat 60.5/s,
+script heartbeat time p95 0.40 ms (well under the 2 ms storm budget; up from 0.16 ms in the
+previous run, within run-to-run noise at this scale but worth watching). Loaded parts 3,105.
+Device FPS, memory, draw calls and thermal: **NOT TESTED**.
+
+**Still open from C1:** `PrivacyFence.fbx` (308 triangles) is still **not imported**; the game
+still uses the 660-triangle mesh.

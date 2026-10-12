@@ -19,6 +19,18 @@ local S = Palette.Swatches
 local CENTER = Vector3.new(120, 0, -80) -- MapBuilder: 70 x 50, door on +Z
 local FLOOR = 1 -- top of the store's floor part
 local FRONT, BACK = CENTER.Z + 25, CENTER.Z - 25
+local TUBE = Color3.fromRGB(196, 194, 182) -- fluorescent tube, dimmed for calm-light bloom
+local COUNTER = Color3.fromRGB(196, 186, 164) -- checkout body, a step under the palette Cream
+
+-- Shadows inside the store: only the big structural surfaces of each fixture cast them (shelf
+-- bodies, crate bases, counter bodies). Goods, signs, lamps, glass and floor clutter don't; under
+-- a roof their shadows are lost in the ambient anyway. Keyed by model, then by swatch suffix.
+local SHADOW_KEEP: { [string]: { [string]: boolean } } = {
+	ShelfFreezer = { Metal__White = true, Smooth__Cobalt = true },
+	ShelfProduce = { Planks__Bark = true, Planks__Cream = true },
+	CheckoutCounter = { Smooth__Cream = true },
+	AisleShelf = { Metal__Steel = true },
+}
 
 type Context = {
 	Map: Model,
@@ -155,10 +167,14 @@ function DistrictSupermarket.build(ctx: Context)
 			local fixture =
 				place("v3market", "CeilingLight", CFrame.new(CENTER + Vector3.new(dx, 15, dz)), folder)
 			if fixture then
-				tagLamps(fixture, "Neon")
+				-- Warm off-white instead of pure white: pure-white Neon blooms out in calm light.
 				local tube = meshWith(fixture, "Neon")
+				if tube then
+					tube.Color = TUBE
+				end
+				tagLamps(fixture, "Neon")
 				if tube and i == 2 then
-					pointLight(tube, 30, 0.7, Color3.fromRGB(235, 245, 255))
+					pointLight(tube, 30, 0.5, Color3.fromRGB(245, 240, 225))
 				end
 			end
 		end
@@ -170,6 +186,11 @@ function DistrictSupermarket.build(ctx: Context)
 		local counter =
 			place("v3market", "CheckoutCounter", CFrame.new(CENTER + Vector3.new(dx, FLOOR, 17.5)), folder)
 		if counter then
+			for _, d in counter:GetDescendants() do
+				if d:IsA("BasePart") and string.match(d.Name, "__Cream$") then
+					d.Color = COUNTER
+				end
+			end
 			tagLamps(counter, "Mustard")
 			local box = meshWith(counter, "Signboard")
 			if box then
@@ -188,6 +209,25 @@ function DistrictSupermarket.build(ctx: Context)
 					Enum.Font.LuckiestGuy
 				)
 			end
+		end
+	end
+
+	-- CHECKOUT boards hanging over each pair of lanes, readable down the aisles from deep in the
+	-- store and from the front aisle (same board as the department signs, both faces painted).
+	for _, info in { { -17, "CHECKOUT 1-2" }, { 18, "CHECKOUT 3-4" } } do
+		local sign = place(
+			"v3market",
+			"AisleSign",
+			CFrame.lookAt(
+				CENTER + Vector3.new(info[1], 13, 17.5),
+				CENTER + Vector3.new(info[1], 13, 16.5)
+			),
+			folder
+		)
+		local board = sign and meshWith(sign, "Signboard")
+		if board then
+			ctx.SurfaceSign(board, Enum.NormalId.Front, info[2], S.SafetyYellow, Enum.Font.LuckiestGuy)
+			ctx.SurfaceSign(board, Enum.NormalId.Back, info[2], S.SafetyYellow, Enum.Font.LuckiestGuy)
 		end
 	end
 
@@ -288,6 +328,43 @@ function DistrictSupermarket.build(ctx: Context)
 		local head = meshWith(lamp, "WindowWarm")
 		if head then
 			pointLight(head, 24, 1.1, Color3.fromRGB(255, 200, 140))
+		end
+	end
+
+	-- Shadow pass over everything inside the store's walls (the V3 pieces and the V2 pantry
+	-- shelving). The building shell keeps its shadows.
+	local function inStore(pos: Vector3): boolean
+		return math.abs(pos.X - CENTER.X) < 35 and math.abs(pos.Z - CENTER.Z) < 25
+	end
+	local fixtures: { Model } = {}
+	for _, d in folder:GetChildren() do
+		if d:IsA("Model") and inStore(d:GetPivot().Position) then
+			table.insert(fixtures, d)
+		end
+	end
+	for _, d in map:GetChildren() do
+		if d:IsA("Model") and d.Name == "AisleShelf" and inStore(d:GetPivot().Position) then
+			table.insert(fixtures, d)
+		end
+	end
+	for _, model in fixtures do
+		local keep = SHADOW_KEEP[model.Name] or {}
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") then
+				local suffix = string.match(d.Name, "__(%w+__%w+)$")
+				d.CastShadow = suffix ~= nil and keep[suffix] == true
+			end
+		end
+	end
+
+	-- Front-window glare: the shell's glass reflects the bright calm sky; tone it down here only.
+	local shell = store and store:FindFirstChild("SupermarketShell")
+	if shell then
+		for _, d in shell:GetDescendants() do
+			if d:IsA("BasePart") and d.Material == Enum.Material.Glass then
+				d.Reflectance = 0
+				d.Color = d.Color:Lerp(Color3.fromRGB(70, 96, 110), 0.35)
+			end
 		end
 	end
 
