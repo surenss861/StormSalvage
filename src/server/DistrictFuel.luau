@@ -254,15 +254,27 @@ function DistrictFuel.build(ctx: Context)
 	-- east pump is bagged, and there's an air machine at the forecourt edge.
 	local canopy = findModel(map, "FuelCanopy", Vector3.new(-120, 0, -45), 2)
 	if canopy then
-		tagLamps(canopy, "Neon")
-		local glow = meshWith(canopy, "Neon")
+		-- The 30 x 14 light panel is pure-white Neon, the brightest thing in town in calm light and
+		-- a glaring rectangle in storms. A warm grey keeps it reading as a lit canopy without bloom.
+		-- Even grey Neon blooms at that size, so the panel becomes a plain light panel and the two
+		-- pools below (y 6, under the panel rather than against it) carry the light. It stays a
+		-- V3Lamp, so it still flickers in warnings and shorts out on nearby strikes.
+		for _, d in canopy:GetDescendants() do
+			if d:IsA("BasePart") and d.Material == Enum.Material.Neon then
+				d.Material = Enum.Material.SmoothPlastic
+				d.Color = Color3.fromRGB(196, 192, 180)
+				d:SetAttribute("OnColor", d.Color)
+				CollectionService:AddTag(d, "V3Lamp")
+			end
+		end
+		local glow = meshWith(canopy, "White")
 		if glow then
 			for _, x in { -128, -112 } do
 				local anchor = ctx.Prop({
 					Parent = folder,
 					Name = "CanopyLight",
 					Size = Vector3.one,
-					Position = Vector3.new(x, 10, -45),
+					Position = Vector3.new(x, 6, -45),
 					Transparency = 1,
 					CanCollide = false,
 				})

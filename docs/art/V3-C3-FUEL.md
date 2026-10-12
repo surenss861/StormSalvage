@@ -96,3 +96,15 @@ Client frame time, draw calls, triangles on screen, memory and every phone gate:
 3. The store floods with the rest of the station, as in V2. Fine for gameplay (roof escape), but
    the store looks like cover.
 4. ~~C1 `PrivacyFence` not imported~~ Done 2026-10-12: see `V3-C1-HOUSES.md`.
+
+## C3 review fix: canopy lighting (done)
+
+The canopy's 30 × 14 light panel was pure-white Neon. Dimming the Neon colour wasn't enough (even
+mid-grey Neon blooms at that size), so it's now a plain warm-grey light panel (196, 192, 180), and
+the two shadowless light pools moved down from y 10 to y 6 so they light the pumps instead of
+washing out the panel. It's still tagged V3Lamp (flickers in warnings, shorts on strikes). Local to
+the canopy; global lighting unchanged. Same camera, calm and Lightning:
+`v3/c3/fix-canopy-calm.jpg`, `v3/c3/fix-canopy-lightning.jpg`.
+
+Deferred per review: compressor hose (next Blender batch), Fuel & Go sign storm contrast (world
+consistency pass), store-floods-but-blocks-lightning messaging (UI milestone D).
