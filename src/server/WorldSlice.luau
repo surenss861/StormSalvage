@@ -150,10 +150,54 @@ local function hazardStripes(x0: number, x1: number, z: number, depth: number, y
 	end
 end
 
+-- Swaps in the Blender hero assets (assets/roblox/v3hero, imported through Studio's 3D Importer)
+-- where they exist. Until then the primitive versions stay as fallbacks.
+local function heroSource(name: string): Model?
+	local assets = game:GetService("ServerStorage"):FindFirstChild("Assets")
+	local set = assets and assets:FindFirstChild("v3hero")
+	local source = set and set:FindFirstChild(name)
+	return if source and source:IsA("Model") then source else nil
+end
+
+local function placeHero(name: string, cf: CFrame, parent: Instance): Model?
+	local source = heroSource(name)
+	if not source then
+		return nil
+	end
+	local model = source:Clone()
+	model:PivotTo(cf)
+	model.Parent = parent
+	-- Neon bulbs join the festoon flicker and lightning shorts.
+	for _, d in model:GetDescendants() do
+		if
+			d:IsA("BasePart")
+			and d.Material == Enum.Material.Neon
+			and string.find(d.Name, "WindowWarm", 1, true)
+		then
+			CollectionService:AddTag(d, "V3Bulb")
+		end
+	end
+	return model
+end
+
 -- A row of sandbags (storm prep), along `dir` from `start`.
 local function sandbags(start: Vector3, dir: Vector3, count: number, rows: number)
 	local unit = dir.Unit
 	local cf = CFrame.lookAt(start, start + unit)
+	if heroSource("SandbagWall") then
+		-- Blender wall sections (two courses, 7.4 studs) laid end to end along the run.
+		local sections = math.max(1, math.floor(count * 2.25 / 7.4 + 0.5))
+		for i = 0, sections - 1 do
+			placeHero(
+				"SandbagWall",
+				cf
+					* CFrame.new(0, 0, -(i * 7.4 + 3.7))
+					* CFrame.Angles(0, math.pi / 2 + math.rad(rng:NextNumber(-4, 4)), 0),
+				folder
+			)
+		end
+		return
+	end
 	for r = 0, rows - 1 do
 		for i = 0, count - 1 - r do
 			solid({
@@ -573,21 +617,46 @@ local function buildRoad()
 			CastShadow = false,
 		})
 		w.CanQuery = false
-		-- Guard rail along the top of the wall: posts and a two-bar rail.
+		-- W-beam guard rail along the top of the wall, matching the GuardRail kit piece but built
+		-- here so the posts stay upright while the beam follows the slope.
+		local inward = -sx * 0.45 -- the beam and blocks sit on the road side of the posts
 		for z = z0 + 3, z1 - 2, 8 do
 			local y = rampHeight(z)
 			solid({
 				Name = "RailPost",
-				Size = Vector3.new(0.5, 3.4, 0.5),
-				Position = Vector3.new(sx * 12.8, y + 1.5, z),
-				Color = S.Steel,
+				Size = Vector3.new(0.45, 2.9, 0.45),
+				Position = Vector3.new(sx * 12.8, y + 1.3, z),
+				Color = S.Gunmetal,
 				Material = Enum.Material.Metal,
 			})
+			deco({
+				Name = "RailBlock",
+				Size = Vector3.new(0.5, 0.7, 0.4),
+				Position = Vector3.new(sx * 12.8 + inward, y + 2, z),
+				Color = S.Gunmetal,
+				Material = Enum.Material.Metal,
+			})
+			deco({
+				Name = "RailReflector",
+				Size = Vector3.new(0.1, 0.18, 0.25),
+				Position = Vector3.new(sx * 12.8 + inward * 2.3, y + 1.95, z),
+				Color = S.SafetyYellow,
+				Material = Enum.Material.Neon,
+			})
 		end
-		for _, h in { 2.6, 1.5 } do
-			local a = Vector3.new(sx * 12.8, rampHeight(z0 + 1) + h, z0 + 1)
-			local b = Vector3.new(sx * 12.8, rampHeight(z1 - 1) + h, z1 - 1)
-			local rail = beam(a, b, 0.4, { Color = S.Steel, Material = Enum.Material.Metal })
+		for _, info in { { 2.25, 0.32 }, { 1.95, 0.42 }, { 1.65, 0.32 } } do
+			local x = sx * 12.8 + inward * 1.8
+			local a = Vector3.new(x, rampHeight(z0 + 1) + info[1], z0 + 1)
+			local b = Vector3.new(x, rampHeight(z1 - 1) + info[1], z1 - 1)
+			local rail = deco({
+				Name = "RailBeam",
+				Size = Vector3.new(0.3, info[2], (b - a).Magnitude),
+				CFrame = CFrame.lookAt((a + b) / 2, b),
+				Color = S.Steel,
+				-- Smooth galvanised finish: the Metal variant's streaks get noisy over an 80-stud beam.
+				Material = Enum.Material.SmoothPlastic,
+				Reflectance = 0.12,
+			})
 			rail.CanCollide = true
 		end
 		-- Chevron boards at the bottom of the ramp.
@@ -1066,6 +1135,14 @@ local function buildRoadside()
 	sign(board, Enum.NormalId.Back, "STORM-PROOF\nROOFING", S.Coral)
 	ctx.TownAsset("DebrisSheet", CFrame.new(bx - 6, 0, bz + 5) * CFrame.Angles(0, math.rad(40), 0))
 	ctx.TownAsset("DebrisBranch", CFrame.new(bx + 8, 0, bz + 6) * CFrame.Angles(0, math.rad(-20), 0))
+	-- A guard-rail section the same storm tore off and dropped against the billboard legs.
+	placeHero(
+		"GuardRail",
+		CFrame.new(bx - 3, 0.3, bz + 4)
+			* CFrame.Angles(0, math.rad(-12), 0)
+			* CFrame.Angles(math.rad(-80), 0, 0),
+		folder
+	)
 
 	-- Dense tree groups instead of single trees dotted on the lawn.
 	grove(Vector3.new(-120, 0, -196), 5, 3, 12)
@@ -1074,36 +1151,6 @@ local function buildRoadside()
 end
 
 ---------------------------------------------------------------------------- Hero assets (B2)
-
--- Swaps in the Blender hero assets (assets/roblox/v3hero, imported through Studio's 3D Importer)
--- where they exist. Until then the primitive versions stay as fallbacks.
-local function heroSource(name: string): Model?
-	local assets = game:GetService("ServerStorage"):FindFirstChild("Assets")
-	local set = assets and assets:FindFirstChild("v3hero")
-	local source = set and set:FindFirstChild(name)
-	return if source and source:IsA("Model") then source else nil
-end
-
-local function placeHero(name: string, cf: CFrame, parent: Instance): Model?
-	local source = heroSource(name)
-	if not source then
-		return nil
-	end
-	local model = source:Clone()
-	model:PivotTo(cf)
-	model.Parent = parent
-	-- Neon bulbs join the festoon flicker and lightning shorts.
-	for _, d in model:GetDescendants() do
-		if
-			d:IsA("BasePart")
-			and d.Material == Enum.Material.Neon
-			and string.find(d.Name, "WindowWarm", 1, true)
-		then
-			CollectionService:AddTag(d, "V3Bulb")
-		end
-	end
-	return model
-end
 
 local function heroSign(model: Model, faces: { [Enum.NormalId]: string }, color: Color3)
 	for _, d in model:GetDescendants() do
@@ -1199,6 +1246,36 @@ local function buildHeroes()
 			heroSign(machine, { [Enum.NormalId.Front] = "SHREDDER #2" }, S.SafetyYellow)
 			table.insert(placed, "Shredder")
 		end
+	end
+
+	-- Town Square centrepiece: the stone fountain replaces the district pack's. The old basin
+	-- cylinder stays as invisible collision, widened to the new basin; a column collider stops
+	-- players walking through the pedestal, and the spray moves down to the top bowl.
+	local fountain = replaceModel(ctx.Map, "Fountain", Vector3.new(-50, 0.4, -55), "FountainV3")
+	if fountain then
+		local base = fountain:GetPivot().Position
+		for _, d in ctx.Map:GetChildren() do
+			if d:IsA("BasePart") and d.Name == "Fountain" then
+				d.Size = Vector3.new(2.6, 15.6, 15.6)
+				d.Position = Vector3.new(base.X, base.Y + 1.3 - 0.4, base.Z)
+			end
+		end
+		local column = ctx.Part({
+			Parent = folder,
+			Name = "FountainColumnCollider",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(10, 2.4, 2.4),
+			CFrame = CFrame.new(base + Vector3.new(0, 5, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			Transparency = 1,
+			CanQuery = false,
+			CastShadow = false,
+		})
+		column.CanCollide = true
+		local nozzle = ctx.Map:FindFirstChild("FountainNozzle", true)
+		if nozzle and nozzle:IsA("BasePart") then
+			nozzle.Position = base + Vector3.new(0, 10.2, 0)
+		end
+		table.insert(placed, "FountainV3")
 	end
 
 	-- Town Square: the clock tower and two storefronts framing the plaza's north side.
@@ -1641,33 +1718,44 @@ local function buildWorldEdge()
 	-- Distant landmarks: the town water tower and a line of power pylons.
 	local wx, wz = -330, 240
 	local wy = terrainHeight(wx, wz) or 0
-	for _, o in { Vector3.new(-6, 0, -6), Vector3.new(6, 0, -6), Vector3.new(-6, 0, 6), Vector3.new(6, 0, 6) } do
-		beam(
-			Vector3.new(wx, wy, wz) + o * 1.3,
-			Vector3.new(wx, wy + 34, wz) + o * 0.8,
-			1.2,
-			{ Parent = edge, Color = S.Steel, Material = Enum.Material.Metal }
-		)
+	local tower = placeHero(
+		"WaterTowerV3",
+		CFrame.lookAt(Vector3.new(wx, wy - 0.5, wz), Vector3.new(0, wy - 0.5, -60)),
+		edge
+	)
+	if tower then
+		heroSign(tower, { [Enum.NormalId.Front] = "GALE HOLLOW" }, S.Coral)
+	else
+		for _, o in
+			{ Vector3.new(-6, 0, -6), Vector3.new(6, 0, -6), Vector3.new(-6, 0, 6), Vector3.new(6, 0, 6) }
+		do
+			beam(
+				Vector3.new(wx, wy, wz) + o * 1.3,
+				Vector3.new(wx, wy + 34, wz) + o * 0.8,
+				1.2,
+				{ Parent = edge, Color = S.Steel, Material = Enum.Material.Metal }
+			)
+		end
+		local tank = ctx.Prop({
+			Parent = edge,
+			Name = "WaterTower",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(16, 22, 22),
+			CFrame = CFrame.new(wx, wy + 42, wz) * CFrame.Angles(0, math.rad(-40), math.rad(90)),
+			Color = S.Cream,
+			Material = Enum.Material.Metal,
+		})
+		sign(tank, Enum.NormalId.Front, "GALE HOLLOW", S.Coral)
+		ctx.Prop({
+			Parent = edge,
+			Name = "WaterTowerRoof",
+			Size = Vector3.new(22, 4, 22),
+			CFrame = CFrame.new(wx, wy + 52, wz),
+			Shape = Enum.PartType.Ball,
+			Color = S.Coral,
+			Material = Enum.Material.Metal,
+		})
 	end
-	local tank = ctx.Prop({
-		Parent = edge,
-		Name = "WaterTower",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(16, 22, 22),
-		CFrame = CFrame.new(wx, wy + 42, wz) * CFrame.Angles(0, math.rad(-40), math.rad(90)),
-		Color = S.Cream,
-		Material = Enum.Material.Metal,
-	})
-	sign(tank, Enum.NormalId.Front, "GALE HOLLOW", S.Coral)
-	ctx.Prop({
-		Parent = edge,
-		Name = "WaterTowerRoof",
-		Size = Vector3.new(22, 4, 22),
-		CFrame = CFrame.new(wx, wy + 52, wz),
-		Shape = Enum.PartType.Ball,
-		Color = S.Coral,
-		Material = Enum.Material.Metal,
-	})
 	local previous: Vector3? = nil
 	for i = 0, 5 do
 		local px, pz = 260 + i * 60, -380 + i * 70
