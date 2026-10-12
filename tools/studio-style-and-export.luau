@@ -102,6 +102,12 @@ local VISUAL_ONLY = {
 	BreakerPanel = true,
 	SidingPatch = true,
 	DockLight = true,
+	-- C5 Motel: partitions get solid colliders in DistrictMotel; wall pieces and floor clutter
+	-- are visual. Beds, dressers, desk and luggage keep box collision.
+	RoomPartition = true,
+	WallSconce = true,
+	StormShutter = true,
+	OpenSuitcase = true,
 }
 
 -- Applies palette material/color to one model; returns how many MeshParts were styled.

@@ -13,7 +13,7 @@ described), **Studio-tested**, **Blocked** (needs something only you can do), **
 | C2 Supermarket | Done | `docs/art/V3-C2-SUPERMARKET.md` |
 | C3 Fuel & Go | Done (canopy fix in) | `docs/art/V3-C3-FUEL.md`; compressor hose fixed in Blender, **re-import still pending** |
 | C4 Warehouse | Done (Studio-tested) | `docs/art/V3-C4-WAREHOUSE.md` |
-| C5 Motel | Not started | |
+| C5 Motel | Built, **blocked on import**; room layout pre-verified (45/45 loot spots clear and reachable with stand-in partitions) | 11 FBX in `assets/exports/v3motel/`; `src/server/DistrictMotel.luau` |
 | World consistency pass | Not started | |
 | D Premium UI | Not started | |
 | E Gameplay polish | Not started | |
@@ -59,7 +59,8 @@ The test account (your own profile) was restored to its pre-test 347 coins and s
 
 ## Blockers needing you
 
-1. Re-import `assets/exports/v3fuel/Compressor.fbx` (minor; skipped twice).
+1. Import the C5 Motel batch (`assets/exports/v3motel/`, 11 files).
+2. Re-import `assets/exports/v3fuel/Compressor.fbx` (minor; skipped twice).
 
 ## Device gates (Not tested)
 
