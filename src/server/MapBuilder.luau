@@ -16,6 +16,7 @@ local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local Palette = require(game:GetService("ReplicatedStorage").Shared.Palette)
 local LookService = require(script.Parent.LookService)
 local DistrictHouses = require(script.Parent.DistrictHouses)
+local DistrictSupermarket = require(script.Parent.DistrictSupermarket)
 local WorldSlice = require(script.Parent.WorldSlice)
 
 local MapBuilder = {}
@@ -1914,6 +1915,7 @@ function MapBuilder.build()
 	})
 	-- V3 Milestone C districts.
 	DistrictHouses.build({ Map = map, Part = part, Prop = prop })
+	DistrictSupermarket.build({ Map = map, Part = part, Prop = prop, SurfaceSign = surfaceSign })
 
 	-- The look profile's palette applies once everything is built.
 	LookService.apply(LookService.active(), true)

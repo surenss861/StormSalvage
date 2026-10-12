@@ -80,6 +80,14 @@ local VISUAL_ONLY = {
 	RoofLadder = true,
 	FallenOak = true,
 	Clothesline = true,
+	-- C2 Supermarket: hanging, wall-mounted and floor dressing. Shelves, counters, box stacks
+	-- and the baler collide (box).
+	AisleSign = true,
+	CeilingLight = true,
+	StaffDoors = true,
+	SpilledGoods = true,
+	RoofLeak = true,
+	BoardedWindow = true,
 }
 
 -- Applies palette material/color to one model; returns how many MeshParts were styled.
