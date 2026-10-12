@@ -1135,12 +1135,13 @@ local function buildRoadside()
 	sign(board, Enum.NormalId.Back, "STORM-PROOF\nROOFING", S.Coral)
 	ctx.TownAsset("DebrisSheet", CFrame.new(bx - 6, 0, bz + 5) * CFrame.Angles(0, math.rad(40), 0))
 	ctx.TownAsset("DebrisBranch", CFrame.new(bx + 8, 0, bz + 6) * CFrame.Angles(0, math.rad(-20), 0))
-	-- A guard-rail section the same storm tore off and dropped against the billboard legs.
+	-- A guard-rail section the same storm tore off, leaning against the billboard legs with
+	-- its beam toward the road.
+	local railAt = Vector3.new(bx - 2, 0, bz + 2.5)
 	placeHero(
 		"GuardRail",
-		CFrame.new(bx - 3, 0.3, bz + 4)
-			* CFrame.Angles(0, math.rad(-12), 0)
-			* CFrame.Angles(math.rad(-80), 0, 0),
+		CFrame.lookAt(railAt, railAt + Vector3.new(-1, 0, 0.35))
+			* CFrame.Angles(math.rad(-22), 0, math.rad(6)),
 		folder
 	)
 
@@ -1716,7 +1717,8 @@ local function buildWorldEdge()
 	end
 
 	-- Distant landmarks: the town water tower and a line of power pylons.
-	local wx, wz = -330, 240
+	-- Inside the client draw distance from the square (~195 studs) but outside the flood box.
+	local wx, wz = -240, -10
 	local wy = terrainHeight(wx, wz) or 0
 	local tower = placeHero(
 		"WaterTowerV3",
