@@ -11,8 +11,8 @@ described), **Studio-tested**, **Blocked** (needs something only you can do), **
 | --- | --- | --- |
 | C1 Houses | Done | `docs/art/V3-C1-HOUSES.md` (fence 308 tris verified in game) |
 | C2 Supermarket | Done | `docs/art/V3-C2-SUPERMARKET.md` |
-| C3 Fuel & Go | Done (canopy fix in) | `docs/art/V3-C3-FUEL.md`; compressor hose fixed in Blender, needs re-import |
-| C4 Warehouse | Built, **blocked on import** | 10 FBX in `assets/exports/v3ware/`; code in `src/server/DistrictWarehouse.luau` (V2 fallback verified) |
+| C3 Fuel & Go | Done (canopy fix in) | `docs/art/V3-C3-FUEL.md`; compressor hose fixed in Blender, **re-import still pending** |
+| C4 Warehouse | Done (Studio-tested) | `docs/art/V3-C4-WAREHOUSE.md` |
 | C5 Motel | Not started | |
 | World consistency pass | Not started | |
 | D Premium UI | Not started | |
@@ -59,7 +59,7 @@ The test account (your own profile) was restored to its pre-test 347 coins and s
 
 ## Blockers needing you
 
-1. Import the C4 Warehouse batch (paths in the latest message) plus the fixed `Compressor.fbx`.
+1. Re-import `assets/exports/v3fuel/Compressor.fbx` (minor; skipped twice).
 
 ## Device gates (Not tested)
 

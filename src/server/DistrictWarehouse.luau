@@ -188,7 +188,7 @@ function DistrictWarehouse.build(ctx: Context)
 	-- Overhead crane between the two storage rows; the hook hangs over the centre aisle, well
 	-- above head height. Visual only.
 	local crane = place("v3ware", "OverheadCrane", CFrame.new(HALL.X, 18, 89), folder)
-	paint(crane, Enum.NormalId.Front, "10 TON", S.HazardBlack, ctx)
+	paint(crane, Enum.NormalId.Front, "10 TON", S.SafetyYellow, ctx)
 	if crane then
 		for _, d in crane:GetDescendants() do
 			if d:IsA("BasePart") then
