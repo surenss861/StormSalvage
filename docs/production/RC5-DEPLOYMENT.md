@@ -36,9 +36,16 @@ Place `99653875913460` → Version History, filtered to **published only** (`evi
 1. **14:26 local.** The first attempt used "Publish to Roblox As…", which created a **new private experience**, "ztromsalvage1" (experience `10770701335`, place `122733895388261`). Nothing saves there: RC5 doesn't recognise that place ID, so it finds no matching store and fails closed. It's left private and unused.
 2. **14:30 local.** Storm Salvage **version 121 published**, and the experience is still Private. Comparing every script in the Studio window that's connected to the place:
    - **It is not the RC5 artifact.** All 45 game scripts are byte-identical to branch HEAD `ac5ba68`, the RC6 work: Heavy-Duty Pack +2, with `Config` and `MonetizationService` differing from RC5.
-   - The window also holds Rojo and LuauLSP settings objects, which the RC5 file doesn't have. So the window that was published was the **Studio testing window**, not the RC5 file.
+   - So the window that was published was the **Studio testing window**, not the RC5 file.
    - Data safety is the same as RC5: `LiveTestMode = true`, `PurchasesEnabled = false`, and the same `Environment` and `DataService` code, so saves go to `_LIVETEST`.
    - But the build isn't traceable to a tagged candidate. **Plan:** republish the actual RC5 file before any testing counts.
+
+3. **14:34 local: Storm Salvage version 122 published from the RC5 file** (`evidence/rc5-published-v122.jpg`). This is the build under test.
+   - **All 45 game scripts are byte-identical to the RC5 artifact**, compared by length and hash per script against `.tools/rc/StormSalvage-rc-20261013-5-858aa8f.rbxl`.
+   - Studio plugins injected two extra objects, and both are inert:
+     - `Rojo`: non-archivable, so it isn't saved or published.
+     - `TestService.LuauLSP_Settings`: an editor-config ModuleScript that nothing requires, so it never runs.
+   - The experience stays **Private**.
 
 ## Steps (you)
 
