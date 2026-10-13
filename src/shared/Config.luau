@@ -342,19 +342,27 @@ Config.Sounds = {
 } :: { [string]: SoundDef }
 
 -- Monetization. Set IDs after creating products on the Creator Dashboard; 0 disables.
+-- Robux shop (owner's launch catalog, 2026-10-13). Optional purchases that speed progress up;
+-- nothing here is pay-to-win in a storm, random, or a second currency.
+--   Id 0 = not created on the Creator Hub yet (shown as "not on sale yet", can't be bought).
+--   RobuxPrice is the planned price, shown only until the real price is read from Roblox
+--   (MarketplaceService:GetProductInfo); the Creator Hub price is the one players pay.
+--   PurchasesEnabled is the master switch for Buy buttons. Receipts for configured products are
+--   always honoured, so a purchase made before a switch-off is still delivered.
+Config.PurchasesEnabled = false
 Config.GamePasses = {
-	BigBag = {
+	HeavyDuty = {
 		Id = 0,
-		DisplayName = "Big Bag",
-		Description = "+5 carry capacity forever.",
-		BonusCapacity = 5,
+		DisplayName = "Heavy-Duty Pack",
+		Description = "+4 bag slots on top of your Backpack upgrades. Permanent.",
+		BonusCapacity = 4,
+		RobuxPrice = 149,
 	},
-	VIP = { Id = 0, DisplayName = "VIP", Description = "+20% sell value forever.", SellMultiplier = 1.2 },
 }
-
 Config.DevProducts = {
-	SalvageBoost = { Id = 0, DisplayName = "2x Salvage (15 min)", BoostSeconds = 15 * 60 },
-	CoinPackSmall = { Id = 0, DisplayName = "500 Coins", Coins = 500 },
+	CoinsSmall = { Id = 0, DisplayName = "Pocket Change", Coins = 500, RobuxPrice = 29, Order = 1 },
+	CoinsMedium = { Id = 0, DisplayName = "Scrap Bundle", Coins = 2000, RobuxPrice = 99, Order = 2 },
+	CoinsLarge = { Id = 0, DisplayName = "Salvage Haul", Coins = 5000, RobuxPrice = 199, Order = 3 },
 }
 
 return Config

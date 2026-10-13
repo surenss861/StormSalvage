@@ -12,6 +12,7 @@ local EVENTS = {
 	"LightningWarning", -- server -> client: position, radius, delay
 	"Pickup", -- server -> client: { Id, Position } for the player who grabbed it
 	"SaleReceipt", -- server -> client: the exact result of one sale (see PlayerService.sell)
+	"PurchaseDelivered", -- server -> client: { Kind, Key, Coins? } after a purchase is durably saved
 	"ClientDiag", -- client -> server: kind, number (ViewHealth); logged only, never trusted
 }
 

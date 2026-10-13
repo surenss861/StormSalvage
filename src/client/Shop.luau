@@ -5,12 +5,11 @@
 -- Buying asks the server (BuyUpgrade); the sheet only celebrates once the server's player state
 -- shows the new level, so the UI never runs ahead of what was actually bought.
 
-local MarketplaceService = game:GetService("MarketplaceService")
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
+local SupplyCounter = require(script.Parent:WaitForChild("SupplyCounter"))
 local UI = require(script.Parent:WaitForChild("UI"))
 
 local Shop = {}
@@ -457,6 +456,7 @@ end
 function Shop.setState(s: any)
 	local previous = state
 	state = s
+	SupplyCounter.setState(s)
 	for id, tile in tiles do
 		local level = s.Upgrades[id] or 0
 		if previous and tile.Level and level > tile.Level then
@@ -470,7 +470,7 @@ function Shop.setState(s: any)
 end
 
 function Shop.open()
-	Shop.refresh()
+	Shop.showTab("Equipment")
 	modal.Open()
 end
 
@@ -526,13 +526,79 @@ local function dressPanel(panel: Frame)
 	end
 end
 
+-- Two tabs in the pegboard header: the coin-funded Equipment workbench (default) and the optional
+-- Supply Counter (Robux).
+local tabButtons: { [string]: TextButton } = {}
+local views: { [string]: GuiObject } = {}
+
+function Shop.showTab(name: string)
+	for key, view in views do
+		view.Visible = key == name
+	end
+	for key, b in tabButtons do
+		local on = key == name
+		b.BackgroundColor3 = if on then M.Manila else M.Kraft:Lerp(M.Marker, 0.25)
+		b.TextColor3 = if on then M.Marker else M.Paper
+		b:SetAttribute("Active", on)
+	end
+	if name == "Equipment" then
+		Shop.refresh()
+	end
+end
+
+local function buildTabs(panel: Frame)
+	local holder = UI.new("Frame", {
+		Name = "Tabs",
+		Parent = panel,
+		Position = UDim2.fromOffset(268, 14),
+		Size = UDim2.new(1, -350, 0, 40),
+		BackgroundTransparency = 1,
+		ZIndex = 23,
+	}, {
+		UI.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			Padding = UDim.new(0, 6),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+	for i, entry in { { "Equipment", "EQUIPMENT" }, { "Supply", "SUPPLY COUNTER" } } do
+		local b = UI.new("TextButton", {
+			Name = entry[1],
+			Parent = holder,
+			LayoutOrder = i,
+			Size = UDim2.new(0.5, -3, 1, 0),
+			BackgroundColor3 = M.Manila,
+			AutoButtonColor = false,
+			BorderSizePixel = 0,
+			Font = UI.Font.Mono,
+			TextSize = 13,
+			TextColor3 = M.Marker,
+			Text = entry[2],
+			ZIndex = 24,
+		}, { UI.corner(6), UI.stroke(M.KraftEdge, 2) })
+		b.Activated:Connect(function()
+			Shop.showTab(entry[1])
+		end)
+		tabButtons[entry[1]] = b
+	end
+end
+
 function Shop.init(root: Frame, h: Hooks)
 	hooks = h
 	modal = UI.modal(root, "Shop", "GEAR SHOP", Vector2.new(660, 400))
 	dressPanel(modal.Panel)
+	buildTabs(modal.Panel)
+	local equipment = UI.new("Frame", {
+		Name = "Equipment",
+		Parent = modal.Content,
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ZIndex = 21,
+	})
+	views.Equipment = equipment
 	local rack = UI.new("ScrollingFrame", {
 		Name = "List",
-		Parent = modal.Content,
+		Parent = equipment,
 		Size = UDim2.new(0.4, 0, 1, 0),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
@@ -541,49 +607,14 @@ function Shop.init(root: Frame, h: Hooks)
 		CanvasSize = UDim2.new(),
 		ZIndex = 21,
 	}, { UI.new("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }) })
-	buildSheet(modal.Content)
+	buildSheet(equipment)
 
 	for i, id in Config.UpgradeOrder do
 		tiles[id] = makeTile(rack, id, i)
 	end
 
-	-- Robux items (only once their IDs are configured) go under the rack as plain buttons.
-	local order = 100
-	local player = Players.LocalPlayer
-	local function robuxButton(label: string, prompt: () -> ())
-		order += 1
-		local b = UI.button({
-			Name = label,
-			Parent = rack,
-			LayoutOrder = order,
-			Size = UDim2.new(1, -8, 0, 44),
-			Text = label,
-			TextSize = 15,
-			Color = UI.Color.Slate,
-			ZIndex = 22,
-		})
-		b.Activated:Connect(function()
-			if not hooks.CanSave() then
-				hooks.Notify("Purchases are paused: your progress can't be saved right now.", UI.Color.Danger)
-				return
-			end
-			prompt()
-		end)
-	end
-	for _, pass in Config.GamePasses do
-		if pass.Id ~= 0 then
-			robuxButton(pass.DisplayName .. "  (Pass)", function()
-				MarketplaceService:PromptGamePassPurchase(player, pass.Id)
-			end)
-		end
-	end
-	for _, product in Config.DevProducts do
-		if product.Id ~= 0 then
-			robuxButton(product.DisplayName, function()
-				MarketplaceService:PromptProductPurchase(player, product.Id)
-			end)
-		end
-	end
+	views.Supply = SupplyCounter.build(modal.Content, { Notify = hooks.Notify })
+	Shop.showTab("Equipment")
 end
 
 return Shop

@@ -183,6 +183,11 @@ function SessionStats.survivedStorm(player: Player)
 	end
 end
 
+-- A completed Robux purchase (after the reward is saved), for the Creator Hub dashboards.
+function SessionStats.purchased(player: Player, key: string)
+	event(player, "Purchase_" .. key, 1)
+end
+
 -- Client diagnostics (ViewHealth): a fixed set of kinds, at most one per kind per player per
 -- minute. Recorded for QA only; nothing in the game acts on it.
 local DIAG_KINDS = { NoCamera = true, CameraType = true, Subject = true, Distance = true }

@@ -82,6 +82,10 @@ snapshotted read-only before and after and is unchanged.
 - **4-player smoke test:** items conserved under contention; owner-only bag window enforced (`V3-SOAK-AND-DEATH-QA.md` §4).
 - **Low graphics proxy:** beacons and labels survive the lowest Studio level; device check still needed (§5).
 
+## Monetization (2026-10-13)
+
+The Supply Counter is built as a Gear Shop tab, with three coin packs and the Heavy-Duty Pack pass. It is **off**: `PurchasesEnabled = false` and all IDs are 0. Studio-tested: exact coins, duplicate and concurrent deliveries, no pass stacking, server-confirmed delivered state. Economy check and setup steps: `V3-MONETIZATION.md`. **Needs you:** a decision on pack sizes, the four Creator Hub IDs, and later approval for one real test purchase.
+
 ## Release candidates
 
 | RC | Tag | Commit | Contents | Status |

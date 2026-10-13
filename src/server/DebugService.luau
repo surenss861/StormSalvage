@@ -53,10 +53,17 @@ local commands: { [string]: (...any) -> any } = {
 		end
 		return "granted " .. amount
 	end,
-	receipt = function(playerName: string, purchaseId: string)
+	receipt = function(playerName: string, purchaseId: string, productKey: string?)
 		local player = Players:FindFirstChild(playerName)
 		assert(player and player:IsA("Player"), "no player " .. tostring(playerName))
-		return MonetizationService.simulateReceipt(player, purchaseId).Name
+		return MonetizationService.simulateReceipt(player, purchaseId, productKey).Name
+	end,
+	-- Simulate Roblox reporting a completed Heavy-Duty Pack purchase.
+	passbuy = function(playerName: string)
+		local player = Players:FindFirstChild(playerName)
+		assert(player and player:IsA("Player"), "no player " .. tostring(playerName))
+		MonetizationService.simulatePassPurchase(player)
+		return PlayerService.getCapacity(PlayerService.get(player) :: any)
 	end,
 	-- Make the next `count` DataStore calls of one kind fail: "grant", "save", "historyWrite"
 	-- (purchase-safety tests).

@@ -17,8 +17,7 @@ export type Session = {
 	Data: DataService.Data,
 	CanSave: boolean,
 	Carried: { string }, -- loot ids
-	OwnsBigBag: boolean,
-	OwnsVIP: boolean,
+	OwnsHeavyDuty: boolean, -- Heavy-Duty Pack pass, verified with Roblox (never saved, never stacks)
 	LastDamage: number,
 	Sales: number, -- sales this session; numbers each receipt so clients never show one twice
 }
@@ -62,7 +61,7 @@ end
 
 function PlayerService.getCapacity(session: Session): number
 	return upgradeValue(session, "Backpack")
-		+ (session.OwnsBigBag and Config.GamePasses.BigBag.BonusCapacity or 0)
+		+ (if session.OwnsHeavyDuty then Config.GamePasses.HeavyDuty.BonusCapacity else 0)
 end
 
 function PlayerService.boostRemaining(session: Session): number
@@ -72,9 +71,6 @@ end
 -- Every active sell bonus, for the sale receipt. Multipliers stack by multiplying.
 function PlayerService.sellMultipliers(session: Session): { { Name: string, Factor: number } }
 	local list = {}
-	if session.OwnsVIP then
-		table.insert(list, { Name = "VIP", Factor = Config.GamePasses.VIP.SellMultiplier })
-	end
 	if PlayerService.boostRemaining(session) > 0 then
 		table.insert(list, { Name = "2x Salvage", Factor = 2 })
 	end
@@ -133,8 +129,7 @@ function PlayerService.pushState(player: Player)
 		Capacity = PlayerService.getCapacity(session),
 		Upgrades = session.Data.Upgrades,
 		BoostRemaining = PlayerService.boostRemaining(session),
-		OwnsVIP = session.OwnsVIP,
-		OwnsBigBag = session.OwnsBigBag,
+		OwnsHeavyDuty = session.OwnsHeavyDuty,
 		Stats = session.Data.Stats,
 		CanSave = session.CanSave,
 	})
@@ -365,8 +360,7 @@ local function onPlayerAdded(player: Player)
 		Data = data,
 		CanSave = canSave,
 		Carried = {},
-		OwnsBigBag = false,
-		OwnsVIP = false,
+		OwnsHeavyDuty = false,
 		LastDamage = 0,
 		Sales = 0,
 	}

@@ -1,4 +1,6 @@
--- Game passes and developer products. IDs live in Config; an Id of 0 disables that item.
+-- Game passes and developer products (the Supply Counter). IDs live in Config; an Id of 0
+-- disables that item. Coins are granted only here, from Roblox's receipt callback, never from a
+-- client message; the client is told after the reward is saved (PurchaseDelivered).
 --
 -- Developer-product receipts. Correctness rests on one invariant: **a PurchaseId is in the
 -- stored profile if and only if its reward is in the stored profile.** Both are written in a
@@ -21,54 +23,82 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local RunService = game:GetService("RunService")
+
 local Config = require(ReplicatedStorage.Shared.Config)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local PlayerService = require(script.Parent.PlayerService)
+local SessionStats = require(script.Parent.SessionStats)
 
 local MonetizationService = {}
 
-local function ownsPass(player: Player, passId: number): boolean
-	if passId == 0 then
-		return false
-	end
-	local ok, owns =
-		pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, passId)
-	return ok and owns == true
-end
+local deliveredRemote = Remotes.get("PurchaseDelivered")
 
-local function refreshPasses(player: Player)
+---------------------------------------------------------------------------- Game pass
+
+-- Heavy-Duty Pack: a yes/no entitlement on the session (so it can never stack), checked with
+-- Roblox on join and set when Roblox reports a completed purchase. Not saved: Roblox is the
+-- record of ownership. If the ownership check errors, it retries instead of silently denying a
+-- paying player.
+local function grantHeavyDuty(player: Player, announce: boolean)
 	local session = PlayerService.get(player)
-	if not session then
+	if not session or session.OwnsHeavyDuty then
 		return
 	end
-	session.OwnsBigBag = ownsPass(player, Config.GamePasses.BigBag.Id)
-	session.OwnsVIP = ownsPass(player, Config.GamePasses.VIP.Id)
+	session.OwnsHeavyDuty = true
 	PlayerService.pushState(player)
+	if announce then
+		PlayerService.notify(player, "Heavy-Duty Pack unlocked: +4 bag slots!", Color3.fromRGB(255, 220, 90))
+		deliveredRemote:FireClient(player, { Kind = "Pass", Key = "HeavyDuty" })
+		SessionStats.purchased(player, "HeavyDuty")
+	end
 end
+
+local function refreshPasses(player: Player, attempt: number?)
+	local pass = Config.GamePasses.HeavyDuty
+	if pass.Id == 0 or not player.Parent then
+		return
+	end
+	local ok, owns =
+		pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, pass.Id)
+	if ok and owns == true then
+		grantHeavyDuty(player, false)
+	elseif not ok and (attempt or 1) < 10 then
+		task.delay(30, refreshPasses, player, (attempt or 1) + 1)
+	end
+end
+
+---------------------------------------------------------------------------- Developer products
 
 -- Each product: `apply` adds the reward to a profile table (used on the stored profile first,
 -- then on the live session), `message` is shown once the grant is durable.
-type Product = { apply: (data: any) -> (), message: string }
+type Product = { Key: string, Coins: number, apply: (data: any) -> (), message: string }
 local products: { [number]: Product } = {}
 
+local function coinPack(key: string, coins: number): Product
+	return {
+		Key = key,
+		Coins = coins,
+		apply = function(data)
+			data.Coins += coins
+		end,
+		message = ("+%s coins delivered. Thanks for the support!"):format(tostring(coins)),
+	}
+end
+
 local function registerProducts()
-	local boost = Config.DevProducts.SalvageBoost
-	if boost.Id ~= 0 then
-		products[boost.Id] = {
-			apply = function(data)
-				data.BoostUntil = math.max(data.BoostUntil, os.time()) + boost.BoostSeconds
-			end,
-			message = "2x Salvage active!",
-		}
+	for key, def in Config.DevProducts do
+		if def.Id ~= 0 then
+			products[def.Id] = coinPack(key, def.Coins)
+		end
 	end
-	local coins = Config.DevProducts.CoinPackSmall
-	if coins.Id ~= 0 then
-		products[coins.Id] = {
-			apply = function(data)
-				data.Coins += coins.Coins
-			end,
-			message = ("+%d coins. Thanks for the support!"):format(coins.Coins),
-		}
+	-- Studio QA (DebugService): stand-in ids for the real catalog, so the full receipt path can be
+	-- exercised before the products exist. Negative ids are never real Roblox products.
+	if RunService:IsStudio() then
+		for key, def in Config.DevProducts do
+			products[-100 - def.Order] = coinPack(key, def.Coins)
+		end
 	end
 end
 
@@ -93,6 +123,7 @@ local function processReceiptUnguarded(receipt): Enum.ProductPurchaseDecision
 
 	-- 1. Durable grant first, live session second. The profile is the only record consulted:
 	-- it's written atomically with the reward, so it can't say "granted" without the reward.
+	local grantedNow = false
 	if not table.find(session.Data.ProcessedReceipts, purchaseId) then
 		local product = products[receipt.ProductId]
 		if not product then
@@ -111,6 +142,7 @@ local function processReceiptUnguarded(receipt): Enum.ProductPurchaseDecision
 		-- whose session never got it); the session doesn't yet, so apply it once here.
 		product.apply(session.Data)
 		rememberReceipt(session.Data.ProcessedReceipts, purchaseId)
+		grantedNow = true
 		PlayerService.pushState(player)
 		PlayerService.notify(player, product.message, Color3.fromRGB(255, 220, 90))
 	end
@@ -124,6 +156,11 @@ local function processReceiptUnguarded(receipt): Enum.ProductPurchaseDecision
 	-- decisions (see the header).
 	if not DataService.recordPurchase(purchaseId, receipt.PlayerId, receipt.ProductId) then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+	local product = products[receipt.ProductId]
+	if product and grantedNow then
+		deliveredRemote:FireClient(player, { Kind = "Product", Key = product.Key, Coins = product.Coins })
+		SessionStats.purchased(player, product.Key)
 	end
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
@@ -143,25 +180,37 @@ local function processReceipt(receipt): Enum.ProductPurchaseDecision
 	return result
 end
 
--- Studio QA only (DebugService): run a simulated receipt through the real handler. Product
--- ids are 0 until real products exist, so tests use a test-only product id.
+-- Studio QA only (DebugService): run a simulated receipt through the real handler. `key` picks a
+-- catalog product (its Studio stand-in id); without it, a 1000-coin test product.
 MonetizationService.TEST_PRODUCT_ID = -1
 MonetizationService.TEST_PRODUCT_COINS = 1000
-function MonetizationService.simulateReceipt(player: Player, purchaseId: string): Enum.ProductPurchaseDecision
-	products[MonetizationService.TEST_PRODUCT_ID] = {
-		apply = function(data)
-			data.Coins += MonetizationService.TEST_PRODUCT_COINS
-		end,
-		message = "Test purchase granted.",
-	}
+function MonetizationService.simulateReceipt(
+	player: Player,
+	purchaseId: string,
+	key: string?
+): Enum.ProductPurchaseDecision
+	assert(RunService:IsStudio(), "Studio only")
+	products[MonetizationService.TEST_PRODUCT_ID] = coinPack("Test", MonetizationService.TEST_PRODUCT_COINS)
+	local productId = MonetizationService.TEST_PRODUCT_ID
+	if key then
+		local def = Config.DevProducts[key]
+		assert(def, "unknown product " .. key)
+		productId = -100 - def.Order
+	end
 	return processReceipt({
 		PlayerId = player.UserId,
-		ProductId = MonetizationService.TEST_PRODUCT_ID,
+		ProductId = productId,
 		PurchaseId = purchaseId,
 		CurrencySpent = 0,
 		CurrencyType = Enum.CurrencyType.Robux,
 		PlaceIdWherePurchased = game.PlaceId,
 	})
+end
+
+-- Studio QA only: what Roblox's PromptGamePassPurchaseFinished(purchased = true) does.
+function MonetizationService.simulatePassPurchase(player: Player)
+	assert(RunService:IsStudio(), "Studio only")
+	grantHeavyDuty(player, true)
 end
 
 function MonetizationService.init()
@@ -172,10 +221,11 @@ function MonetizationService.init()
 		refreshPasses(player)
 	end)
 
-	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, _passId, purchased)
-		if purchased then
-			refreshPasses(player)
-			PlayerService.notify(player, "Pass unlocked. Thank you!", Color3.fromRGB(255, 220, 90))
+	-- Fired on the server by Roblox (not by the client) when a pass purchase completes.
+	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
+		local pass = Config.GamePasses.HeavyDuty
+		if purchased and pass.Id ~= 0 and passId == pass.Id then
+			grantHeavyDuty(player, true)
 		end
 	end)
 
