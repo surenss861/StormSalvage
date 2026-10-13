@@ -8,6 +8,7 @@ local Players = game:GetService("Players")
 
 local Progression = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Progression"))
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
+local PlateStyle = require(script.Parent:WaitForChild("PlateStyle"))
 local UI = require(script.Parent:WaitForChild("UI"))
 
 local Jobs = {}
@@ -38,10 +39,6 @@ local slips: { Slip } = {}
 
 type FinishRow = { Button: TextButton, Note: TextLabel, Finish: Progression.Finish }
 local finishRows: { FinishRow } = {}
-
-local function rgb(t: { number }): Color3
-	return Color3.fromRGB(t[1], t[2], t[3])
-end
 
 ---------------------------------------------------------------------------- Jobs tab
 
@@ -239,17 +236,17 @@ local function plate(parent: Instance, f: Progression.Finish, title: string, z: 
 	local p = UI.new("Frame", {
 		Parent = parent,
 		Size = UDim2.fromOffset(150, 40),
-		BackgroundColor3 = rgb(f.Plate),
 		BorderSizePixel = 0,
 		ZIndex = z,
-	}, { UI.corner(6), UI.stroke(rgb(f.Edge), 3) })
+	}, { UI.corner(6), UI.stroke(Color3.new(), 3) })
+	local textColor = PlateStyle.apply(p, f.Id, z)
 	UI.text({
 		Parent = p,
 		Font = UI.Font.Mono,
 		TextSize = 14,
 		Position = UDim2.fromOffset(0, 3),
 		Size = UDim2.new(1, 0, 0, 18),
-		TextColor3 = rgb(f.Text),
+		TextColor3 = textColor,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		Text = Players.LocalPlayer.DisplayName,
 		ZIndex = z + 1,
@@ -260,7 +257,7 @@ local function plate(parent: Instance, f: Progression.Finish, title: string, z: 
 		TextSize = 11,
 		Position = UDim2.fromOffset(0, 21),
 		Size = UDim2.new(1, 0, 0, 14),
-		TextColor3 = rgb(f.Text),
+		TextColor3 = textColor,
 		Text = title,
 		ZIndex = z + 1,
 	})

@@ -531,6 +531,19 @@ end
 local tabButtons: { [string]: TextButton } = {}
 local views: { [string]: GuiObject } = {}
 
+-- Staged discovery: the Supply Counter tab appears once the player has bought their first
+-- equipment upgrade, so a new player's shop is just the workbench.
+function Shop.setSupplyVisible(visible: boolean)
+	local b = tabButtons.Supply
+	if b then
+		b.Visible = visible
+		tabButtons.Equipment.Size = if visible then UDim2.new(0.5, -3, 1, 0) else UDim2.new(1, 0, 1, 0)
+	end
+	if not visible and views.Supply and views.Supply.Visible then
+		Shop.showTab("Equipment")
+	end
+end
+
 function Shop.showTab(name: string)
 	for key, view in views do
 		view.Visible = key == name

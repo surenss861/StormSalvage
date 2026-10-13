@@ -166,12 +166,16 @@ while true do
 		local prompt = sellPrompt()
 		local counter = prompt and prompt.Parent :: BasePart?
 		if prompt and counter then
-			-- Try each side of the counter (some are inside the shack or behind containers) until
+			-- The counter faces the aisle (+x); stand in the aisle in front of it. Other spots are inside
+			-- the shack or behind containers. Try them in turn until
 			-- the sale goes through; a prompt at the edge of its range isn't shown, so get close.
 			for _, side in
-				{ Vector3.new(0, 0, 8), Vector3.new(6, 0, 0), Vector3.new(0, 0, -8), Vector3.new(-6, 0, 0) }
+				{ Vector3.new(0, 0, 5), Vector3.new(8, 0, 0), Vector3.new(0, 0, 9), Vector3.new(8, 0, 5) }
 			do
-				walkTo(groundNear(counter.Position, side), 3)
+				-- At the character's own height: a ground raycast here can land on the shack's roof.
+				local _, here = character()
+				local y = if here then here.Position.Y else counter.Position.Y
+				walkTo(Vector3.new(counter.Position.X + side.X, y, counter.Position.Z + side.Z), 3)
 				local _, r = character()
 				if r and (r.Position - counter.Position).Magnitude <= prompt.MaxActivationDistance - 3 then
 					press(prompt)

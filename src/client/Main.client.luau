@@ -161,6 +161,33 @@ end
 
 ---------------------------------------------------------------------------- Server state
 
+-- Staged discovery (first session): learn to salvage and survive first. The Jobs board (and its
+-- notices) appears after the first sale, the Supply Counter tab after the first upgrade.
+-- Contract progress and XP still accrue from the start, server-side; only the UI waits.
+local jobsUnlocked = false
+local jobsSeenLocked = false
+local function stageDiscovery(s: any)
+	local levels = 0
+	for _, level in s.Upgrades do
+		levels += level
+	end
+	local unlocked = s.Stats.ItemsSold > 0
+	if not unlocked then
+		jobsSeenLocked = true
+	elseif not jobsUnlocked and jobsSeenLocked then
+		-- Unlocked during this session: say so once.
+		Notifications.feed(
+			"NEW: the JOBS board. Bonus contracts for coins and Salvager rank!",
+			Color3.fromRGB(255, 226, 110),
+			6
+		)
+	end
+	jobsUnlocked = unlocked
+	local jobsButton = Hud.JobsButton :: TextButton
+	jobsButton.Visible = unlocked
+	Shop.setSupplyVisible(levels > 0)
+end
+
 local lastCarried = 0
 local lastLevels: number? = nil
 Remotes.get("PlayerState").OnClientEvent:Connect(function(s)
@@ -181,6 +208,7 @@ Remotes.get("PlayerState").OnClientEvent:Connect(function(s)
 	Hud.setPlayer(s)
 	Shop.setState(s)
 	Jobs.setState(s)
+	stageDiscovery(s)
 	updateHint()
 end)
 
@@ -198,6 +226,9 @@ end)
 Remotes.get("ProgressEvent").OnClientEvent:Connect(function(e)
 	if type(e) ~= "table" then
 		return
+	end
+	if not jobsUnlocked then
+		return -- rewards are already in the state; the notices wait until Jobs are introduced
 	end
 	if e.Kind == "Job" then
 		Notifications.feed(

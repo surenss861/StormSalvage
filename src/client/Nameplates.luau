@@ -7,14 +7,10 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local Progression = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Progression"))
+local PlateStyle = require(script.Parent:WaitForChild("PlateStyle"))
 local UI = require(script.Parent:WaitForChild("UI"))
 
 local Nameplates = {}
-
-local function rgb(t: { number }): Color3
-	return Color3.fromRGB(t[1], t[2], t[3])
-end
 
 local function attach(player: Player, character: Model)
 	local head = character:WaitForChild("Head", 10) :: BasePart?
@@ -58,12 +54,12 @@ local function attach(player: Player, character: Model)
 		Size = UDim2.new(1, 0, 0, 14),
 		Text = "",
 	})
+	name.ZIndex = 3
+	title.ZIndex = 3
 	local function refresh()
-		local f = Progression.finish(player:GetAttribute("Plate")) or Progression.Finishes[1]
-		plate.BackgroundColor3 = rgb(f.Plate)
-		stroke.Color = rgb(f.Edge)
-		name.TextColor3 = rgb(f.Text)
-		title.TextColor3 = rgb(f.Text)
+		local textColor = PlateStyle.apply(plate, player:GetAttribute("Plate"), 2)
+		name.TextColor3 = textColor
+		title.TextColor3 = textColor
 		title.Text = tostring(player:GetAttribute("RankTitle") or "")
 	end
 	refresh()

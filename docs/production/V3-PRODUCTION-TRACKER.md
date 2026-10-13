@@ -97,7 +97,8 @@ The Supply Counter is built as a Gear Shop tab, with three coin packs and the He
 | RC1 | `rc-20261013-1` | `1753ec0` | Workshop UI, data environments, persistence QA, runbook | Superseded: the RC1 review found the lost-lock overwrite defect |
 | RC2 | `rc-20261013-2` | `d35302d` | RC1 + strict save-lock ownership + `[ServerPerf]` | Superseded: the RC3 review found per-server tokens and the history shortcut |
 | RC3 | `rc-20261013-3` | `1ce6f6f` | RC2 + per-session lock tokens + history never read (write-only audit after save) + live-test data namespace and release gate | Studio regression passes (audit, RC3 sections). Superseded by RC4 for testing; still the purchase-safety baseline. |
-| RC4 | `rc-20261013-4` | see tag | RC3 + Supply Counter (packs 300/1,200/3,000, Heavy-Duty Pack; purchases **off**) + Contracts, Reputation and nameplate finishes | Studio: progression suite, receipt A–I, rollback-to-RC3 compatibility. **Not published**; awaiting your approval to publish to the private experience |
+| RC4 | `rc-20261013-4` | `b5a8749` | RC3 + Supply Counter (packs 300/1,200/3,000, Heavy-Duty Pack; purchases **off**) + Contracts, Reputation and nameplate finishes | Studio: progression suite, receipt A–I, rollback-to-RC3 compatibility. Approved by you for private testing. Superseded by RC5 (your requested discovery change). |
+| RC5 | `rc-20261013-5` | see tag | RC4 + staged discovery (JOBS after first sale, Supply after first upgrade) + finish materials (PlateStyle) + Studio-only QA seed | **Recommended build for the private test.** Not published; waiting for your deploy confirmation |
 
 ## Production audit
 

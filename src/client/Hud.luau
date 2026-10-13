@@ -547,6 +547,7 @@ local function buildRail()
 		TextSize = 14,
 		TextColor3 = M.Marker,
 		Text = "JOBS",
+		Visible = false, -- shown after the first sale (staged discovery, Main)
 	}, { UI.corner(4), UI.stroke(M.WoodDark, 3) })
 	UI.new("Frame", {
 		Parent = jobs,

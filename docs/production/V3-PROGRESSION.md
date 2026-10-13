@@ -66,3 +66,68 @@ Built 2026-10-13, following the owner's retention directive (contracts first, th
 - **New profile fields:** `Rep { XP }`, `Contracts { Active, Done, Pinned }`, `Cosmetics { Owned, Plate }`. Missing fields are filled on load, and malformed jobs are repaired.
 - **Rollback.** Older code (RC3) keeps the fields untouched; this was tested. Rolling back loses no progression, and rolling forward again restores it.
 - **Live-test data.** Contract and XP progress made during `LiveTestMode` stays in `_LIVETEST`, like coins.
+
+## RC4 review follow-up (2026-10-13)
+
+### Staged discovery (owner request)
+
+A new player first learns to salvage and survive. The extra systems appear as they progress:
+
+| Moment | What appears |
+| --- | --- |
+| Join | HUD, Gear Shop (Equipment only), storm sign, tutorial note. **No JOBS button, no Supply Counter.** |
+| First sale | The JOBS button, plus a one-time notice: "NEW: the JOBS board. Bonus contracts for coins and Salvager rank!" The pinned job takes over the note once the tutorial chain ends. |
+| First equipment upgrade | The Supply Counter tab in the Gear Shop. |
+
+- **What waits:** job and rank-up notices are held until the JOBS board is introduced.
+- **What doesn't:** progress and XP accrue from the start on the server, so nothing is lost.
+- **Verified in Studio:** with a brand-new profile, JOBS and Supply were hidden; after the first sale, JOBS plus the notice appeared; after the first upgrade, Supply appeared.
+
+### Finishes are materials, not just colours
+
+`PlateStyle.luau` dresses each finish, and the same code draws the overhead nameplate and the locker preview:
+- Cardboard: a masking-tape corner
+- Tin: four rivets and a galvanised gradient
+- Brass: a polished sheen
+- Hazard: black chevron stripes with a solid band for the name
+- Copper: patina at the edges
+- Chrome: a mirror highlight band
+- Storm Glass: dark glass, a cyan glow edge and a lightning bolt
+
+It builds and passes CI. **Not yet screen-verified:** Studio screen capture kept timing out at the end of this session.
+
+### Matched economy comparison (same bot, same seed 42, fresh profile, 15 min)
+
+The new Studio-only `QA_Seed` attribute makes loot spawns, storm order, strikes and contract deals identical between runs. The bots' paths still diverge once their bag sizes differ.
+
+| | Free | Heavy-Duty (+4) |
+| --- | --- | --- |
+| Total coins | 1,380 | 2,127 (**+54%**) |
+| Sales | 775 | 1,432 (+85%) |
+| Jobs | 480 (9 done) | 570 (12 done) |
+| Storm bonuses | 125 | 125 |
+| XP / rank | 507 / Salvager (Scavenger at 293 s) | 641 / Salvager |
+| Equipment after 15 min | B3 S2 A2 | B3 S3 A2 |
+| First loot / sale / upgrade | 16 s / 40 s / 84 s | 18 s / 48 s / 92 s |
+| Biggest trip | 275 | 423 (more room for Storm Cores) |
+
+**Player journey (free run), in the order it happened:**
+1. First loot at 16 s.
+2. First sale at 40 s.
+3. First upgrade at 84 s.
+4. First job and rank: Scavenger at 293 s (under 5 min), Salvager at 778 s (about 13 min).
+5. First cosmetic: **not reached in 15 min.** The bot spends every coin on equipment, and a real player choosing to save would take a few more minutes. That's acceptable, because finishes are meant as a medium-term goal.
+
+The return session is covered by the rejoin test (everything persists), but a real return visit needs players.
+
+**Heavy-Duty Pack:** paid players still buy Backpack upgrades (both reached B3), so free upgrades aren't made irrelevant. But **+54% total income in the first 15 minutes** is large for a 149 R$ pass.
+
+**Recommendation (owner decision):**
+- launch it as **+2** slots (about half the effect), or
+- keep +4 but only from Backpack level 2 onward
+
+Either way, re-measure with real players. Unchanged until you decide.
+
+### Bot reliability (QA tool, not game)
+
+The autopilot stalled several times behind the Scrap Buyer shack. Roblox only shows a prompt that's on screen and inside its range, and the bot's approach points were landing on the shack roof. The bot now looks at what it presses and walks to verified spots in front of the counter. Runs made before that fix are not used for conclusions.

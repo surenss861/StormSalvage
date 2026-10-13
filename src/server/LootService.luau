@@ -24,7 +24,7 @@ type Zone = {
 
 local zones: { [string]: Zone } = {}
 local folder: Folder
-local rng = Random.new()
+local rng = require(game:GetService("ReplicatedStorage").Shared.QASeed).random(1)
 local pickupRemote = Remotes.get("Pickup")
 local townMin: Vector3, townMax: Vector3
 

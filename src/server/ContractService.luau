@@ -17,7 +17,7 @@ local PlayerService = require(script.Parent.PlayerService)
 
 local ContractService = {}
 
-local rng = Random.new()
+local rng = require(game:GetService("ReplicatedStorage").Shared.QASeed).random(3)
 local eventRemote: RemoteEvent
 local swapReadyAt: { [Player]: number } = {}
 local actionWindows: { [Player]: { Start: number, Count: number } } = {}

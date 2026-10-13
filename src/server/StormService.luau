@@ -29,7 +29,7 @@ local stormStateRemote = Remotes.get("StormState")
 local lightningRemote = Remotes.get("LightningWarning")
 
 local map
-local rng = Random.new()
+local rng = require(game:GetService("ReplicatedStorage").Shared.QASeed).random(2)
 -- Replicated to every client (and re-sent to anyone who joins). Gust and flood fields are
 -- server timestamps so all clients agree on timing.
 local state = {
