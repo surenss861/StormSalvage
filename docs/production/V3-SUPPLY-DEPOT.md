@@ -13,7 +13,7 @@ tags: [storm-salvage, salvage-economy]
 
 # V3 Supply Depot: Tools tab and the Salvage Detector
 
-**Status:** phase one is built and Studio-tested on `v3-art-direction`. It isn't in any release candidate; the live private place still runs RC6. Robux purchases stay off (`PurchasesEnabled = false`, every product ID is 0).
+**Status:** in **RC7** (`rc-20261013-7`, commit `e3d1ab9`), approved by the owner for private gameplay testing. Not deployed: the live private place still runs RC6 until a separate deployment approval. Robux purchases stay off (`PurchasesEnabled = false`, every product ID is 0).
 
 The owner's directive was to expand the existing Gear Shop rather than build a second shop. The shop now has three tabs, in this order:
 
@@ -68,7 +68,50 @@ Staged discovery is unchanged: a new player sees only Equipment. **Tools** and *
 
 **Not yet tested:**
 - a real phone
-- two players at once (pings go only to their owner, by construction)
+- with real players
+
+## RC7 pre-tag verification (2026-10-13, owner's checklist)
+
+All checks ran on exact commit `e3d1ab9`, loaded into Studio. No code changes were needed, so RC7 is tagged on that commit.
+
+| # | Check | Result |
+| --- | --- | --- |
+| 1 | Branch commit and CI | HEAD = origin = `e3d1ab9`, clean tree, CI passed. `main` still `0ef9465`. |
+| 2 | Release artifact | Inspected below |
+| 3 | Persistence and RC6 rollback | **Round trip:** bought under the new code, then RC6 loaded and saved the profile (coins changed to 4,321), then the new code loaded it again: **Detector still owned**, 4,321 coins. Earlier: save, stop, start restored ownership. |
+| 4 | Client cleanup | After 3 deaths and respawns plus 5 shop open/close cycles: 1 HUD, 1 client Main, 1 dial, 1 Tools view, blip frames at most 3, dial still live. The scan loop (server) and the listeners (client) are created once, at startup. |
+| 5 | Scan rate and cost at 12 owners | Fixed **1 scan per second**. During a live Lightning storm, 87 loot items (3 natural Storm Cores, plus an Epic Safe and a Storm Core beside each of 12 owner positions): **0.168 ms per tick for 12 owners**, about 0.02% of one core. Real pings while moving through town: **0.58/s** (35 a minute, about 1.4 KB a minute). Standing still sends nothing. |
+| 6 | Only owners get data; nothing excluded leaks | Non-owner moving through town for 20 s: **0 pings**, no dial. Owner standing beside each placed Safe and Core: 6 pings, 15 blips, **0** at Epic or Core positions. Simulated: 13,500 blips for 12 owners, **0** Epic or Legendary. |
+| 7 | Studio multiplayer (2 clients) | **Both clients connected** this time. Player1 bought the detector (2,600 → 100); Player2 didn't. Walking side by side for 20 s: **Player1 11 pings, Player2 0**, and Player2 had no dial. **Player2 picked up the Toaster** Player1's dial pointed at (a real prompt press): Player1's next ping dropped it within a second. Player2 sees Player1's nameplate ("Player1 / Storm Runner"), the first two-player check of nameplates. |
+
+Studio frame-rate and memory figures (14 fps, 4.5 GB) come from the Studio process under MCP control; they don't measure the game or a device.
+
+### RC7 artifact
+
+- **File:** `StormSalvage-rc-20261013-7-e3d1ab9.rbxl` (CI run 38469329110, release-candidate workflow passed)
+- **SHA-256:** `61c51a90eeb727da8702dac833140391bfe0d030c2dcbe685ffcf262f270e097`
+- **Inside the file:**
+  - `LiveTestMode = true`, `PurchasesEnabled = false`, **0** product IDs
+  - `ProductionPlaceIds = { 99653875913460 }`, Heavy-Duty +2
+  - Detector 2,500 coins, 55 studs, 3 blips
+- **Contents:** 51 scripts and **no QA scripts**: no autopilot, soak or harness scripts, and no QA attributes. The asset pivot table matches the assets.
+
+### RC7 vs RC6 (`8ec7259..e3d1ab9`)
+
+- **New:** `shared/Detector` (rules), `server/DetectorService` (scans), `client/Tools` (the tab), `client/DetectorHud` (the dial).
+- **Changed behaviour:**
+  - `PlayerService`: `buyTool`, `ownsTool`, `Tools` in the player state
+  - `Shop`: three tabs
+  - `Economy`: `checkTool`
+  - `Config`: `Tools`
+  - `Remotes`: `BuyTool`, `DetectorPing`
+  - `DataService`: `Tools` default
+  - `LootService`: a `folder()` getter
+  - `SessionStats`: a `Tool_` event
+  - `DebugService`: `cleartools` and tools in `state`, both Studio only
+  - `Main` (server and client): wiring
+- **Comment-only:** Code Graph headers in the other 36 scripts.
+- **Unchanged:** receipts, purchase handling, save locks and every RC3+ purchase-safety path. The new `Tools` table follows the existing save rules.
 
 ## Gameplay impact (measured)
 
