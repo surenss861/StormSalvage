@@ -14,9 +14,13 @@ local LOCK_EXPIRY = Config.AutosaveSeconds * 3
 local SESSION_ID = game.JobId ~= "" and game.JobId or HttpService:GenerateGUID(false)
 
 local store: DataStore? = nil
-pcall(function()
-	store = DataStoreService:GetDataStore(Config.DataStoreName)
-end)
+if Config.DataStoreName then
+	pcall(function()
+		store = DataStoreService:GetDataStore(Config.DataStoreName :: string)
+	end)
+else
+	warn("[DataService] unknown environment (place " .. game.PlaceId .. "): progress will not be saved")
+end
 
 export type Data = {
 	Version: number,
@@ -173,9 +177,11 @@ end
 -- Lifetime purchase history, one record per PurchaseId, never pruned. The profile only keeps
 -- the last 100 receipts; this store is what makes a very old re-delivery still idempotent.
 local history: DataStore? = nil
-pcall(function()
-	history = DataStoreService:GetDataStore(Config.DataStoreName .. "_Purchases")
-end)
+if Config.DataStoreName then
+	pcall(function()
+		history = DataStoreService:GetDataStore((Config.DataStoreName :: string) .. "_Purchases")
+	end)
+end
 
 -- Returns (ok, recorded): whether the PurchaseId is already in the lifetime history.
 function DataService.purchaseRecorded(purchaseId: string): (boolean, boolean)

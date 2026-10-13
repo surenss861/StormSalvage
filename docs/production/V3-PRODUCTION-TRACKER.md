@@ -57,6 +57,10 @@ The test account (your own profile) was restored to its pre-test 347 coins and s
 **Still required before enabling real purchases** (needs you): real product and game-pass IDs in
 `Config`, a test purchase in a private published place, and your explicit go-ahead. Not done.
 
+## Production audit
+
+See `docs/production/V3-PRODUCTION-AUDIT.md` (P0 environment isolation implemented, CI and unit tests added).
+
 ## Blockers needing you
 
 0. Create the private test experience and send its place ID; confirm `99653875913460` is the live place (`Config.ProductionPlaceIds`). Any other place now saves to `StormSalvage_v1_TEST`.

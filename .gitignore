@@ -5,3 +5,4 @@ sourcemap.json
 .DS_Store
 *.blend1
 __pycache__/
+.tools/

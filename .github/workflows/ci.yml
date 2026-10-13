@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+    branches: [main, v3-art-direction]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false # binary assets aren't needed for code checks
+      - uses: CompeyDev/setup-rokit@v0.1.2
+      - name: Static checks and build
+        run: tools/ci/check.sh
+      - name: Unit tests
+        run: lune run tests/run

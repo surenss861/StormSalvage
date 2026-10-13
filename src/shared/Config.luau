@@ -3,13 +3,32 @@
 
 local Config = {}
 
--- The live experience's place(s). Every other place (a private test place, a copy) saves to
--- separate "_TEST" DataStores, so test sessions never read or write real player data.
--- CONFIRM before release: 99653875913460 is the place currently developed in Studio.
+-- Data environments, explicit and fail-safe:
+--   Production  only the listed live place(s) read and write real player data.
+--   Staging     listed private test places use their own "_STAGING" DataStores.
+--   Studio      every Studio session (any place) uses "_STUDIO" DataStores, so testing and
+--               fault injection never touch real profiles.
+--   Unknown     any other place gets no DataStores at all: temporary profiles, nothing saved,
+--               purchases refused (MonetizationService requires a saving session).
+-- CONFIRM before release that 99653875913460 is the live place, and add the staging place id.
 Config.ProductionPlaceIds = { 99653875913460 }
-Config.DataStoreName = if table.find(Config.ProductionPlaceIds, game.PlaceId)
-	then "StormSalvage_v1"
-	else "StormSalvage_v1_TEST"
+Config.StagingPlaceIds = {} :: { number }
+do
+	local isStudio = game:GetService("RunService"):IsStudio()
+	if isStudio then
+		Config.Environment = "Studio"
+		Config.DataStoreName = "StormSalvage_v1_STUDIO" :: string?
+	elseif table.find(Config.ProductionPlaceIds, game.PlaceId) then
+		Config.Environment = "Production"
+		Config.DataStoreName = "StormSalvage_v1"
+	elseif table.find(Config.StagingPlaceIds, game.PlaceId) then
+		Config.Environment = "Staging"
+		Config.DataStoreName = "StormSalvage_v1_STAGING"
+	else
+		Config.Environment = "Unknown"
+		Config.DataStoreName = nil
+	end
+end
 Config.AutosaveSeconds = 120
 Config.StartingCoins = 0
 

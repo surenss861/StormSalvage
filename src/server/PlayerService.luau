@@ -4,6 +4,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Economy = require(ReplicatedStorage.Shared.Economy)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
@@ -242,9 +243,15 @@ function PlayerService.sell(player: Player)
 	table.sort(lines, function(a, b)
 		return a.Value * a.Count > b.Value * b.Count
 	end)
-	local base = carriedValue(session)
 	local multipliers = PlayerService.sellMultipliers(session) -- read before clearing the bag
-	local earned = math.floor(base * PlayerService.sellMultiplier(session))
+	local values, factors = {}, {}
+	for _, id in session.Carried do
+		table.insert(values, Config.Loot[id].Value)
+	end
+	for _, bonus in multipliers do
+		table.insert(factors, bonus.Factor)
+	end
+	local base, earned = Economy.sellTotal(values, factors)
 	local hadCore = counts.StormCore ~= nil
 	session.Data.Stats.ItemsSold += #session.Carried
 	session.Carried = {}
@@ -276,9 +283,23 @@ function PlayerService.sell(player: Player)
 	end
 end
 
+-- Per-player request budget for BuyUpgrade: generous for real tapping, drops spam.
+local BUY_LIMIT, BUY_WINDOW = 8, 1
+local buyWindows: { [Player]: { Start: number, Count: number } } = {}
+
 local function buyUpgrade(player: Player, upgradeId: unknown)
 	local session = sessions[player]
-	if not session or type(upgradeId) ~= "string" then
+	if not session or type(upgradeId) ~= "string" or #upgradeId > 32 then
+		return
+	end
+	local now = os.clock()
+	local window = buyWindows[player]
+	if not window or now - window.Start > BUY_WINDOW then
+		window = { Start = now, Count = 0 }
+		buyWindows[player] = window
+	end
+	window.Count += 1
+	if window.Count > BUY_LIMIT then
 		return
 	end
 	local def = Config.Upgrades[upgradeId]
@@ -286,19 +307,21 @@ local function buyUpgrade(player: Player, upgradeId: unknown)
 		return
 	end
 	local level = session.Data.Upgrades[upgradeId] or 0
-	local cost = def.Costs[level + 1]
-	if not cost then
+	local check = Economy.checkUpgrade(def.Costs, level, session.Data.Coins)
+	if check.Reason == "maxed" then
 		PlayerService.notify(player, def.DisplayName .. " is maxed out!")
 		return
-	end
-	if session.Data.Coins < cost then
+	elseif check.Reason == "short" then
 		PlayerService.notify(
 			player,
-			("Need %d more coins."):format(cost - session.Data.Coins),
+			("Need %d more coins."):format(check.Short :: number),
 			Color3.fromRGB(255, 120, 90)
 		)
 		return
+	elseif not check.Ok then
+		return
 	end
+	local cost = check.Cost :: number
 	session.Data.Coins -= cost
 	session.Data.Upgrades[upgradeId] = level + 1
 	SessionStats.upgraded(player, upgradeId, level + 1)
@@ -406,6 +429,7 @@ local function onPlayerRemoving(player: Player)
 	end
 	PlayerService.save(player, true)
 	sessions[player] = nil
+	buyWindows[player] = nil
 end
 
 function PlayerService.init()
