@@ -137,7 +137,13 @@ local function furnish(room: Room, ctx: Context, folder: Instance)
 		place("v3motel", "BedStripped", front(cx + 1.5, BACK - 0.2), folder)
 		-- Ceiling stain and a dangling tile over the bed, a bucket on the floor.
 		flat(ctx, folder, Vector3.new(4.5, 0.06, 4.5), Vector3.new(cx + 0.5, 13.9, 175), S.Bark)
-		flat(ctx, folder, Vector3.new(3.6, 0.15, 3.6), Vector3.new(cx - 1.5, 12.4, 174.5), S.Cream).CFrame *= CFrame.Angles(
+		flat(
+			ctx,
+			folder,
+			Vector3.new(2.4, 0.15, 2.4),
+			Vector3.new(cx - 1.5, 12.8, 174.5),
+			Color3.fromRGB(176, 160, 132)
+		).CFrame *= CFrame.Angles(
 			math.rad(35),
 			0,
 			math.rad(10)
