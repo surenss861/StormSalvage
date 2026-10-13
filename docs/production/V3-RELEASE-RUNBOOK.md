@@ -48,6 +48,8 @@ needed, and push.
    Download it from the run page. It never publishes.
 4. Record in the tracker the RC tag, commit, artifact SHA-256 and the staging place version it was published as.
 
+Tags are the trigger. The workflow's "Run workflow" button only appears once the workflow file is on `main`, and `main` is untouched until approval.
+
 ## 3. Staging test pass (before anything goes live)
 
 Use `docs/production/V3-RELEASE-CHECKLIST.md`. The minimum is:
