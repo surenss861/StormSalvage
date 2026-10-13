@@ -15,7 +15,7 @@ described), **Studio-tested**, **Blocked** (needs something only you can do), **
 | C4 Warehouse | Done (Studio-tested) | `docs/art/V3-C4-WAREHOUSE.md` |
 | C5 Motel | Done (Studio-tested) | `docs/art/V3-C5-MOTEL.md` |
 | World consistency pass | Done (findings + crosswalk fix) | `docs/art/V3-WORLD-CONSISTENCY.md`; finding 1 is a device gate |
-| D Premium UI | **In progress**: Instrument theme chosen over Stencil (`docs/art/v3/ui/conceptA-*`, `conceptB-*`); storm instrument HUD with mm:ss countdown; NEXT OBJECTIVE chain to first upgrade; Gear Shop workbench with Backpack/Boots/Armor icons (real purchase verified: coins deducted, level 4, saved); weigh-ticket sale receipt; notices move above modals; storm-specific safety wording. **To do**: rarity/Storm Core feedback, hub wayfinding, mobile layout check, armor icon polish | |
+| D Premium UI | **Reset in progress**: Instrument and Stencil rejected (Instrument stays as the functional baseline). Three complete directions built and Studio-captured (Salvage Adventure, Storm Chaser, Scrapyard Workshop; Calm, Lightning, shop, receipt, rarity, phone layout): `docs/art/V3-UI-STUDIES.md`. Recommendation: Workshop with fixes. **Waiting for your choice; nothing implemented.** | `docs/art/v3/ui/studies/` |
 | E Gameplay polish | **In progress**: camera kept inside buildings (`src/client/CameraOcclusion.luau`), freezer gap verified. **To do**: pickup/sell/upgrade feel, audio levels, death and bag recovery review | |
 | F QA and optimisation | In progress: per-district Studio regressions; full-town bot loop after C5 (2 full sales, storm survived, 0 errors). Device gates **Not tested** | |
 | G Purchase safety | **Studio-tested** (below) | |
@@ -58,6 +58,17 @@ snapshotted read-only before and after and is unchanged.
 
 **Still required before enabling real purchases** (needs you): real product and game-pass IDs in
 `Config`, a test purchase in a private published place, and your explicit go-ahead. Not done.
+
+## Production hardening (2026-10-13, Studio-tested in `StormSalvage_v1_STUDIO`)
+
+- Live profile untouched: a read-only snapshot before and after all tests was identical.
+- Receipt suite A–H passes after removing receipt pruning (see the audit).
+- BuyUpgrade with malformed input, spam and a funded burst: correct.
+- Two-client pickup race and five same-frame sales: one award each.
+- Branch protection on `main`:
+  - CI check `checks` required, and the branch must be up to date
+  - no force pushes or deletion
+  - admins can still bypass
 
 ## Production audit
 

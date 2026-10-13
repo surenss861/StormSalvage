@@ -9,6 +9,7 @@
 --   debug:Invoke("state")               -- storm + player summary
 --   debug:Invoke("receipt", "Player1", "purchase-1")  -- simulated receipt -> decision name
 --   debug:Invoke("save", "Player1")     -- save now -> true if persisted
+--   debug:Invoke("give", "Player1", "Safe", "Tv")  -- loot straight into the bag
 --   debug:Invoke("faults", "grant", 1)  -- next DataStore grant fails (purchase-safety tests)
 --   debug:Invoke("stats")               -- recent StormStats records
 --   debug:Invoke("session")             -- first-session progression per player
@@ -82,6 +83,20 @@ local commands: { [string]: (...any) -> any } = {
 		session.Data.Coins = amount
 		PlayerService.pushState(player :: Player)
 		return amount
+	end,
+	-- Put loot straight into a player's bag (UI captures), up to capacity.
+	give = function(playerName: string, ...: string)
+		local player = Players:FindFirstChild(playerName)
+		local session = player and player:IsA("Player") and PlayerService.get(player)
+		assert(session, "no session")
+		for _, id in { ... } do
+			assert(Config.Loot[id], "no loot " .. tostring(id))
+			if #session.Carried < PlayerService.getCapacity(session) then
+				table.insert(session.Carried, id)
+			end
+		end
+		PlayerService.pushState(player :: Player)
+		return #session.Carried
 	end,
 	-- Race test: start `times` sales for one player in the same frame.
 	sellrace = function(playerName: string, times: number)
