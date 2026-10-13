@@ -14,12 +14,12 @@ described), **Studio-tested**, **Blocked** (needs something only you can do), **
 | C3 Fuel & Go | Done (canopy fix in) | `docs/art/V3-C3-FUEL.md`; compressor hose fixed in Blender, **re-import still pending** |
 | C4 Warehouse | Done (Studio-tested) | `docs/art/V3-C4-WAREHOUSE.md` |
 | C5 Motel | Done (Studio-tested) | `docs/art/V3-C5-MOTEL.md` |
-| World consistency pass | Not started | |
-| D Premium UI | Not started | |
+| World consistency pass | Done (findings + crosswalk fix) | `docs/art/V3-WORLD-CONSISTENCY.md`; finding 1 is a device gate |
+| D Premium UI | **Partial**: storm-specific safety wording (Wind/Flood/Lightning hints; 'Buildings flood too' indoors) verified in Studio. Gear Shop already shows current/next/price/affordability/progress (`docs/art/v3/ui/`). Workbench restyle, icons and receipt redesign not started | |
 | E Gameplay polish | Not started | |
-| F QA and optimisation | In progress (Studio regressions per district) | device gates **Not tested** |
+| F QA and optimisation | In progress: per-district Studio regressions; full-town bot loop after C5 (2 full sales, storm survived, 0 errors). Device gates **Not tested** | |
 | G Purchase safety | **Studio-tested** (below) | |
-| G Release prep | Not started | |
+| G Release prep | **Partial**: AnalyticsService FirstSession funnel + custom events (verified firing in a 4-min bot run); release checklist `docs/production/V3-RELEASE-CHECKLIST.md` | |
 
 ## G: purchase safety (Studio-tested 2026-10-12)
 

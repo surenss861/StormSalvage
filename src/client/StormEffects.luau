@@ -472,6 +472,9 @@ function StormEffects.step(now: number)
 	if belowLine then
 		if level > 0 and feet < level then
 			setAlert("You're in the flood! Climb a ▲ ladder or head uphill", UI.Color.Water)
+		elseif sheltered then
+			-- Indoors feels safe, and is from lightning and wind, but buildings flood.
+			setAlert("Buildings flood too - get onto a roof by a ▲ ladder", Color3.fromRGB(150, 200, 255))
 		else
 			setAlert(
 				"Below the flood line - get to a ▲ ladder or high ground",

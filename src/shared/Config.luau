@@ -54,17 +54,17 @@ Config.Storms = {
 	Wind = {
 		DisplayName = "WINDSTORM",
 		Color = Color3.fromRGB(170, 200, 220),
-		Hint = "Cross open ground between gusts. Hide during them.",
+		Hint = "Get behind walls or indoors. Cross open ground between gusts.",
 	},
 	Flood = {
 		DisplayName = "FLASH FLOOD",
 		Color = Color3.fromRGB(60, 140, 220),
-		Hint = "Water is rising! Climb a yellow ladder or head uphill.",
+		Hint = "Roofs won't save you! Climb a yellow ladder or head uphill.",
 	},
 	Lightning = {
 		DisplayName = "LIGHTNING STORM",
 		Color = Color3.fromRGB(250, 230, 90),
-		Hint = "Step out of red circles before they strike!",
+		Hint = "Get under a roof. Out in the open, dodge the red circles!",
 	},
 }
 

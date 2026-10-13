@@ -7,6 +7,7 @@
 -- A "trip" starts with the first pickup after a sale (or after joining) and ends at the
 -- next sale. Return time is from the trip's last pickup to the sale.
 
+local AnalyticsService = game:GetService("AnalyticsService")
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 
@@ -40,6 +41,16 @@ export type Report = {
 }
 
 local reports: { [Player]: Report } = {}
+
+-- Roblox analytics (Creator Hub dashboards). Only the existing journey milestones, no personal
+-- data beyond what Roblox attaches to every event. Failures never affect gameplay.
+local STEPS = { Joined = 1, FirstPickup = 2, FirstSale = 3, FirstUpgrade = 4, FirstStormSurvived = 5 }
+local function funnel(player: Player, step: string)
+	pcall(AnalyticsService.LogOnboardingFunnelStepEvent, AnalyticsService, player, STEPS[step], step)
+end
+local function event(player: Player, name: string, value: number?)
+	pcall(AnalyticsService.LogCustomEvent, AnalyticsService, player, name, value or 1)
+end
 local lastPickupAt: { [Player]: number } = {}
 
 local function since(report: Report): number
@@ -65,6 +76,7 @@ function SessionStats.joined(player: Player)
 		WentOutAgain = false,
 		StormsSeen = 0,
 	}
+	funnel(player, "Joined")
 end
 
 function SessionStats.collected(player: Player, lootId: string)
@@ -74,7 +86,13 @@ function SessionStats.collected(player: Player, lootId: string)
 		return
 	end
 	local t = since(report)
+	if not report.FirstPickup then
+		funnel(player, "FirstPickup")
+	end
 	report.FirstPickup = report.FirstPickup or t
+	if lootId == "StormCore" then
+		event(player, "StormCoreCollected")
+	end
 	report.Pickups[def.Rarity] = (report.Pickups[def.Rarity] or 0) + 1
 	if report.FirstSale then
 		report.WentOutAgain = true
@@ -93,6 +111,7 @@ end
 
 -- Dropping the bag on death ends the trip without a sale.
 function SessionStats.lostBag(player: Player)
+	event(player, "BagDropped")
 	local report = reports[player]
 	local trip = report and currentTrip(report)
 	if trip then
@@ -108,6 +127,10 @@ function SessionStats.sold(player: Player, coins: number)
 		return
 	end
 	local t = since(report)
+	if not report.FirstSale then
+		funnel(player, "FirstSale")
+	end
+	event(player, "SaleCoins", coins)
 	report.FirstSale = report.FirstSale or t
 	local trip = currentTrip(report)
 	if trip then
@@ -123,6 +146,10 @@ function SessionStats.upgraded(player: Player, upgradeId: string, level: number)
 	if not report then
 		return
 	end
+	if not report.FirstUpgrade then
+		funnel(player, "FirstUpgrade")
+	end
+	event(player, "Upgrade_" .. upgradeId, level)
 	report.FirstUpgrade = report.FirstUpgrade or since(report)
 	table.insert(report.Upgrades, ("%s %d @%ss"):format(upgradeId, level, tostring(since(report))))
 end
@@ -133,6 +160,7 @@ function SessionStats.died(player: Player)
 		return
 	end
 	report.Deaths += 1
+	event(player, "Death")
 	if not report.FirstUpgrade then
 		report.DeathsBeforeFirstUpgrade += 1
 	end
@@ -147,6 +175,10 @@ end
 function SessionStats.survivedStorm(player: Player)
 	local report = reports[player]
 	if report then
+		if not report.FirstStormSurvived then
+			funnel(player, "FirstStormSurvived")
+		end
+		event(player, "StormSurvived")
 		report.FirstStormSurvived = report.FirstStormSurvived or since(report)
 	end
 end
