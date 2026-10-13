@@ -1,0 +1,351 @@
+-- @file Gear Shop Tools tab: permanent coin tools
+-- @domain salvage-economy
+-- @status stable
+-- @see [[Shop.luau]]
+-- @see [[V3-SUPPLY-DEPOT]]
+-- The Tools tab of the Gear Shop pegboard: permanent unlocks bought with earned coins (the
+-- Salvage Detector first). Same Workshop dressing as the Equipment workbench: a tool tag on the
+-- left, a spec sheet on the right with what it does, the price sticker and one BUY button.
+-- Buying asks the server (BuyTool); the sheet only shows OWNED once the server's player state
+-- says so.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
+local UI = require(script.Parent:WaitForChild("UI"))
+
+local Tools = {}
+local M = UI.Mat
+
+local state: any = nil
+local selected = Config.ToolOrder[1]
+local view: Frame
+local tags: { [string]: { Frame: TextButton, Stroke: UIStroke, Price: Frame, PriceText: TextLabel } } = {}
+local title: TextLabel
+local desc: TextLabel
+local facts: TextLabel
+local wallet: TextLabel
+local buy: TextButton
+local stamp: Frame
+local stampScale: UIScale
+
+-- A dial with a needle and two blips: reads as "detector" without an image asset.
+function Tools.detectorIcon(parent: Instance, size: number): Frame
+	local holder = UI.new("Frame", {
+		Name = "DetectorIcon",
+		Parent = parent,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(size, size),
+		BackgroundColor3 = Color3.fromRGB(46, 58, 52),
+		BorderSizePixel = 0,
+	}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), UI.stroke(M.Marker, 2.5) })
+	UI.new("Frame", {
+		Parent = holder,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(0, 2, 0.42, 0),
+		Rotation = 35,
+		BackgroundColor3 = Color3.fromRGB(150, 230, 160),
+		BorderSizePixel = 0,
+	})
+	for _, p in { Vector2.new(0.7, 0.3), Vector2.new(0.32, 0.62) } do
+		UI.new("Frame", {
+			Parent = holder,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(p.X, p.Y),
+			Size = UDim2.fromOffset(size * 0.14, size * 0.14),
+			BackgroundColor3 = M.Orange,
+			BorderSizePixel = 0,
+		}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	end
+	return holder
+end
+
+local function owned(id: string): boolean
+	local tools = state and state.Tools
+	return tools ~= nil and type(tools.Owned) == "table" and tools.Owned[id] == true
+end
+
+function Tools.refresh()
+	if not state or not view then
+		return
+	end
+	for id, tag in tags do
+		local def = Config.Tools[id]
+		local have = owned(id)
+		tag.PriceText.Text = if have then "OWNED" else UI.comma(def.Cost)
+		tag.Price.BackgroundColor3 = if have
+			then Color3.fromRGB(80, 170, 90)
+			elseif state.Coins >= def.Cost then M.Orange
+			else Color3.fromRGB(176, 166, 148)
+		local active = id == selected
+		tag.Stroke.Color = if active then M.Orange else M.KraftEdge
+		tag.Stroke.Thickness = if active then 4 else 2
+	end
+	local def = Config.Tools[selected]
+	title.Text = def.DisplayName
+	desc.Text = def.Description
+	facts.Text = ("RANGE %d STUDS  ·  NEAREST %d  ·  PERMANENT"):format(def.Range, def.MaxBlips)
+	wallet.Text = ("YOU HAVE %s COINS"):format(UI.comma(state.Coins))
+	stamp.Visible = owned(selected)
+	if owned(selected) then
+		buy.Text = "OWNED  ·  ACTIVE ON YOUR HUD"
+		buy:SetAttribute("Disabled", true)
+	elseif state.Coins < def.Cost then
+		buy.Text = ("NEED %s MORE"):format(UI.comma(def.Cost - state.Coins))
+		buy:SetAttribute("Disabled", true)
+	else
+		buy.Text = ("BUY  ·  %s COINS"):format(UI.comma(def.Cost))
+		buy:SetAttribute("Disabled", false)
+	end
+end
+
+function Tools.setState(s: any)
+	local had = owned(selected)
+	state = s
+	if not had and owned(selected) and stamp then
+		-- The server confirmed the purchase: stamp the sheet.
+		stamp.Visible = true
+		if UI.reduced() then
+			stampScale.Scale = 1
+		else
+			stampScale.Scale = 1.8
+			UI.tween(stampScale, 0.14, { Scale = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		end
+	end
+	Tools.refresh()
+end
+
+local function makeTag(rack: Instance, id: string, order: number)
+	local def = Config.Tools[id]
+	local holder = UI.new("Frame", {
+		Name = id,
+		Parent = rack,
+		LayoutOrder = order,
+		Size = UDim2.new(1, -8, 0, 84),
+		BackgroundTransparency = 1,
+		ZIndex = 21,
+	})
+	local frame = UI.new("TextButton", {
+		Name = "Tag",
+		Parent = holder,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -8, 1, -8),
+		Rotation = if UI.reduced() then 0 else -1.2,
+		BackgroundColor3 = M.Manila,
+		AutoButtonColor = false,
+		BorderSizePixel = 0,
+		Text = "",
+		ZIndex = 22,
+	}, { UI.corner(8) })
+	local stroke = UI.stroke(M.KraftEdge, 2)
+	stroke.Parent = frame
+	UI.punchHole(frame, UDim2.fromOffset(14, 14), 11, 23)
+	local icon = Tools.detectorIcon(frame, 44)
+	icon.Position = UDim2.fromOffset(40, 42)
+	for _, d in icon:GetDescendants() do
+		if d:IsA("GuiObject") then
+			d.ZIndex = 24
+		end
+	end
+	icon.ZIndex = 23
+	UI.text({
+		Parent = frame,
+		Font = UI.Font.Title,
+		TextSize = 15,
+		Position = UDim2.fromOffset(70, 6),
+		Size = UDim2.new(1, -156, 0, 38),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		TextWrapped = true,
+		TextColor3 = M.Marker,
+		Text = def.DisplayName,
+		ZIndex = 23,
+	})
+	UI.text({
+		Parent = frame,
+		Font = UI.Font.Label,
+		TextSize = 11,
+		Position = UDim2.fromOffset(70, 50),
+		Size = UDim2.new(1, -150, 0, 16),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = M.Pencil,
+		Text = "PERMANENT TOOL",
+		ZIndex = 23,
+	})
+	local price = UI.new("Frame", {
+		Name = "Price",
+		Parent = frame,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -8, 0.5, 0),
+		Size = UDim2.fromOffset(70, 44),
+		Rotation = -6,
+		BackgroundColor3 = M.Orange,
+		BorderSizePixel = 0,
+		ZIndex = 23,
+	}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	local priceText = UI.text({
+		Parent = price,
+		Font = UI.Font.Mono,
+		TextSize = 15,
+		Size = UDim2.fromScale(1, 1),
+		TextColor3 = Color3.new(1, 1, 1),
+		Text = "",
+		ZIndex = 24,
+	})
+	frame.Activated:Connect(function()
+		selected = id
+		Tools.refresh()
+	end)
+	tags[id] = { Frame = frame, Stroke = stroke, Price = price, PriceText = priceText }
+end
+
+function Tools.build(parent: Instance): Frame
+	view = UI.new("Frame", {
+		Name = "Tools",
+		Parent = parent,
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 21,
+	})
+	local rack = UI.new("ScrollingFrame", {
+		Name = "List",
+		Parent = view,
+		Size = UDim2.new(0.4, 0, 1, 0),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 4,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		ZIndex = 21,
+	}, { UI.new("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }) })
+	for i, id in Config.ToolOrder do
+		makeTag(rack, id, i)
+	end
+
+	local sheet = UI.new("Frame", {
+		Name = "Sheet",
+		Parent = view,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -4, 0, 4),
+		Size = UDim2.new(0.6, -4, 1, -8),
+		BackgroundColor3 = M.Paper,
+		BorderSizePixel = 0,
+		ZIndex = 21,
+	}, { UI.corner(3), UI.stroke(M.KraftEdge, 2) })
+	UI.tape(sheet, UDim2.new(0.5, 0, 0, 0), Vector2.new(90, 20), 2, nil, 26)
+	local iconPlate = UI.new("Frame", {
+		Name = "Icon",
+		Parent = sheet,
+		Position = UDim2.fromOffset(14, 18),
+		Size = UDim2.fromOffset(76, 76),
+		BackgroundColor3 = M.Manila,
+		BorderSizePixel = 0,
+		ZIndex = 22,
+	}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), UI.stroke(M.KraftEdge, 2) })
+	local icon = Tools.detectorIcon(iconPlate, 56)
+	for _, d in icon:GetDescendants() do
+		if d:IsA("GuiObject") then
+			d.ZIndex = 24
+		end
+	end
+	icon.ZIndex = 23
+	title = UI.text({
+		Name = "Title",
+		Parent = sheet,
+		Font = UI.Font.Title,
+		TextSize = 25,
+		Position = UDim2.fromOffset(102, 16),
+		Size = UDim2.new(1, -112, 0, 32),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextColor3 = M.Marker,
+		Text = "",
+		ZIndex = 22,
+	})
+	desc = UI.text({
+		Name = "Desc",
+		Parent = sheet,
+		Font = UI.Font.Body,
+		TextSize = 14,
+		Position = UDim2.fromOffset(102, 50),
+		Size = UDim2.new(1, -112, 0, 58),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		TextWrapped = true,
+		TextColor3 = M.Pencil,
+		Text = "",
+		ZIndex = 22,
+	})
+	facts = UI.text({
+		Name = "Facts",
+		Parent = sheet,
+		Font = UI.Font.Mono,
+		TextSize = 13,
+		Position = UDim2.fromOffset(14, 116),
+		Size = UDim2.new(1, -28, 0, 18),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = Color3.fromRGB(34, 130, 56),
+		Text = "",
+		ZIndex = 22,
+	})
+	wallet = UI.text({
+		Name = "Wallet",
+		Parent = sheet,
+		Font = UI.Font.Label,
+		TextSize = 13,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 14, 1, -70),
+		Size = UDim2.new(1, -28, 0, 16),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = M.Pencil,
+		Text = "",
+		ZIndex = 22,
+	})
+	buy = UI.button({
+		Name = "Buy",
+		Parent = sheet,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -10),
+		Size = UDim2.new(1, -28, 0, math.min(UI.buttonSize(), 56)),
+		TextSize = 18,
+		Color = UI.Color.Buy,
+		ZIndex = 22,
+	})
+	buy.Font = UI.Font.Mono
+	buy.Activated:Connect(function()
+		if owned(selected) then
+			return
+		end
+		-- Unaffordable presses still go to the server, which explains what's missing.
+		Remotes.get("BuyTool"):FireServer(selected)
+	end)
+	stamp = UI.new("Frame", {
+		Name = "Owned",
+		Parent = sheet,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0, 168),
+		Size = UDim2.fromOffset(150, 44),
+		Rotation = -10,
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 30,
+	}, { UI.corner(6), UI.stroke(Color3.fromRGB(34, 130, 56), 4) })
+	UI.text({
+		Parent = stamp,
+		Font = UI.Font.Mono,
+		TextSize = 24,
+		Size = UDim2.fromScale(1, 1),
+		TextColor3 = Color3.fromRGB(34, 130, 56),
+		Text = "OWNED",
+		ZIndex = 30,
+	})
+	stampScale = UI.new("UIScale", { Parent = stamp })
+	return view
+end
+
+return Tools

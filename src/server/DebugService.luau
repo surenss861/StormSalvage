@@ -102,6 +102,15 @@ local commands: { [string]: (...any) -> any } = {
 		PlayerService.pushState(player :: Player)
 		return amount
 	end,
+	-- Clear a player's tool ownership (repeatable Tools-tab purchase tests).
+	cleartools = function(playerName: string)
+		local player = Players:FindFirstChild(playerName)
+		local session = player and player:IsA("Player") and PlayerService.get(player)
+		assert(session, "no session")
+		session.Data.Tools = { Owned = {} }
+		PlayerService.pushState(player :: Player)
+		return true
+	end,
 	-- Append `count` synthetic PurchaseIds to a player's receipt list (long-lived profile tests).
 	padreceipts = function(playerName: string, count: number)
 		local player = Players:FindFirstChild(playerName)
@@ -177,6 +186,7 @@ local commands: { [string]: (...any) -> any } = {
 					Capacity = PlayerService.getCapacity(session),
 					Upgrades = table.clone(session.Data.Upgrades),
 					Stats = table.clone(session.Data.Stats),
+					Tools = table.clone(session.Data.Tools.Owned),
 					CanSave = session.CanSave,
 				}
 			end

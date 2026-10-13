@@ -48,6 +48,8 @@ export type Data = {
 	Rep: { XP: number },
 	Contracts: { Active: { any }, Done: number, Pinned: string? },
 	Cosmetics: { Owned: { [string]: boolean }, Plate: string },
+	-- Added for the Supply Depot (Tools tab). Same reconcile/rollback rules as above.
+	Tools: { Owned: { [string]: boolean } },
 	Lock: { Session: string, Time: number }?,
 }
 
@@ -62,6 +64,7 @@ function DataService.default(): Data
 		Rep = { XP = 0 },
 		Contracts = { Active = {}, Done = 0 },
 		Cosmetics = { Owned = { Cardboard = true }, Plate = "Cardboard" },
+		Tools = { Owned = {} },
 	}
 end
 

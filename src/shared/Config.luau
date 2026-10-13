@@ -285,6 +285,21 @@ Config.Upgrades = {
 }
 Config.UpgradeOrder = { "Backpack", "Boots", "Armor" }
 
+-- Tools: permanent coin unlocks in the Gear Shop's Tools tab (V3-SUPPLY-DEPOT.md). Owned once,
+-- saved in the profile's Tools.Owned.
+Config.Tools = {
+	Detector = {
+		DisplayName = "Salvage Detector",
+		Description = "Pings the nearest ordinary salvage within range, even behind walls. Epic finds and Storm Cores stay hidden.",
+		Cost = 2500,
+		Range = 55, -- studs, horizontal
+		MaxBlips = 3,
+		ScanSeconds = 1, -- server scan interval per owner; a ping is sent only when the set changes
+		Rarities = { Common = true, Uncommon = true, Rare = true },
+	},
+}
+Config.ToolOrder = { "Detector" }
+
 -- Sound effects. All from Roblox's licensed libraries (ProSoundEffects / APM Music uploads,
 -- published by those accounts on the Creator Store), which any experience may use. Set an id
 -- to "" to mute that cue.

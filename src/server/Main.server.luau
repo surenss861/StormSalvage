@@ -18,6 +18,7 @@ local DebugService = require(script.Parent.DebugService)
 local SessionStats = require(script.Parent.SessionStats)
 local ServerPerf = require(script.Parent.ServerPerf)
 local ContractService = require(script.Parent.ContractService)
+local DetectorService = require(script.Parent.DetectorService)
 
 require(script.Parent.AssetPivotFix).apply() -- before anything places an asset
 
@@ -28,6 +29,7 @@ PlayerService.init()
 MonetizationService.init()
 ContractService.init()
 LootService.init(map)
+DetectorService.init()
 StormService.init(map)
 DebugService.init()
 ServerPerf.init() -- staging and Studio only

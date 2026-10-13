@@ -334,6 +334,12 @@ local function dropBag(player: Player, character: Model)
 	)
 end
 
+-- The live loot parts (each has a LootId attribute; dropped bags also have OwnerId). Read-only
+-- for other services, e.g. DetectorService's scans.
+function LootService.folder(): Folder?
+	return folder
+end
+
 function LootService.init(map)
 	folder = Instance.new("Folder")
 	folder.Name = "Loot"

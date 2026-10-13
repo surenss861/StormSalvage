@@ -69,4 +69,16 @@ return {
 		end
 		eq(Economy.checkUpgrade(BACKPACK, 0, 0 / 0).Reason, "invalid", "NaN coins")
 	end,
+	["tool: buy, own once, short and invalid"] = function()
+		local ok = Economy.checkTool(2500, nil, 2600)
+		eq(ok.Ok, true, "affordable")
+		eq(ok.Cost, 2500, "cost")
+		eq(Economy.checkTool(2500, true, 9999).Reason, "maxed", "already owned")
+		local short = Economy.checkTool(2500, false, 2000)
+		eq(short.Reason, "short", "short")
+		eq(short.Short, 500, "short by")
+		eq(Economy.checkTool(2500, nil, 0 / 0).Reason, "invalid", "NaN coins")
+		eq(Economy.checkTool("2500", nil, 9999).Reason, "invalid", "string cost")
+		eq(Economy.checkTool(2500, "yes", 2500).Ok, true, "only true counts as owned")
+	end,
 }

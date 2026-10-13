@@ -19,6 +19,8 @@ local EVENTS = {
 	"ProgressEvent", -- server -> client: { Kind = "Job" | "RankUp", ... } (Contracts/Reputation)
 	"ProgressAction", -- client -> server: action, id (pin / swap job, buy / equip nameplate finish)
 	"ClientDiag", -- client -> server: kind, number (ViewHealth); logged only, never trusted
+	"BuyTool", -- client -> server: toolId (Gear Shop Tools tab, coins)
+	"DetectorPing", -- server -> client: { { X, Z } } nearest ordinary salvage (detector owners only)
 }
 
 local folder: Folder

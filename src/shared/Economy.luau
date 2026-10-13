@@ -49,4 +49,18 @@ function Economy.checkUpgrade(costs: { number }, level: unknown, coins: unknown)
 	return { Ok = true, Cost = cost }
 end
 
+-- Can a player buy a permanent tool (Gear Shop Tools tab)? One price, owned once.
+function Economy.checkTool(cost: unknown, owned: unknown, coins: unknown): UpgradeCheck
+	if type(cost) ~= "number" or type(coins) ~= "number" or cost ~= cost or coins ~= coins or cost < 0 then
+		return { Ok = false, Reason = "invalid" }
+	end
+	if owned == true then
+		return { Ok = false, Reason = "maxed" }
+	end
+	if coins < cost then
+		return { Ok = false, Reason = "short", Cost = cost, Short = cost - coins }
+	end
+	return { Ok = true, Cost = cost }
+end
+
 return Economy

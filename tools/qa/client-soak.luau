@@ -49,7 +49,11 @@ local function cycle()
 	cycleCount += 1
 	server:InvokeServer("home")
 	task.wait(0.3)
-	local ids = { "Can", if cycleCount % 2 == 0 then "Safe" else "Register", if cycleCount % 3 == 0 then "StormCore" else "Tv" }
+	local ids = {
+		"Can",
+		if cycleCount % 2 == 0 then "Safe" else "Register",
+		if cycleCount % 3 == 0 then "StormCore" else "Tv",
+	}
 	local names = server:InvokeServer("spawnloot", table.unpack(ids))
 	for _, name in names do
 		local item = workspace.Loot:FindFirstChild(name)

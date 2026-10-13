@@ -1,4 +1,4 @@
--- @file Gear Shop pegboard (Equipment and Supply tabs)
+-- @file Gear Shop pegboard (Equipment, Tools and Supply tabs)
 -- @domain salvage-economy
 -- @status stable
 -- @see [[V3-UI-WORKSHOP]]
@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local SupplyCounter = require(script.Parent:WaitForChild("SupplyCounter"))
+local Tools = require(script.Parent:WaitForChild("Tools"))
 local UI = require(script.Parent:WaitForChild("UI"))
 
 local Shop = {}
@@ -461,6 +462,7 @@ function Shop.setState(s: any)
 	local previous = state
 	state = s
 	SupplyCounter.setState(s)
+	Tools.setState(s)
 	for id, tile in tiles do
 		local level = s.Upgrades[id] or 0
 		if previous and tile.Level and level > tile.Level then
@@ -530,20 +532,20 @@ local function dressPanel(panel: Frame)
 	end
 end
 
--- Two tabs in the pegboard header: the coin-funded Equipment workbench (default) and the optional
--- Supply Counter (Robux).
+-- Three tabs in the pegboard header: the coin-funded Equipment workbench (default), the coin Tools
+-- (permanent unlocks) and the optional Supply Counter (Robux).
 local tabButtons: { [string]: TextButton } = {}
 local views: { [string]: GuiObject } = {}
 
--- Staged discovery: the Supply Counter tab appears once the player has bought their first
--- equipment upgrade, so a new player's shop is just the workbench.
+-- Staged discovery: the Tools and Supply Counter tabs appear once the player has bought their
+-- first equipment upgrade, so a new player's shop is just the workbench.
 function Shop.setSupplyVisible(visible: boolean)
-	local b = tabButtons.Supply
-	if b then
-		b.Visible = visible
-		tabButtons.Equipment.Size = if visible then UDim2.new(0.5, -3, 1, 0) else UDim2.new(1, 0, 1, 0)
+	local width = if visible then UDim2.new(1 / 3, -4, 1, 0) else UDim2.new(1, 0, 1, 0)
+	for key, b in tabButtons do
+		b.Visible = key == "Equipment" or visible
+		b.Size = width
 	end
-	if not visible and views.Supply and views.Supply.Visible then
+	if not visible and ((views.Supply and views.Supply.Visible) or (views.Tools and views.Tools.Visible)) then
 		Shop.showTab("Equipment")
 	end
 end
@@ -560,6 +562,8 @@ function Shop.showTab(name: string)
 	end
 	if name == "Equipment" then
 		Shop.refresh()
+	elseif name == "Tools" then
+		Tools.refresh()
 	end
 end
 
@@ -578,12 +582,12 @@ local function buildTabs(panel: Frame)
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
-	for i, entry in { { "Equipment", "EQUIPMENT" }, { "Supply", "SUPPLY COUNTER" } } do
+	for i, entry in { { "Equipment", "EQUIPMENT" }, { "Tools", "TOOLS" }, { "Supply", "SUPPLY COUNTER" } } do
 		local b = UI.new("TextButton", {
 			Name = entry[1],
 			Parent = holder,
 			LayoutOrder = i,
-			Size = UDim2.new(0.5, -3, 1, 0),
+			Size = UDim2.new(1 / 3, -4, 1, 0),
 			BackgroundColor3 = M.Manila,
 			AutoButtonColor = false,
 			BorderSizePixel = 0,
@@ -591,8 +595,14 @@ local function buildTabs(panel: Frame)
 			TextSize = 13,
 			TextColor3 = M.Marker,
 			Text = entry[2],
+			TextScaled = true,
 			ZIndex = 24,
-		}, { UI.corner(6), UI.stroke(M.KraftEdge, 2) })
+		}, {
+			UI.corner(6),
+			UI.stroke(M.KraftEdge, 2),
+			UI.new("UITextSizeConstraint", { MaxTextSize = 13 }),
+			UI.new("UIPadding", { PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4) }),
+		})
 		b.Activated:Connect(function()
 			Shop.showTab(entry[1])
 		end)
@@ -630,6 +640,7 @@ function Shop.init(root: Frame, h: Hooks)
 		tiles[id] = makeTile(rack, id, i)
 	end
 
+	views.Tools = Tools.build(modal.Content)
 	views.Supply = SupplyCounter.build(modal.Content, { Notify = hooks.Notify })
 	Shop.showTab("Equipment")
 end

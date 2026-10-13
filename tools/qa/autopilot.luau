@@ -10,6 +10,13 @@
 --
 -- Put into PlayerScripts during a Play session. Progress is reported on
 -- ReplicatedStorage attribute QA_Autopilot; the server's SessionStats has the real numbers.
+--
+-- Sight (ReplicatedStorage attribute QA_BotSight), for measuring the Salvage Detector:
+--   unset      omniscient: always walks to the nearest loot anywhere (the original economy bot).
+--   "eyes"     knows only loot within EYE_RANGE with a clear line of sight from its head;
+--              with nothing known it walks to a random street point (seeded) and looks again.
+--   "detector" "eyes" plus whatever the real Salvage Detector pings (DetectorPing).
+-- Search counters go to the attribute QA_BotSearch as JSON.
 
 local Players = game:GetService("Players")
 local PathfindingService = game:GetService("PathfindingService")
@@ -26,6 +33,41 @@ remotes.PlayerState.OnClientEvent:Connect(function(s)
 end)
 
 local skip: { [Instance]: boolean } = {}
+
+local SIGHT = ReplicatedStorage:GetAttribute("QA_BotSight")
+local EYE_RANGE = 60
+local wanderRng = Random.new(tonumber(ReplicatedStorage:GetAttribute("QA_Seed")) or 42)
+local pinged: { Vector3 } = {}
+local search = { Pickups = 0, BySight = 0, ByDetector = 0, Wanders = 0, WanderSeconds = 0 }
+local HttpService = game:GetService("HttpService")
+local function publishSearch()
+	ReplicatedStorage:SetAttribute("QA_BotSearch", HttpService:JSONEncode(search))
+end
+remotes:WaitForChild("DetectorPing").OnClientEvent:Connect(function(list)
+	pinged = {}
+	for _, b in list do
+		table.insert(pinged, Vector3.new(b.X, 0, b.Z))
+	end
+end)
+-- Street points spread over the five districts, for searching when nothing is known.
+local STREETS = {
+	Vector2.new(0, -120),
+	Vector2.new(0, -60),
+	Vector2.new(0, 0),
+	Vector2.new(0, 60),
+	Vector2.new(0, 120),
+	Vector2.new(-100, 30),
+	Vector2.new(-160, 30),
+	Vector2.new(100, 30),
+	Vector2.new(160, 30),
+	Vector2.new(-120, -60),
+	Vector2.new(120, -60),
+	Vector2.new(-120, 100),
+	Vector2.new(120, 100),
+	Vector2.new(0, 160),
+	Vector2.new(-60, -30),
+	Vector2.new(60, -30),
+}
 local status = "starting"
 local function report(text: string)
 	status = text
@@ -85,7 +127,10 @@ local function press(prompt: ProximityPrompt)
 	local target = prompt.Parent
 	local camera = workspace.CurrentCamera
 	if camera and target and target:IsA("BasePart") then
-		camera.CFrame = CFrame.lookAt(target.Position + Vector3.new(0, 8, 0) - camera.CFrame.LookVector * 12, target.Position)
+		camera.CFrame = CFrame.lookAt(
+			target.Position + Vector3.new(0, 8, 0) - camera.CFrame.LookVector * 12,
+			target.Position
+		)
 		task.wait(0.15)
 	end
 	prompt:InputHoldBegin()
@@ -125,6 +170,47 @@ local function nearestLoot(root: BasePart): BasePart?
 		end
 	end
 	return best
+end
+
+local function visible(root: BasePart, item: BasePart): boolean
+	local eye = root.Position + Vector3.new(0, 2, 0)
+	local offset = item.Position - eye
+	if offset.Magnitude > EYE_RANGE then
+		return false
+	end
+	local params = RaycastParams.new()
+	params.FilterDescendantsInstances = { player.Character, workspace.Loot }
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	return workspace:Raycast(eye, offset, params) == nil
+end
+
+-- What the bot knows about, by its sight mode. Returns the item and how it was found.
+local function knownLoot(root: BasePart): (BasePart?, string?)
+	if not SIGHT then
+		return nearestLoot(root), "omniscient"
+	end
+	local best, bestD, how = nil, math.huge, nil
+	for _, item in workspace.Loot:GetChildren() do
+		local prompt = item:FindFirstChildOfClass("ProximityPrompt")
+		if item:IsA("BasePart") and prompt and not skip[item] and not prompt.ObjectText:find("'s ") then
+			local d = (item.Position - root.Position).Magnitude
+			local found: string? = nil
+			if visible(root, item) then
+				found = "sight"
+			elseif SIGHT == "detector" then
+				for _, p in pinged do
+					if (Vector3.new(item.Position.X, 0, item.Position.Z) - p).Magnitude < 1.5 then
+						found = "detector"
+						break
+					end
+				end
+			end
+			if found and d < bestD then
+				best, bestD, how = item, d, found
+			end
+		end
+	end
+	return best, how
 end
 
 local function buyUpgrades()
@@ -193,16 +279,37 @@ while true do
 		task.wait(0.2)
 		continue
 	end
-	local item = nearestLoot(root)
+	local item, how = knownLoot(root)
 	if not item then
+		if SIGHT then
+			local spot = STREETS[wanderRng:NextInteger(1, #STREETS)]
+			report("searching")
+			search.Wanders += 1
+			local started = os.clock()
+			walkTo(groundNear(Vector3.new(spot.X, 20, spot.Y), Vector3.zero), 6)
+			search.WanderSeconds += os.clock() - started
+			publishSearch()
+			continue
+		end
 		report("no loot found")
 		task.wait(1)
 		continue
 	end
 	report(("going for %s"):format(item.Name))
 	local prompt = item:FindFirstChildOfClass("ProximityPrompt")
+	local carriedBefore = #state.Carried
 	if prompt and walkTo(item.Position, prompt.MaxActivationDistance - 2) and item.Parent then
 		press(prompt)
+		task.wait(0.3)
+		if #state.Carried > carriedBefore then
+			search.Pickups += 1
+			if how == "sight" then
+				search.BySight += 1
+			elseif how == "detector" then
+				search.ByDetector += 1
+			end
+			publishSearch()
+		end
 	end
 	if item.Parent then
 		skip[item] = true -- unreachable or taken; don't keep trying it

@@ -157,6 +157,15 @@ function SessionStats.upgraded(player: Player, upgradeId: string, level: number)
 	table.insert(report.Upgrades, ("%s %d @%ss"):format(upgradeId, level, tostring(since(report))))
 end
 
+function SessionStats.toolBought(player: Player, toolId: string)
+	local report = reports[player]
+	if not report then
+		return
+	end
+	event(player, "Tool_" .. toolId, 1)
+	table.insert(report.Upgrades, ("Tool %s @%ss"):format(toolId, tostring(since(report))))
+end
+
 function SessionStats.died(player: Player)
 	local report = reports[player]
 	if not report then

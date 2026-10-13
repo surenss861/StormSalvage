@@ -18,7 +18,7 @@ tags: [storm-salvage, salvage-economy]
 | Pocket Change | Developer product, repeatable | 300 coins | 29 R$ | `DevProducts.CoinsSmall` |
 | Scrap Bundle | Developer product, repeatable | 1,200 coins | 99 R$ | `DevProducts.CoinsMedium` |
 | Salvage Haul | Developer product, repeatable | 3,000 coins | 199 R$ | `DevProducts.CoinsLarge` |
-| Heavy-Duty Pack | Game pass, permanent | +4 bag slots on top of Backpack upgrades | 149 R$ | `GamePasses.HeavyDuty` |
+| Heavy-Duty Pack | Game pass, permanent | +2 bag slots on top of Backpack upgrades (owner decision, RC6; was +4 up to RC5) | 149 R$ | `GamePasses.HeavyDuty` |
 
 The old placeholder items are removed. "Big Bag" (+5) and "VIP" (+20% sell value) had never been created on Roblox (ID 0), and VIP was a paid power boost the plan doesn't include. The unused "2x Salvage" product is gone too.
 
@@ -106,7 +106,7 @@ Creating products doesn't put them on sale in the game. The in-game buttons stay
    - "Salvage Haul": 199 R$, "3,000 coins"
 
    Upload a simple icon for each. Copy each product's **ID**.
-2. **Monetization → Passes → Create a Pass.** "Heavy-Duty Pack": 149 R$, "+4 bag slots, permanent". Put it **on sale** in its settings, then copy the pass **ID**.
+2. **Monetization → Passes → Create a Pass.** "Heavy-Duty Pack": 149 R$, "+2 bag slots, permanent". Put it **on sale** in its settings, then copy the pass **ID**.
 3. **Send me the four IDs.** I'll put them in `Config` (still with `PurchasesEnabled = false`), check in Studio that each ticket loads its real price, and cut a new RC.
 
 ## 6. Activation checklist (all must be true before `PurchasesEnabled = true`)
@@ -118,7 +118,7 @@ Creating products doesn't put them on sale in the game. The in-game buttons stay
   - Coins arrive, *Delivered* shows, and F9 → Server has no `[Monetization]` warnings.
   - Leave and rejoin: the coins are still there.
   - Buy, then immediately leave mid-window: the coins arrive on rejoin, exactly once.
-- [ ] If the pass is in scope: buy it, check +4 slots, rejoin, and confirm it's still +4 and not +8.
+- [ ] If the pass is in scope: buy it, check +2 slots, rejoin, and confirm it's still +2 and not +4.
 - [ ] Your explicit go-ahead. Then `PurchasesEnabled = true` goes into the **release** build (`LiveTestMode = false`).
 
 Test purchases in live-test mode credit coins to the `_LIVETEST` save. When the game launches with `LiveTestMode = false`, those coins won't be in your real save. The pass, which is stored on Roblox, does carry over.

@@ -146,6 +146,7 @@ function PlayerService.pushState(player: Player)
 		Rep = session.Data.Rep,
 		Contracts = session.Data.Contracts,
 		Cosmetics = session.Data.Cosmetics,
+		Tools = session.Data.Tools,
 	})
 	local leaderstats = player:FindFirstChild("leaderstats")
 	local coins = leaderstats and leaderstats:FindFirstChild("Coins")
@@ -347,6 +348,57 @@ local function buyUpgrade(player: Player, upgradeId: unknown)
 	)
 end
 
+-- Permanent coin tools (Gear Shop Tools tab). Same request budget as upgrades. Coins and
+-- ownership change together in the session profile, so they save (or fail to save) together.
+function PlayerService.ownsTool(player: Player, toolId: string): boolean
+	local session = sessions[player]
+	local tools = session and session.Data.Tools
+	return tools ~= nil and type(tools.Owned) == "table" and tools.Owned[toolId] == true
+end
+
+local function buyTool(player: Player, toolId: unknown)
+	local session = sessions[player]
+	if not session or type(toolId) ~= "string" or #toolId > 32 then
+		return
+	end
+	local now = os.clock()
+	local window = buyWindows[player]
+	if not window or now - window.Start > BUY_WINDOW then
+		window = { Start = now, Count = 0 }
+		buyWindows[player] = window
+	end
+	window.Count += 1
+	if window.Count > BUY_LIMIT then
+		return
+	end
+	local def = Config.Tools[toolId]
+	if not def then
+		return
+	end
+	if type(session.Data.Tools) ~= "table" or type(session.Data.Tools.Owned) ~= "table" then
+		session.Data.Tools = { Owned = {} }
+	end
+	local check = Economy.checkTool(def.Cost, session.Data.Tools.Owned[toolId], session.Data.Coins)
+	if check.Reason == "maxed" then
+		PlayerService.notify(player, "You already own the " .. def.DisplayName .. ".")
+		return
+	elseif check.Reason == "short" then
+		PlayerService.notify(
+			player,
+			("Need %d more coins."):format(check.Short :: number),
+			Color3.fromRGB(255, 120, 90)
+		)
+		return
+	elseif not check.Ok then
+		return
+	end
+	session.Data.Coins -= check.Cost :: number
+	session.Data.Tools.Owned[toolId] = true
+	SessionStats.toolBought(player, toolId)
+	PlayerService.pushState(player)
+	PlayerService.notify(player, ("%s unlocked!"):format(def.DisplayName), Color3.fromRGB(140, 200, 255))
+end
+
 local function onPlayerAdded(player: Player)
 	SessionStats.joined(player)
 	local leaderstats = Instance.new("Folder")
@@ -456,6 +508,7 @@ function PlayerService.init()
 	end
 
 	buyUpgradeRemote.OnServerEvent:Connect(buyUpgrade)
+	Remotes.get("BuyTool").OnServerEvent:Connect(buyTool)
 
 	task.spawn(function()
 		while true do
