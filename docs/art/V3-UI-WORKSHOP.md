@@ -67,7 +67,10 @@ Captures are in `docs/art/v3/ui/workshop/`. Files `10` and `11` show phone probl
 
 ## Open items
 
-1. **Black screen after a lightning death** (seen once). After the death and respawn the 3D view stayed black while the UI drew normally, and stopping Play cleared it. It is not yet known whether this is a pre-existing StormEffects/EnvironmentFX issue or Studio capture. **Not caused by the UI** (no full-screen GUI was present). It needs a reproduction.
+1. **Black screen once after a death** (not reproduced). It happened right after my scripted teleport to just behind the Scrap Buyer counter at (-32, 32, -265).
+   - A forced death during a Lightning storm, followed by a respawn, rendered normally (`13`).
+   - The likely cause is the camera ending up inside the counter's mesh after the scripted teleport. That is a QA-script artefact, not a UI or storm bug, but it isn't proven.
+   - Re-check during the multiplayer and bot soak.
 2. **Physical-device check:** the phone results come from the Studio preview only. On real phones, check thumbstick clearance, text size, notch and safe areas, and Settings scrolling. Needs a published private test place.
 3. **Before/after:** the before captures are in `docs/art/v3/ui/` (Instrument `conceptA-*`, `gear-shop-current.jpg`, `sale-ticket-first-pass.jpg`); the after captures are in `workshop/`.
 4. Settings is still the generic modal (dark plate) and wasn't re-dressed, though it's functional.
