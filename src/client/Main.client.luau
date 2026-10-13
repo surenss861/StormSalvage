@@ -26,6 +26,7 @@ local Settings = require(script.Parent:WaitForChild("Settings"))
 local Shop = require(script.Parent:WaitForChild("Shop"))
 local StormEffects = require(script.Parent:WaitForChild("StormEffects"))
 local UI = require(script.Parent:WaitForChild("UI"))
+local ViewHealth = require(script.Parent:WaitForChild("ViewHealth"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -102,6 +103,7 @@ Districts.init()
 EnvironmentFX.init(StormEffects.getState, StormEffects.gustPhase, StormEffects.isReduced)
 StormEffects.setStrikeHook(EnvironmentFX.onStrike)
 CameraOcclusion.init()
+ViewHealth.init()
 
 ---------------------------------------------------------------------------- Tutorial hint
 
@@ -266,6 +268,9 @@ if RunService:IsStudio() then
 			return Audio.status()
 		elseif what == "card" then
 			return Notifications.cardPriority()
+		elseif what == "shop" then
+			Shop.toggle()
+			return Shop.modal().IsOpen()
 		elseif what == "settings" then
 			-- Studio's device simulator doesn't deliver simulated clicks to buttons.
 			Settings.toggle()

@@ -447,7 +447,7 @@ function Hud.stepStorm(now: number, storm: any, status: string?, statusColor: Co
 	elseif phase == "Aftermath" then
 		band, bandColor, caption = "STORM PASSED", UI.Color.Coin, "CALM IN"
 	else
-		band, bandColor, caption = "ALL CLEAR", CALM_BAND, "NEXT STORM IN"
+		band, bandColor, caption = "ALL CLEAR", CALM_BAND, if compact then "NEXT STORM" else "NEXT STORM IN"
 	end
 	signBandText.Text = band
 	signBand.BackgroundColor3 = bandColor

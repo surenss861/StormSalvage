@@ -466,7 +466,20 @@ function UI.modal(parent: Instance, name: string, title: string, maxSize: Vector
 	close.Activated:Connect(function()
 		setOpen(false)
 	end)
-	backdrop.Activated:Connect(function()
+	backdrop.Activated:Connect(function(input: InputObject?)
+		-- Only a tap on the dimmed area closes the modal. GuiButtons receive clicks through
+		-- non-button frames above them, so a tap on empty panel space also reaches the backdrop:
+		-- ignore it when the panel is under the pointer.
+		if input then
+			local gui = backdrop:FindFirstAncestorWhichIsA("BasePlayerGui")
+			if gui then
+				for _, obj in gui:GetGuiObjectsAtPosition(input.Position.X, input.Position.Y) do
+					if obj == panel or obj:IsDescendantOf(panel) then
+						return
+					end
+				end
+			end
+		end
 		setOpen(false)
 	end)
 	return modal

@@ -67,11 +67,8 @@ Captures are in `docs/art/v3/ui/workshop/`. Files `10` and `11` show phone probl
 
 ## Open items
 
-1. **Black screen once after a death** (not reproduced). It happened right after my scripted teleport to just behind the Scrap Buyer counter at (-32, 32, -265).
-   - A forced death during a Lightning storm, followed by a respawn, rendered normally (`13`).
-   - The likely cause is the camera ending up inside the counter's mesh after the scripted teleport. That is a QA-script artefact, not a UI or storm bug, but it isn't proven.
-   - Re-check during the multiplayer and bot soak.
+1. **Black screen:** not reproduced in 15 death, lifecycle and camera scenarios. The `ViewHealth` diagnostic now reports it if it ever happens. See `docs/production/V3-SOAK-AND-DEATH-QA.md`.
 2. **Physical-device check:** the phone results come from the Studio preview only. On real phones, check thumbstick clearance, text size, notch and safe areas, and Settings scrolling. Needs a published private test place.
 3. **Before/after:** the before captures are in `docs/art/v3/ui/` (Instrument `conceptA-*`, `gear-shop-current.jpg`, `sale-ticket-first-pass.jpg`); the after captures are in `workshop/`.
-4. Settings is still the generic modal (dark plate) and wasn't re-dressed, though it's functional.
-5. On phones, "NEXT STORM IN" wraps to two lines. It is readable but could be shortened.
+4. Settings has been re-dressed as a riveted tin panel with label-maker names, fader sliders and a toggle plate (`14`). The phone label is now "NEXT STORM".
+5. Fixed: a click on empty space in a menu closed it. While a menu is open, notices stack from the top right.

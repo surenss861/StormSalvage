@@ -1,4 +1,6 @@
--- Settings panel: master, effects and weather volume, and Reduced Effects.
+-- Settings panel: master, effects and weather volume, and Reduced Effects. Dressed as a riveted
+-- tin control panel (Workshop direction): label-maker strips for names, fader slots with an
+-- orange cap for volumes, a heavy toggle plate for Reduced Effects. Numbers in the bold plain face.
 --
 -- Persistence: these are client preferences, kept for the whole play session (the HUD
 -- survives respawns) but not saved between sessions. Roblox gives a client no local storage,
@@ -10,6 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 local UI = require(script.Parent:WaitForChild("UI"))
 
 local Settings = {}
+local M = UI.Mat
 
 export type Hooks = {
 	GetVolume: (kind: string) -> number,
@@ -27,27 +30,37 @@ local function rowFrame(list: Instance, order: number, title: string, desc: stri
 		Name = title,
 		Parent = list,
 		LayoutOrder = order,
-		Size = UDim2.new(1, -8, 0, 56),
-		BackgroundColor3 = UI.Color.PlateLight,
+		Size = UDim2.new(1, -8, 0, 58),
+		BackgroundColor3 = Color3.fromRGB(212, 216, 218),
 		BorderSizePixel = 0,
-	}, { UI.corner(UI.Radius.Panel) })
-	UI.text({
+	}, { UI.corner(4), UI.stroke(M.TinDark, 1.5) })
+	-- Label-maker tape: white embossed capitals on black.
+	local tape = UI.new("Frame", {
+		Name = "Label",
 		Parent = frame,
-		Role = "Title",
-		TextSize = 18,
-		Position = UDim2.fromOffset(12, 8),
-		Size = UDim2.new(0.42, -12, 0, 22),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Text = title,
+		Position = UDim2.fromOffset(10, 7),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 22),
+		BackgroundColor3 = Color3.fromRGB(24, 24, 26),
+		BorderSizePixel = 0,
+	}, { UI.corner(3), UI.padding(0, 8) })
+	UI.text({
+		Parent = tape,
+		Font = UI.Font.Mono,
+		TextSize = 14,
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromScale(0, 1),
+		TextColor3 = Color3.fromRGB(244, 244, 240),
+		Text = string.upper(title),
 	})
 	UI.text({
 		Parent = frame,
-		Role = "Body",
+		Font = UI.Font.Body,
 		TextSize = 13,
-		Position = UDim2.fromOffset(12, 31),
+		Position = UDim2.fromOffset(12, 33),
 		Size = UDim2.new(0.42, -12, 0, 16),
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = UI.Color.TextDim,
+		TextColor3 = M.Pencil,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		Text = desc,
 	})
@@ -72,34 +85,45 @@ local function slider(frame: Frame, kind: string)
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromScale(0, 0.5),
 		Size = UDim2.new(1, 0, 0, 10),
-		BackgroundColor3 = UI.Color.Disabled,
+		BackgroundColor3 = Color3.fromRGB(46, 46, 48), -- the fader slot
 		BorderSizePixel = 0,
-	}, { UI.corner(5) })
+	}, { UI.corner(2) })
 	local fill = UI.new("Frame", {
 		Name = "Fill",
 		Parent = track,
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = UI.Color.Coin,
+		BackgroundColor3 = M.Orange,
 		BorderSizePixel = 0,
-	}, { UI.corner(5) })
+	}, { UI.corner(2) })
 	local knob = UI.new("Frame", {
 		Name = "Knob",
 		Parent = track,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(1, 0.5),
-		Size = UDim2.fromOffset(26, 26),
-		BackgroundColor3 = UI.Color.Text,
+		Size = UDim2.fromOffset(18, 32),
+		BackgroundColor3 = Color3.fromRGB(236, 236, 232), -- fader cap
 		BorderSizePixel = 0,
-	}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), UI.stroke(UI.Color.Outline, 2) })
+	}, {
+		UI.corner(3),
+		UI.stroke(M.Marker, 2),
+		UI.new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, -4, 0, 3),
+			BackgroundColor3 = M.Orange,
+			BorderSizePixel = 0,
+		}),
+	})
 	local percent = UI.text({
 		Name = "Percent",
 		Parent = frame,
-		Role = "Title",
+		Font = UI.Font.Mono,
 		TextSize = 18,
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -12, 0.5, 0),
 		Size = UDim2.fromOffset(56, 24),
 		TextXAlignment = Enum.TextXAlignment.Right,
+		TextColor3 = M.Marker,
 		Text = "100%",
 	})
 
@@ -107,7 +131,7 @@ local function slider(frame: Frame, kind: string)
 		fill.Size = UDim2.fromScale(value, 1)
 		knob.Position = UDim2.fromScale(value, 0.5)
 		percent.Text = ("%d%%"):format(math.floor(value * 100 + 0.5))
-		percent.TextColor3 = if value == 0 then UI.Color.TextMuted else UI.Color.Text
+		percent.TextColor3 = if value == 0 then M.Pencil else M.Marker
 	end
 	local lastPreview = 0
 	local function setFromX(x: number)
@@ -167,6 +191,34 @@ end
 function Settings.init(root: Frame, h: Hooks)
 	hooks = h
 	modal = UI.modal(root, "Settings", "SETTINGS", Vector2.new(540, 370))
+	-- Galvanised tin panel with rivets; the title on masking tape.
+	local panel = modal.Panel
+	panel.BackgroundColor3 = M.Tin
+	panel.BackgroundTransparency = 0
+	UI.new("UIGradient", {
+		Parent = panel,
+		Color = ColorSequence.new(Color3.fromRGB(226, 230, 232), Color3.fromRGB(168, 174, 178)),
+		Rotation = 100,
+	})
+	local panelStroke = panel:FindFirstChildOfClass("UIStroke")
+	if panelStroke then
+		panelStroke.Color = M.TinDark
+		panelStroke.Thickness = 4
+	end
+	for _, at in
+		{ UDim2.fromOffset(9, 9), UDim2.new(1, -9, 0, 9), UDim2.new(0, 9, 1, -9), UDim2.new(1, -9, 1, -9) }
+	do
+		UI.rivet(panel, at, 22)
+	end
+	local title = panel:FindFirstChild("Title") :: TextLabel?
+	if title then
+		title.TextColor3 = M.Marker
+		title.TextXAlignment = Enum.TextXAlignment.Center
+		title.Size = UDim2.fromOffset(180, 34)
+		title.ZIndex = 23
+		local tape = UI.tape(panel, UDim2.fromOffset(18 + 90, 12 + 17), Vector2.new(190, 36), -1.5, nil, 22)
+		tape.BackgroundTransparency = 0
+	end
 	local list = UI.new("ScrollingFrame", {
 		Name = "List",
 		Parent = modal.Content,
@@ -191,6 +243,7 @@ function Settings.init(root: Frame, h: Hooks)
 		Size = UDim2.fromOffset(96, math.min(UI.buttonSize(), 56)),
 		TextSize = 18,
 	})
+	toggle.Font = UI.Font.Mono
 	local function show()
 		local on = hooks.IsReduced()
 		toggle.Text = if on then "ON" else "OFF"
@@ -207,11 +260,12 @@ function Settings.init(root: Frame, h: Hooks)
 		Name = "Footnote",
 		Parent = modal.Panel,
 		Role = "Caption",
-		Position = UDim2.fromOffset(18, 46),
+		Position = UDim2.fromOffset(18, 50),
 		Size = UDim2.new(1, -110, 0, 16),
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = UI.Color.TextMuted,
+		TextColor3 = M.Pencil,
 		Text = "Settings last until you leave the game.",
+		ZIndex = 21,
 	})
 end
 

@@ -183,6 +183,27 @@ function SessionStats.survivedStorm(player: Player)
 	end
 end
 
+-- Client diagnostics (ViewHealth): a fixed set of kinds, at most one per kind per player per
+-- minute. Recorded for QA only; nothing in the game acts on it.
+local DIAG_KINDS = { NoCamera = true, CameraType = true, Subject = true, Distance = true }
+local lastDiag: { [Player]: { [string]: number } } = {}
+function SessionStats.clientDiag(player: Player, kind: unknown, value: unknown)
+	if type(kind) ~= "string" or not DIAG_KINDS[kind] then
+		return
+	end
+	local number = if type(value) == "number" and value == value
+		then math.clamp(math.floor(value), -1, 100000)
+		else -1
+	local seen = lastDiag[player] or {}
+	lastDiag[player] = seen
+	if seen[kind] and os.clock() - seen[kind] < 60 then
+		return
+	end
+	seen[kind] = os.clock()
+	warn(("[ClientDiag] %s view lost: %s (%d)"):format(player.Name, kind, number))
+	event(player, "ViewLost_" .. kind, 1)
+end
+
 function SessionStats.report(player: Player): Report?
 	return reports[player]
 end
@@ -209,7 +230,10 @@ function SessionStats.init()
 		end
 		reports[player] = nil
 		lastPickupAt[player] = nil
+		lastDiag[player] = nil
 	end)
+	local Remotes = require(game:GetService("ReplicatedStorage").Shared.Remotes)
+	Remotes.get("ClientDiag").OnServerEvent:Connect(SessionStats.clientDiag)
 end
 
 return SessionStats

@@ -443,6 +443,16 @@ end
 -- right of the thumbstick zone.
 function Notifications.applyLayout(isCompact: boolean)
 	compact = isCompact
+	-- Notices stack downwards from the top while a menu is open, upwards from the bottom otherwise.
+	local feedList = feedHolder:FindFirstChildOfClass("UIListLayout")
+	if feedList then
+		feedList.VerticalAlignment = if suppress.Modal
+			then Enum.VerticalAlignment.Top
+			else Enum.VerticalAlignment.Bottom
+		feedList.HorizontalAlignment = if suppress.Modal
+			then Enum.HorizontalAlignment.Right
+			else Enum.HorizontalAlignment.Center
+	end
 	if isCompact then
 		hintPlate.Parent = topStack
 		hintPlate.LayoutOrder = 10

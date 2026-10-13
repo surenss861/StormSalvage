@@ -12,6 +12,7 @@ local EVENTS = {
 	"LightningWarning", -- server -> client: position, radius, delay
 	"Pickup", -- server -> client: { Id, Position } for the player who grabbed it
 	"SaleReceipt", -- server -> client: the exact result of one sale (see PlayerService.sell)
+	"ClientDiag", -- client -> server: kind, number (ViewHealth); logged only, never trusted
 }
 
 local folder: Folder
