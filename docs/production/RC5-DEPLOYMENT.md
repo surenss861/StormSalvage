@@ -119,3 +119,28 @@ Version History → **Restore** version **2**. Restoring only saves it, so then 
   - `StormSalvage_v1` / `player_8482925865`: latest version still `…0175` from 02:22:47 UTC; 200 coins, B4 S4 A3. **Untouched.**
   - `StormSalvage_v1_LIVETEST`: written at 18:57 and 19:38 UTC (joins and leaves). The profile is fresh: 0 coins, no upgrades, 0 items sold, lock released.
 - **Still to do:** the smoke test (collect, sell, upgrade, job, rejoin) hasn't been played yet.
+
+## RC6 private smoke test: PASS (2026-10-13, owner on the live place, version 124)
+
+The owner played: collect, sell, buy the bag upgrade, leave, rejoin. They report **25 coins after rejoining**.
+
+**Saves read back (read-only, 20:03 UTC):**
+
+| Store | Result |
+| --- | --- |
+| `StormSalvage_v1_LIVETEST` | Written at 19:54 (the leave) and 20:02 UTC; the lock is held by the current session.<br>• **25 coins**, matching what the owner sees.<br>• **Backpack 1**.<br>• 75 earned − 50 for Backpack 1 = 25 ✓<br>• 9 items sold.<br>• **Collect 8/8 job completed and replaced** by Sell 3/8.<br>• XP 34 = 25 from the job + 9 from sales ✓ |
+| `StormSalvage_v1` (real save) | Latest version still `…0175` from 02:22:47 UTC; 200 coins, B4 S4 A3. **Untouched.** |
+
+**Verified live, on the owner's real device and account:**
+- the buildings are fixed
+- collect and sell work
+- the upgrade works
+- the job completes and the next one is dealt
+- coins, upgrade and job progress persist across a leave and rejoin
+- saves stay isolated in `_LIVETEST`
+
+**Not yet covered** (remaining items in `V3-PRELAUNCH-TEST-PLAN.md`):
+- multiplayer and another player's nameplate
+- a phone
+- a cross-server hop
+- a storm survived live
