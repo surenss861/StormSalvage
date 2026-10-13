@@ -1,3 +1,6 @@
+# @file V3 Milestone C5: Starlite Motel. Front faces Blender -Y; origin at the base centre
+# @domain world
+# @status stable
 """V3 Milestone C5: Starlite Motel. Front faces Blender -Y; origin at the base centre.
 
 The motel keeps MapBuilder's 110 x 30 x 14 gameplay box (one central door, back truss) and its

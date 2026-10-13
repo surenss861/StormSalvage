@@ -1,3 +1,12 @@
+---
+related-code:
+  - "[[Config.luau]]"
+  - "[[Environment.luau]]"
+domain: data
+type: guide
+status: stable
+tags: [storm-salvage, data]
+---
 # Storm Salvage V3: staging, release and rollback runbook
 
 For whoever publishes Storm Salvage. Nothing here is automatic: every publish, merge and purchase

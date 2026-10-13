@@ -1,4 +1,8 @@
 --!strict
+-- @file Game configuration, flags and IDs
+-- @domain data
+-- @status stable
+-- @see [[V3-RELEASE-CHECKLIST]]
 -- Central tuning for Storm Salvage. Everything balance-related lives here.
 
 local Config = {}

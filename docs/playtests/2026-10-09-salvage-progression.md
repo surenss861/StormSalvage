@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[LootService.luau]]"
+domain: salvage-economy
+type: spec
+status: stable
+tags: [storm-salvage, salvage-economy]
+---
 # Studio test: salvage, selling and progression (2026-10-09)
 
 Priority 3: make the find → grab → escape → sell → upgrade loop rewarding and readable,

@@ -1,3 +1,6 @@
+# @file Scrapyard hub kit. Front of each asset faces Blender -Y (the side players approach)
+# @domain world
+# @status stable
 """Scrapyard hub kit. Front of each asset faces Blender -Y (the side players approach).
 
 blender -b --python tools/asset_pipeline/build_scrapyard.py

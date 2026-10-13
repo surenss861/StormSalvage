@@ -1,3 +1,6 @@
+# @file V3 Milestone C3: Fuel & Go. Front faces Blender -Y; origin at the base centre
+# @domain world
+# @status stable
 """V3 Milestone C3: Fuel & Go. Front faces Blender -Y; origin at the base centre.
 
 The store keeps MapBuilder's 40 x 30 x 14 gameplay box and its 5 x 4 interior loot grid

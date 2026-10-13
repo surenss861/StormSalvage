@@ -1,3 +1,7 @@
+-- @file Salvage spawning, pickups and storm loot
+-- @domain salvage-economy
+-- @status stable
+-- @see [[2026-10-09-salvage-progression]]
 -- Spawns salvage around town, handles pickups, storm-only legendary loot,
 -- and dropping a player's bag where they die.
 

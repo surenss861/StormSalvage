@@ -1,3 +1,6 @@
+# @file V3 Milestone C4: Warehouse 7. Front faces Blender -Y; origin at the base centre
+# @domain world
+# @status stable
 """V3 Milestone C4: Warehouse 7. Front faces Blender -Y; origin at the base centre.
 
 The warehouse keeps MapBuilder's 70 x 60 x 22 gameplay box (door -Z, back truss) and its 9 x 8

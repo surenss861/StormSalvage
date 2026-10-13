@@ -1,4 +1,8 @@
 --!strict
+-- @file Prices, upgrade costs and sell values
+-- @domain salvage-economy
+-- @status stable
+-- @tested-by [[economy.spec.luau]]
 -- Pure economy rules, shared by the server (which is authoritative) and the unit tests
 -- (tests/economy.spec.luau, run with Lune in CI). No Roblox APIs here, so it runs anywhere.
 

@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[DistrictHouses.luau]]"
+domain: world
+type: spec
+status: stable
+tags: [storm-salvage, world]
+---
 # Storm Salvage V3: Milestone C1, Houses district (ready for creative review)
 
 Branch `v3-art-direction`. Milestone B (`b2cc012`) is the quality reference. `main` is untouched.

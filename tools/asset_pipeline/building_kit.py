@@ -1,3 +1,6 @@
+# @file Shared building-shell helpers (walls with real openings, windows, parapets, rooftop clutte
+# @domain world
+# @status stable
 """Shared building-shell helpers (walls with real openings, windows, parapets, rooftop clutter).
 
 Shells are visual only: MapBuilder keeps invisible gameplay walls (1 stud thick, centered on the

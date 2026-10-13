@@ -1,3 +1,9 @@
+-- @file Restores authored asset pivots before placement
+-- @domain world
+-- @status stable
+-- @see [[AssetPivots.luau]]
+-- @see [[pivots.luau]]
+-- @see [[RC5-DEPLOYMENT]]
 -- Restores the authored pivots of the asset templates in ServerStorage.Assets before anything is
 -- placed.
 --

@@ -1,3 +1,6 @@
+# @file V3 Milestone C1: the Houses district. Front faces Blender -Y; origin at the base centre
+# @domain world
+# @status stable
 """V3 Milestone C1: the Houses district. Front faces Blender -Y; origin at the base centre.
 
 The two house shells keep the V2 gameplay contract from build_town.py exactly, because

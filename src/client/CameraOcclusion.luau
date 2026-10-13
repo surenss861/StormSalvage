@@ -1,3 +1,6 @@
+-- @file Keeps the camera inside buildings
+-- @domain world
+-- @status stable
 -- Keeps the native camera inside buildings. Roblox's camera only stops at visible, colliding
 -- parts; our building walls and roofs are invisible gameplay parts (MapBuilder.building) under
 -- non-colliding Blender shells, so in a tight aisle against a wall (the supermarket's freezer

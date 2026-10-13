@@ -1,3 +1,9 @@
+---
+domain: world
+type: spec
+status: stable
+tags: [storm-salvage, world]
+---
 # Studio playtest: Scrapyard kit and Houses district (2026-10-08)
 
 All tests ran in Roblox Studio Play mode through the Studio MCP connection, with one player. Screenshots are in [`../qa-screenshots/v2/`](../qa-screenshots/v2/).

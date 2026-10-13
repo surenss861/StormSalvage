@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[WorldSlice.luau]]"
+domain: world
+type: spec
+status: stable
+tags: [storm-salvage, world]
+---
 # Storm Salvage V3: Milestone B final report (B2 polish gate)
 
 Branch `v3-art-direction`. Responds to the B2 creative review of `f4fd611`. `main` is untouched

@@ -1,3 +1,6 @@
+# @file Storm Salvage V2: Blender environment kits for five districts
+# @domain world
+# @status stable
 """Storm Salvage V2: Blender environment kits for five districts.
 
 Copy next to tools/asset_pipeline/kit.py in the existing repo. Run using Blender:

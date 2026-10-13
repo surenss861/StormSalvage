@@ -1,3 +1,7 @@
+-- @file Always-on HUD
+-- @domain ui
+-- @status stable
+-- @see [[V3-UI-WORKSHOP]]
 -- The always-on HUD, built from objects in the salvage yard (docs/art/V3-UI-STUDIES.md):
 --   cash tag      coins (top left)
 --   crate         the bag: one slot per capacity, coloured by what's in it, and its sell value

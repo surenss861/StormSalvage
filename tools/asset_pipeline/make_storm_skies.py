@@ -1,3 +1,6 @@
+# @file Writes storm skybox faces (assets/textures/sky/<Storm>_{Up,Side,Dn}.png)
+# @domain world
+# @status stable
 """Writes storm skybox faces (assets/textures/sky/<Storm>_{Up,Side,Dn}.png).
 
 Gradient skies so the horizon takes the storm's colour even where Roblox's Atmosphere haze

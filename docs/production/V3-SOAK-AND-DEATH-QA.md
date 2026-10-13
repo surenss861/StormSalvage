@@ -1,3 +1,12 @@
+---
+related-code:
+  - "[[ViewHealth.luau]]"
+  - "[[client-soak.luau]]"
+domain: qa
+type: spec
+status: stable
+tags: [storm-salvage, qa]
+---
 # V3: client memory soak and death/black-screen investigation (Studio, 2026-10-13)
 
 Everything here was executed in Studio Play against the disposable `StormSalvage_v1_STUDIO` profile. Studio numbers are **not device evidence**. See "What this does not prove" at the end.

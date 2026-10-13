@@ -1,3 +1,7 @@
+-- @file Jobs board and nameplate locker
+-- @domain progression
+-- @status stable
+-- @see [[V3-PROGRESSION]]
 -- The Jobs board (Salvage Contracts + Salvager Reputation) and the nameplate locker, as one modal
 -- in the Workshop style: a corkboard with three pinned job slips, the rank strip on top, and a
 -- second tab of nameplate finishes bought with coins. Everything shown comes from the server's

@@ -1,3 +1,6 @@
+-- @file First-session analytics
+-- @domain qa
+-- @status stable
 -- First-session progression measurements, from the moment a player joins: time to first
 -- pickup, sale, upgrade and survived storm; every salvage trip (coins, items by rarity, how
 -- long the walk back to the Scrap Buyer took); deaths before the first upgrade; and whether

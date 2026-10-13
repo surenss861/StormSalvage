@@ -1,3 +1,6 @@
+# @file District props merged from the five-district source pack (contrib/five_district_pack.py, k
+# @domain world
+# @status stable
 """District props merged from the five-district source pack (contrib/five_district_pack.py, kept
 verbatim for provenance). Only props that add something the main districts kit
 (build_districts.py) doesn't have, and that fit beside the loot grids, are built here.

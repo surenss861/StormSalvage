@@ -1,3 +1,6 @@
+-- @file Multiplayer QA harness
+-- @domain qa
+-- @status stable
 -- Multiplayer QA harness (client side). Not part of the game: an MCP session puts it into
 -- each test client's PlayerScripts during a StudioTestService run, so several clients can
 -- act in the same frame. The server starts an action by setting workspace attributes:

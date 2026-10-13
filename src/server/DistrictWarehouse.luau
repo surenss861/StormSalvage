@@ -1,3 +1,7 @@
+-- @file Warehouse 7 district (V3 C4)
+-- @domain world
+-- @status stable
+-- @see [[V3-C4-WAREHOUSE]]
 -- V3 Milestone C4: Warehouse 7 (SE of Town Square). Turns the V2 hall of identical pallet racks
 -- into a logistics building with zones: receiving freight by the door, tall storage racks, a
 -- high-value cage at the back, an equipment wall and an overhead crane, plus a working dock

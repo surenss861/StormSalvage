@@ -1,3 +1,7 @@
+-- @file World look profiles: lighting, grade, atmosphere
+-- @domain world
+-- @status stable
+-- @see [[V3-WORLD-CONSISTENCY]]
 -- World look profiles: lighting, color grade, atmosphere, palette and material treatment for
 -- calm weather and storms. MapBuilder applies the active profile's calm look at startup and
 -- StormService tweens between cycle phases with `targetsFor()`.

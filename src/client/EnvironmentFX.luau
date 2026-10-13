@@ -1,3 +1,6 @@
+-- @file Cosmetic environment reactions to the storm cycle
+-- @domain world
+-- @status stable
 -- Client-side environmental reactions to the storm cycle (V3 vertical slice). Purely cosmetic
 -- and driven by the replicated storm state, so every client sees the same weather:
 --

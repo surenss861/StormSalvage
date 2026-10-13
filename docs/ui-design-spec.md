@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[UI.luau]]"
+domain: ui
+type: spec
+status: stable
+tags: [storm-salvage, ui]
+---
 # Storm Salvage UI design spec
 
 The rules every screen, card and sound cue follows. The tokens are implemented in

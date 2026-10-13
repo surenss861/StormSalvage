@@ -1,3 +1,6 @@
+-- @file Settings panel
+-- @domain ui
+-- @status stable
 -- Settings panel: master, effects and weather volume, and Reduced Effects. Dressed as a riveted
 -- tin control panel (Workshop direction): label-maker strips for names, fader slots with an
 -- orange cap for volumes, a heavy toggle plate for Reduced Effects. Numbers in the bold plain face.

@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[StormService.luau]]"
+domain: world
+type: spec
+status: stable
+tags: [storm-salvage, world]
+---
 # Studio test: storm gameplay refinement (2026-10-08/09)
 
 Priority 2: make Wind, Flood and Lightning ask for different decisions. Tested in Roblox Studio

@@ -1,3 +1,7 @@
+-- @file Game passes and developer products (Supply Counter)
+-- @domain salvage-economy
+-- @status stable
+-- @see [[V3-MONETIZATION]]
 -- Game passes and developer products (the Supply Counter). IDs live in Config; an Id of 0
 -- disables that item. Coins are granted only here, from Roblox's receipt callback, never from a
 -- client message; the client is told after the reward is saved (PurchaseDelivered).

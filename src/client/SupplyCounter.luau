@@ -1,3 +1,7 @@
+-- @file Supply Counter: optional Robux tickets
+-- @domain salvage-economy
+-- @status stable
+-- @see [[V3-MONETIZATION]]
 -- The Supply Counter: the optional Robux side of the Gear Shop (the Equipment workbench stays
 -- coins-only). One supply-order ticket per catalog item (Config.DevProducts / GamePasses) that
 -- states exactly what you get, the price, whether it's repeatable or permanent, and where the

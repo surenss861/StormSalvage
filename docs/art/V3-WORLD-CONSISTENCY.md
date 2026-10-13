@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[LookService.luau]]"
+domain: world
+type: spec
+status: stable
+tags: [storm-salvage, world]
+---
 # Storm Salvage V3: world consistency pass
 
 After C1-C5, the town walked as one place (overview plus ground-level views from the central

@@ -1,3 +1,7 @@
+-- @file Player session: saved data, carried salvage, selling, upgrades
+-- @domain salvage-economy
+-- @status stable
+-- @see [[DataService.luau]]
 -- Owns each player's session: saved data, the salvage they are carrying,
 -- character stats from upgrades, selling, and buying upgrades.
 

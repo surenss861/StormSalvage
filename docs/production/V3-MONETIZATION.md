@@ -1,3 +1,12 @@
+---
+related-code:
+  - "[[MonetizationService.luau]]"
+  - "[[SupplyCounter.luau]]"
+domain: salvage-economy
+type: spec
+status: stable
+tags: [storm-salvage, salvage-economy]
+---
 # Storm Salvage V3: monetization (Supply Counter)
 
 **Status: built and Studio-tested, not on sale.** `Config.PurchasesEnabled = false` and every product ID is `0`. No product exists on Roblox yet, no Robux has been spent, and the experience is still private.

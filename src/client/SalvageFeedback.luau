@@ -1,3 +1,6 @@
+-- @file Reward feedback for the salvage loop
+-- @domain salvage-economy
+-- @status stable
 -- Reward feedback for the salvage loop: pickups, rare finds, a full bag, Storm Cores, and the
 -- sale receipt. Everything shown here comes from the server (Pickup and SaleReceipt events
 -- and the player state); nothing is computed or granted on the client.

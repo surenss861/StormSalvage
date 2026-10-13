@@ -1,3 +1,6 @@
+# @file Tile preview PNGs into one contact sheet:  blender -b --python contact_sheet.py -- <dir> <
+# @domain world
+# @status stable
 """Tile preview PNGs into one contact sheet:  blender -b --python contact_sheet.py -- <dir> <out.png>"""
 import math
 import os

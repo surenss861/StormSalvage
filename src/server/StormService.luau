@@ -1,3 +1,7 @@
+-- @file Weather cycle: Calm, Warning, Storm, Aftermath
+-- @domain world
+-- @status stable
+-- @see [[2026-10-09-storm-gameplay]]
 -- Runs the weather cycle: Calm -> Warning -> Storm -> Aftermath, forever.
 -- Storms play differently:
 --   Wind: steady wind plus telegraphed gusts that carry the push and the debris. Cross open

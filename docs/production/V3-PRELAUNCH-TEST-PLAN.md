@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[DebugService.luau]]"
+domain: qa
+type: guide
+status: stable
+tags: [storm-salvage, qa]
+---
 # Storm Salvage V3: pre-launch test plan (private live experience)
 
 There is no staging experience. Every "staging" step below runs in the existing **private** Storm Salvage experience with `Config.LiveTestMode = true`, so all data goes to `StormSalvage_v1_LIVETEST` and real saves are never opened. Each section is kept as written.

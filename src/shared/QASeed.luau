@@ -1,4 +1,7 @@
 --!strict
+-- @file Deterministic RNG for Studio QA runs
+-- @domain qa
+-- @status stable
 -- Random number generators for gameplay. Normally unseeded. In Studio only, the ReplicatedStorage
 -- attribute QA_Seed (set in Edit mode before Play) makes every run with the same seed produce the
 -- same loot spawns, storm order, strike spots and contract deals, so economy comparisons (free vs

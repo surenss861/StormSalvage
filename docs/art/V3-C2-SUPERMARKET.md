@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[DistrictSupermarket.luau]]"
+domain: world
+type: spec
+status: stable
+tags: [storm-salvage, world]
+---
 # Storm Salvage V3: Milestone C2, Super Saver supermarket (ready for creative review)
 
 Branch `v3-art-direction`. Follows the C1 review of `1e5d6d8` (C1 fixes in `0aab9bc`). `main` is

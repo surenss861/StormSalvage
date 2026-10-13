@@ -1,3 +1,6 @@
+# @file Commercial districts: supermarket, gas station, warehouse, motel, town square
+# @domain world
+# @status stable
 """Commercial districts: supermarket, gas station, warehouse, motel, town square.
 
 Each *Shell matches the gameplay footprint MapBuilder.building() creates for it (width x depth x

@@ -1,3 +1,7 @@
+-- @file Houses district (V3 C1)
+-- @domain world
+-- @status stable
+-- @see [[V3-C1-HOUSES]]
 -- V3 Milestone C1: the Houses district (SW of Town Square). Swaps the V2 house shells for the V3
 -- ones, gives each lot a yard with a purpose, and adds the district landmark: an old oak the
 -- storm tore out across the west end of the lane. See docs/art/V3-C1-HOUSES.md.

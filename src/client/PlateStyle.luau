@@ -1,3 +1,7 @@
+-- @file Nameplate finish materials
+-- @domain progression
+-- @status stable
+-- @see [[V3-PROGRESSION]]
 -- How each nameplate finish looks: a material, not just a colour. Used by the overhead
 -- nameplates (Nameplates.luau) and the locker previews (Jobs.luau), so what you buy is exactly
 -- what other players see.

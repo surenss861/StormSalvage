@@ -1,3 +1,8 @@
+-- @file V3 vertical slice: Scrapyard, departure road, Town Square
+-- @domain world
+-- @status stable
+-- @see [[V3-SLICE-REVIEW]]
+-- @see [[V3-MILESTONE-B-FINAL]]
 -- V3 vertical slice (Milestone B): recomposes the Scrapyard, the departure road and Town Square,
 -- and gives the town a world edge (terrain hills, tree lines, distant landmarks) instead of a
 -- flat lawn that stops at the sky. See docs/art/V3-ART-DIRECTION.md.

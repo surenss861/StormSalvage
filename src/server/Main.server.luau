@@ -1,3 +1,7 @@
+-- @file Server entry point
+-- @domain core
+-- @status stable
+-- @see [[V3-PRODUCTION-TRACKER]]
 -- Storm Salvage server entry point.
 
 local ProximityPromptService = game:GetService("ProximityPromptService")

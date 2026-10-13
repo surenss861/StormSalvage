@@ -1,3 +1,12 @@
+---
+related-code:
+  - "[[Environment.luau]]"
+  - "[[AssetPivotFix.luau]]"
+domain: data
+type: guide
+status: stable
+tags: [storm-salvage, data]
+---
 # RC5 private deployment: owner checklist
 
 **Build:** `rc-20261013-5`, commit `858aa8f`, approved for private testing by the owner on 2026-10-13. Not for a public launch; purchases stay off.

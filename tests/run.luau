@@ -1,3 +1,6 @@
+-- @file Unit test runner (Lune)
+-- @domain qa
+-- @status stable
 -- Unit test runner (Lune): `lune run tests/run`. Each spec returns { [name] = fn }.
 local specs = {
 	require("./economy.spec"),

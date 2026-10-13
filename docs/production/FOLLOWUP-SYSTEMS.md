@@ -1,3 +1,9 @@
+---
+domain: core
+type: spec
+status: stable
+tags: [storm-salvage, core]
+---
 # Storm Salvage — post-environment production order
 
 Do NOT start all these branches of work at once. Complete and QA the five

@@ -1,3 +1,7 @@
+-- @file Per-storm balancing measurements
+-- @domain world
+-- @status stable
+-- @see [[StormService.luau]]
 -- Lightweight per-storm measurements for balancing: damage by storm, deaths, time exposed
 -- vs sheltered, survival, salvage and Storm Cores collected, coins sold, and whether a
 -- player stuck around for the next storm. One summary line is printed per storm; recent

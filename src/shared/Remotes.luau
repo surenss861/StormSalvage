@@ -1,4 +1,7 @@
 --!strict
+-- @file Remote events and functions
+-- @domain core
+-- @status stable
 -- Shared remote registry. The server creates the instances; clients wait for them.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

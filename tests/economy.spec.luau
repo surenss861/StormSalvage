@@ -1,3 +1,7 @@
+-- @file Economy unit tests
+-- @domain qa
+-- @status stable
+-- @see [[Economy.luau]]
 local Economy = require("../src/shared/Economy")
 
 local function eq(a: any, b: any, what: string)

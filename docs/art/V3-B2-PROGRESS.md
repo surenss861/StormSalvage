@@ -1,3 +1,9 @@
+---
+domain: world
+type: spec
+status: stable
+tags: [storm-salvage, world]
+---
 # Storm Salvage V3: Milestone B2 (hero assets, storm fixes), ready for creative review
 
 Branch `v3-art-direction`. Responds to the B1 creative review of `dbced66`. The seven hero models

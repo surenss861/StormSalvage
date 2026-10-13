@@ -1,3 +1,9 @@
+---
+domain: world
+type: spec
+status: stable
+tags: [storm-salvage, world]
+---
 # Storm Salvage: Art Direction
 
 ## The one-line pitch

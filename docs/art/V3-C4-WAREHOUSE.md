@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[DistrictWarehouse.luau]]"
+domain: world
+type: spec
+status: stable
+tags: [storm-salvage, world]
+---
 # Storm Salvage V3: Milestone C4, Warehouse 7 (done, Studio-tested)
 
 Branch `v3-art-direction`. Built under the autonomous completion directive (no stop for review).

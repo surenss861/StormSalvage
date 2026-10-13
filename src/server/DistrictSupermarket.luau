@@ -1,3 +1,7 @@
+-- @file Super Saver supermarket district (V3 C2)
+-- @domain world
+-- @status stable
+-- @see [[V3-C2-SUPERMARKET]]
 -- V3 Milestone C2: the Super Saver supermarket (NE of Town Square). Turns the V2 box of identical
 -- shelves into a store with departments, a checkout line, a staff door, a receiving dock and
 -- storm damage. See docs/art/V3-C2-SUPERMARKET.md.

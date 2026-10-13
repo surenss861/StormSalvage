@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[DataService.luau]]"
+domain: data
+type: spec
+status: stable
+tags: [storm-salvage, data]
+---
 # Storm Salvage V3: production audit (2026-10-13)
 
 Branch `v3-art-direction`. Findings classified P0 / P1 / P2. "Verified" means a test was run and

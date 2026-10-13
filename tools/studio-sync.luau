@@ -1,3 +1,6 @@
+-- @file Rojo-free Studio code sync
+-- @domain qa
+-- @status stable
 -- Rojo-free sync for when the rojo binary is unavailable: run `python3 -m http.server 34872 --bind 127.0.0.1`
 -- from the repo root, then paste tools/studio-sync-bootstrap.luau into the Studio command bar (Edit mode).
 -- Pulls src/ from the local http server into the place (Rojo-equivalent mapping).

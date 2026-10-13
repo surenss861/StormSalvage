@@ -1,3 +1,15 @@
+---
+related-code:
+  - "[[ContractService.luau]]"
+  - "[[Progression.luau]]"
+  - "[[Jobs.luau]]"
+  - "[[PlateStyle.luau]]"
+  - "[[autopilot.luau]]"
+domain: progression
+type: spec
+status: stable
+tags: [storm-salvage, progression]
+---
 # V3 progression: Salvage Contracts, Reputation, nameplate finishes
 
 Built 2026-10-13, following the owner's retention directive (contracts first, then reputation, then a lightweight coin sink). It is Studio-tested and part of RC4; nothing is published.

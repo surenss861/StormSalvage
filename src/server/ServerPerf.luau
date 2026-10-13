@@ -1,3 +1,7 @@
+-- @file Server performance log (non-public builds)
+-- @domain qa
+-- @status stable
+-- @see [[V3-PERFORMANCE-BUDGETS]]
 -- Server performance log for staging, Studio and live-test mode (never in the public release). Once a minute it prints
 -- one line to the server log, readable in the Developer Console (F9 -> Server) during the
 -- 4/8/12-player staging runs (docs/production/V3-PRELAUNCH-TEST-PLAN.md):

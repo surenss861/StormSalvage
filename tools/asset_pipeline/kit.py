@@ -1,3 +1,6 @@
+# @file Shared Blender modeling kit for Storm Salvage assets
+# @domain world
+# @status stable
 """Shared Blender modeling kit for Storm Salvage assets.
 
 Run generators with:  blender -b --python tools/asset_pipeline/build_<set>.py

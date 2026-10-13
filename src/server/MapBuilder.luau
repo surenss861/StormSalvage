@@ -1,3 +1,8 @@
+-- @file Procedural town build at server start
+-- @domain world
+-- @status stable
+-- @see [[V3-ART-DIRECTION]]
+-- @see [[FIVE-DISTRICT-QA]]
 -- Procedurally builds the Storm Salvage town at server start.
 -- Layout (north = -Z): raised Scrapyard hub in the north, town below it.
 --   Gas Station (NW)   Supermarket (NE)

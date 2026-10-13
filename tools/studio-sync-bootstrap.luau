@@ -1,3 +1,7 @@
+-- @file Studio command-bar bootstrap for studio-sync
+-- @domain qa
+-- @status stable
+-- @see [[studio-sync.luau]]
 -- Paste into the Studio command bar (Edit mode) while the repo is served on port 34872.
 local Http = game:GetService("HttpService")
 local was = Http.HttpEnabled

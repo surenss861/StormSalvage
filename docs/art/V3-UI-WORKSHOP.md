@@ -1,3 +1,14 @@
+---
+related-code:
+  - "[[UI.luau]]"
+  - "[[Hud.luau]]"
+  - "[[Notifications.luau]]"
+  - "[[Shop.luau]]"
+domain: ui
+type: spec
+status: stable
+tags: [storm-salvage, ui]
+---
 # V3 UI: Scrapyard Workshop (implemented)
 
 You approved this direction on 2026-10-13. It is Scrapyard Workshop, with Storm Chaser's weather hierarchy and Salvage Adventure's accessibility (see `V3-UI-STUDIES.md`). It is now the real game UI on `v3-art-direction`. The study modules have been removed and their captures are kept in `docs/art/v3/ui/studies/`.

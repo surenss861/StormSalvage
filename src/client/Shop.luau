@@ -1,3 +1,7 @@
+-- @file Gear Shop pegboard (Equipment and Supply tabs)
+-- @domain salvage-economy
+-- @status stable
+-- @see [[V3-UI-WORKSHOP]]
 -- The Gear Shop as the Scrapyard's pegboard (Workshop direction). The three pieces of equipment
 -- hang on the left as tool tags (level punched in, price sticker); the selected one is laid out
 -- on a spec sheet on the right in a strict order: what it is, level, what it does now -> next

@@ -1,4 +1,9 @@
 --!strict
+-- @file Resolves the environment and DataStore namespace
+-- @domain data
+-- @status stable
+-- @see [[RC5-DEPLOYMENT]]
+-- @tested-by [[environment.spec.luau]]
 -- Which data environment a server is in, as a pure function so it can be unit-tested
 -- (tests/environment.spec.luau) without Roblox. Config calls it once at startup.
 --

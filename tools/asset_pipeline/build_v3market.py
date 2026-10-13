@@ -1,3 +1,6 @@
+# @file V3 Milestone C2: the Super Saver supermarket. Front faces Blender -Y; origin at the base c
+# @domain world
+# @status stable
 """V3 Milestone C2: the Super Saver supermarket. Front faces Blender -Y; origin at the base centre.
 
 The store keeps MapBuilder's gameplay box (70 x 50 x 18, door +Z, solid back wall) and its 9 x 7

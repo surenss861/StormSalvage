@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[WorldSlice.luau]]"
+domain: world
+type: spec
+status: stable
+tags: [storm-salvage, world]
+---
 # Storm Salvage V3: Milestone B vertical slice (for creative review)
 
 Branch `v3-art-direction`, not merged. Approved direction: Study A (Storm-Scarred Arcade) with

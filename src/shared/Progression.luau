@@ -1,4 +1,9 @@
 --!strict
+-- @file Contract, rank and finish rules
+-- @domain progression
+-- @status stable
+-- @see [[V3-PROGRESSION]]
+-- @tested-by [[progression.spec.luau]]
 -- Salvage Contracts and Salvager Reputation: the rules, as pure functions so the server, the
 -- client UI and the unit tests (tests/progression.spec.luau) share one definition.
 --

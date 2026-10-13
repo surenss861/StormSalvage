@@ -1,3 +1,7 @@
+-- @file QA autopilot bot for economy runs
+-- @domain qa
+-- @status stable
+-- @see [[V3-PROGRESSION]]
 -- QA autopilot (client side, not part of the game). Plays the core loop the way an efficient
 -- but storm-naive new player might: walk to the nearest salvage, grab it, go sell when the
 -- bag is full, and buy the cheapest affordable upgrade. It ignores storms on purpose.

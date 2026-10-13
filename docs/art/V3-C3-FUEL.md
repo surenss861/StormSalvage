@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[DistrictFuel.luau]]"
+domain: world
+type: spec
+status: stable
+tags: [storm-salvage, world]
+---
 # Storm Salvage V3: Milestone C3, Fuel & Go (ready for creative review)
 
 Branch `v3-art-direction`. Follows the C2 review fixes (`bac623f`). `main` is untouched.

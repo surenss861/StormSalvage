@@ -1,3 +1,7 @@
+-- @file Overhead nameplates for other players
+-- @domain progression
+-- @status stable
+-- @see [[PlateStyle.luau]]
 -- Overhead nameplates for other players: display name, Salvager rank title, and the nameplate
 -- finish they've equipped (bought with coins at the Jobs board). Drawn from the attributes the
 -- server sets on each Player (RankTitle, Plate), so nothing here is trusted for gameplay. Replaces

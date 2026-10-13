@@ -1,3 +1,6 @@
+-- @file Studio tool: style and export imported FBX batches
+-- @domain world
+-- @status stable
 -- Studio command-bar tool (Edit mode). After importing an FBX batch with the 3D Importer:
 --   1. Move the imported models into ServerStorage.ImportedAssets.<set> (e.g. "salvage").
 --   2. Run tools/asset_server.py from the repo root.

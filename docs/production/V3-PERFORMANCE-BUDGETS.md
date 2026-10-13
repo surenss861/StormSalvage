@@ -1,3 +1,12 @@
+---
+related-code:
+  - "[[ServerPerf.luau]]"
+  - "[[PerfProbe.luau]]"
+domain: qa
+type: spec
+status: stable
+tags: [storm-salvage, qa]
+---
 # Storm Salvage V3: performance budgets and acceptance gates
 
 **Status:** proposed engineering contract, 2026-10-09. Every threshold here is a

@@ -1,3 +1,7 @@
+-- @file Black-screen diagnostic
+-- @domain qa
+-- @status stable
+-- @see [[V3-SOAK-AND-DEATH-QA]]
 -- Watches for the game view losing the player (V3 QA: one unreproduced black screen after a
 -- death in Studio, docs/art/V3-UI-WORKSHOP.md). Once a second, while the character has been
 -- alive for a few seconds, it checks that the camera follows the character's Humanoid with the

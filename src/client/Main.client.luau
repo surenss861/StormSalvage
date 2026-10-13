@@ -1,3 +1,7 @@
+-- @file Client entry: wires server state into the HUD
+-- @domain ui
+-- @status stable
+-- @see [[Remotes.luau]]
 -- Storm Salvage client: wires the server's state and events into the HUD, cards, shop,
 -- settings, storm presentation and audio. The pieces live in their own modules:
 --

@@ -1,3 +1,9 @@
+---
+domain: ui
+type: spec
+status: stable
+tags: [storm-salvage, ui]
+---
 # V3 UI direction studies (D reset)
 
 Instrument and Stencil are rejected as final directions; Instrument remains the functional

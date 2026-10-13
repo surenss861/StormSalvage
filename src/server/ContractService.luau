@@ -1,3 +1,8 @@
+-- @file Salvage Contracts, Reputation and nameplate finishes (server)
+-- @domain progression
+-- @status stable
+-- @see [[V3-PROGRESSION]]
+-- @see [[Progression.luau]]
 -- Salvage Contracts, Salvager Reputation and nameplate finishes (rules: shared/Progression).
 --
 -- Authority: progress only comes from the server's own game events (a pickup the server granted,

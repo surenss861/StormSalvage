@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[Config.luau]]"
+domain: data
+type: guide
+status: stable
+tags: [storm-salvage, data]
+---
 # Storm Salvage V3: release checklist (G)
 
 Everything here needs you or real hardware/players; none of it is done by Studio testing.

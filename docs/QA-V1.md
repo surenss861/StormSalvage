@@ -1,3 +1,9 @@
+---
+domain: qa
+type: spec
+status: stable
+tags: [storm-salvage, qa]
+---
 # Storm Salvage V1: Studio QA Report
 
 Date: 2026-10-08. Every result below was produced in Roblox Studio through the built-in Studio MCP server: Play mode, real keyboard and mouse input, server and client inspection, and screenshots. Things that weren't tested are listed in **Not verified**. Screenshots are in [`qa-screenshots/`](qa-screenshots/).

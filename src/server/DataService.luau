@@ -1,3 +1,8 @@
+-- @file Player persistence with session-owned save locks
+-- @domain data
+-- @status stable
+-- @see [[V3-PRODUCTION-AUDIT]]
+-- @see [[Environment.luau]]
 -- Player persistence with a simple session lock (prevents two servers writing the
 -- same profile at once, which is how item/coin duplication usually happens).
 -- Swap for ProfileStore later if you need more features; the API surface is small.

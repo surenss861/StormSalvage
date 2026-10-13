@@ -1,3 +1,7 @@
+-- @file Starlite Motel district (V3 C5)
+-- @domain world
+-- @status stable
+-- @see [[V3-C5-MOTEL]]
 -- V3 Milestone C5: the Starlite Motel (far south). Turns the V2 single dormitory hall into six
 -- rooms and an office along a front corridor, each room with its own storm story, and finishes the
 -- walkway outside. See docs/art/V3-C5-MOTEL.md.

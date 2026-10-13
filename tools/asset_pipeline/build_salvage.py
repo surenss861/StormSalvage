@@ -1,3 +1,6 @@
+# @file Salvage items: the loot players pick up. Sizes roughly match Config.Loot (studs)
+# @domain world
+# @status stable
 """Salvage items: the loot players pick up. Sizes roughly match Config.Loot (studs).
 
 blender -b --python tools/asset_pipeline/build_salvage.py

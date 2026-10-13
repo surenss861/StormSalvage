@@ -1,3 +1,6 @@
+-- @file District titles and best finds on entry
+-- @domain world
+-- @status stable
 -- District titles: when you walk into a district, a short title and its best finds appear
 -- under the storm strip for a few seconds. These replace the big floating district names
 -- that used to hang over the town; the buildings carry their own physical signs.

@@ -1,3 +1,7 @@
+-- @file Fuel & Go district (V3 C3)
+-- @domain world
+-- @status stable
+-- @see [[V3-C3-FUEL]]
 -- V3 Milestone C3: Fuel & Go (NW of Town Square). Gives the V2 forecourt, empty store box and
 -- open-air repair bay a finished roadside service-centre identity. See docs/art/V3-C3-FUEL.md.
 --

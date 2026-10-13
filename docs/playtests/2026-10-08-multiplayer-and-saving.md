@@ -1,3 +1,9 @@
+---
+domain: data
+type: spec
+status: stable
+tags: [storm-salvage, data]
+---
 # Studio test: multiplayer and DataStore saving (2026-10-08)
 
 Run in Roblox Studio over the Studio MCP connection. Sessions were started with

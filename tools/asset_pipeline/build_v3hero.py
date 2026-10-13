@@ -1,3 +1,6 @@
+# @file V3 hero assets (Milestone B2): the buildings and machines that define the Scrapyard and
+# @domain world
+# @status stable
 """V3 hero assets (Milestone B2): the buildings and machines that define the Scrapyard and
 Town Square. Front of each asset faces Blender -Y (the side players approach).
 

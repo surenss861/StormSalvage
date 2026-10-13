@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[DistrictMotel.luau]]"
+domain: world
+type: spec
+status: stable
+tags: [storm-salvage, world]
+---
 # Storm Salvage V3: Milestone C5, Starlite Motel (done, Studio-tested)
 
 Branch `v3-art-direction`. Built under the autonomous completion directive. All measurements are

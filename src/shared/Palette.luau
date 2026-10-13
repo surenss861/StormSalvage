@@ -1,4 +1,8 @@
 --!strict
+-- @file Shared colour palette and swatches
+-- @domain world
+-- @status stable
+-- @see [[V3-ART-DIRECTION]]
 -- Storm Salvage art palette. One source of truth for world colors: MapBuilder uses these,
 -- and imported Blender meshes are colored from their object names (see AssetStyler).
 -- Swatch names are referenced from Blender object names: "Piece__Material__Swatch".

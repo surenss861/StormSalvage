@@ -1,3 +1,7 @@
+-- @file Environment resolver unit tests
+-- @domain qa
+-- @status stable
+-- @see [[Environment.luau]]
 local Environment = require("../src/shared/Environment")
 
 local function eq(a: any, b: any, what: string)

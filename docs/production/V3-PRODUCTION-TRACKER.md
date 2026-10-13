@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[Main.server.luau]]"
+domain: core
+type: readme
+status: stable
+tags: [storm-salvage, core]
+---
 # Storm Salvage V3: production tracker (C4 to G)
 
 Single source of truth for the completion push. Branch `v3-art-direction`; `main` stays at

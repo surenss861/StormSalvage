@@ -1,3 +1,7 @@
+-- @file Device performance log (non-public builds)
+-- @domain qa
+-- @status stable
+-- @see [[V3-PERFORMANCE-BUDGETS]]
 -- Device performance log for staging, Studio and live-test playtests (never in the public release). Every
 -- frame's duration goes into a buffer; once a minute it prints one line to the client log, which
 -- a tester can read on a phone in the Developer Console (F9):

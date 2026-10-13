@@ -1,3 +1,7 @@
+-- @file Message slots and priority
+-- @domain ui
+-- @status stable
+-- @see [[V3-UI-WORKSHOP]]
 -- Where every message goes, and which one wins. One slot per kind of message so nothing
 -- overlaps (see docs/ui-design-spec.md, "Notifications"):
 --

@@ -1,3 +1,7 @@
+-- @file Client storm presentation and readouts
+-- @domain world
+-- @status stable
+-- @see [[StormService.luau]]
 -- Client-side storm presentation: what each storm looks and feels like, and the readouts that
 -- let a player plan around it. Gameplay (damage, strike positions, gust and flood timing) is
 -- decided by the server and arrives in the storm state; this only draws it.

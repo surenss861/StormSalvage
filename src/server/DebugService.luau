@@ -1,3 +1,7 @@
+-- @file Studio-only QA commands
+-- @domain qa
+-- @status stable
+-- @see [[V3-PRELAUNCH-TEST-PLAN]]
 -- Studio-only QA hooks so storms and progression can be tested without waiting out
 -- the full cycle. Exposed as a BindableFunction in ServerStorage, which clients can't
 -- reach, and only created when running inside Studio.

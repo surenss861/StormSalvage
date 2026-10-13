@@ -1,3 +1,9 @@
+---
+domain: world
+type: spec
+status: stable
+tags: [storm-salvage, world]
+---
 # Studio playtest: supermarket, gas station, warehouse, motel, town square (2026-10-08)
 
 Tested in Roblox Studio Play mode through the Studio MCP connection, with one player. Screenshots are in [`../qa-screenshots/v3/`](../qa-screenshots/v3/).

@@ -1,3 +1,6 @@
+-- @file Client audio routing through Effects and Weather groups
+-- @domain world
+-- @status stable
 -- Client audio: every cue in Config.Sounds routed through two SoundGroups (Effects and Weather)
 -- whose volumes follow the Settings panel (master x group). Handles repeat throttling, small
 -- pools for cues that may overlap, positional one-shots, and crossfaded ambience loops.

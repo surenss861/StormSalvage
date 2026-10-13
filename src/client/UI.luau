@@ -1,3 +1,8 @@
+-- @file Design tokens and UI builders
+-- @domain ui
+-- @status stable
+-- @see [[ui-design-spec]]
+-- @see [[V3-UI-WORKSHOP]]
 -- Design tokens and small builders shared by every client UI module, so the HUD, cards,
 -- modals and world markers all use one type scale, palette, shape language and motion
 -- timing. See docs/ui-design-spec.md for the reasoning behind each value.

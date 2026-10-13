@@ -1,3 +1,7 @@
+-- @file Client memory soak
+-- @domain qa
+-- @status stable
+-- @see [[V3-SOAK-AND-DEATH-QA]]
 -- Client memory soak (QA only, not part of the game). Run with the MCP execute_luau tool in the
 -- Client data model during a Studio Play session, after the server side has created the
 -- runtime-only RemoteFunction ReplicatedStorage.QA_Server (see docs/production/V3-SOAK.md).

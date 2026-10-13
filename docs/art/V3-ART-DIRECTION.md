@@ -1,3 +1,12 @@
+---
+related-code:
+  - "[[MapBuilder.luau]]"
+  - "[[Palette.luau]]"
+domain: world
+type: spec
+status: stable
+tags: [storm-salvage, world]
+---
 # Storm Salvage V3 art direction (proposal for review)
 
 **Status:** Milestone A, the art-direction studies. Nothing here has been propagated across the

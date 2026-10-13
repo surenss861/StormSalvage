@@ -1,3 +1,7 @@
+-- @file Progression rules unit tests
+-- @domain qa
+-- @status stable
+-- @see [[Progression.luau]]
 local P = require("../src/shared/Progression")
 
 local function eq(a: any, b: any, what: string)

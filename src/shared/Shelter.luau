@@ -1,3 +1,6 @@
+-- @file Is this position under a roof?
+-- @domain world
+-- @status stable
 -- "Is this position under a roof?" Used by the server (lightning/debris damage)
 -- and the client (wind push) so both agree on what counts as shelter.
 

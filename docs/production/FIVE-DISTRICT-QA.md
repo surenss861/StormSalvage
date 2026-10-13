@@ -1,3 +1,11 @@
+---
+related-code:
+  - "[[MapBuilder.luau]]"
+domain: world
+type: spec
+status: stable
+tags: [storm-salvage, world]
+---
 # Five-district build: precise production and QA gates
 
 ## Current geometry contract

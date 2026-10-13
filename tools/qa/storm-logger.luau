@@ -1,3 +1,6 @@
+-- @file Multiplayer storm timeline logger
+-- @domain qa
+-- @status stable
 -- Multiplayer QA (client side, not part of the game): records the storm timeline this
 -- client receives, so several clients can be compared. Put into PlayerScripts during a
 -- StudioTestService run; read back with ReplicatedStorage:GetAttribute("QA_StormLog").

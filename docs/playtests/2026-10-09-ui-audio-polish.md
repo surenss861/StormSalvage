@@ -1,3 +1,9 @@
+---
+domain: ui
+type: spec
+status: stable
+tags: [storm-salvage, ui]
+---
 # Studio test: UI, animation, audio and game feel (2026-10-09)
 
 Priority 4: rebuild the HUD, notifications, shop, settings and sound so the game feels

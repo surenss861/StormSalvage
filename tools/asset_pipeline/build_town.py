@@ -1,3 +1,6 @@
+# @file Town kit: houses, interiors, street props, storm debris. Front faces Blender -Y
+# @domain world
+# @status stable
 """Town kit: houses, interiors, street props, storm debris. Front faces Blender -Y.
 
 Houses are visual shells around the gameplay footprint used by MapBuilder.building():
