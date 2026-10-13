@@ -62,3 +62,18 @@ injection, DataStore read back after each step):
 
 Memory-leak soak (shop open/close, deaths, weather cycles), 4/8/12-player load, low-graphics
 rendering investigation on hardware, join timing, release runbook. UI creative reset in progress.
+
+## Persistence beyond the receipt suite (Studio, `_STUDIO`, 2026-10-13)
+
+| Check | Result |
+| --- | --- |
+| Environment resolution (pure `Environment.resolve`, 8 unit tests in CI) | Studio is `_STUDIO` on any place id, including the live one. A listed live place uses the real store and a listed staging place uses `_STAGING`. Unlisted, unpublished, invalid, or listed-as-both places get **no store**. |
+| Unknown environment at runtime | Code path: no store means `DataService.load` returns a default profile with `CanSave=false`, so nothing saves, receipts get `NotProcessedYet` and Robux buttons are refused. Not runtime-tested; it needs a non-listed published place. |
+| Long-lived profile: 1,000 / 5,000 / 20,000 receipt IDs | Stored 21 KB / 109 KB / 449 KB (0.5% / 2.6% / 10.7% of the 4 MB limit); saves took 0.32 / 0.38 / 0.50 s. Real PurchaseIds are longer, so the ceiling is roughly 100k purchases per player. |
+| Redelivery of the **oldest** of 20,000 IDs with no history record | Granted nothing (coins unchanged), so the profile list alone blocks it. A new ID granted exactly once, and its redelivery granted nothing. About 1 s per receipt. |
+| Stale lock (crashed server, 401 s old) | Taken over; the profile loaded 0.1 s after join with saving on and no data lost. |
+| Live lock held by another server | 6 retries, then the player is kicked at 41.6 s; the profile and the other server's lock are untouched. |
+| Release on shutdown (Studio Stop) | The lock is released within 5 s of Stop (`BindToClose` save with release). |
+| Cross-server redelivery | **Not tested**: it needs two real servers in a published place. Covered by design (lock check inside the grant transaction) and by the foreign-lock test. |
+
+The test profile was cleaned afterwards (synthetic IDs and the planted lock removed).

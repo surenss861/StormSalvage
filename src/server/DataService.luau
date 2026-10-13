@@ -14,6 +14,15 @@ local LOCK_EXPIRY = Config.AutosaveSeconds * 3
 local SESSION_ID = game.JobId ~= "" and game.JobId or HttpService:GenerateGUID(false)
 
 local store: DataStore? = nil
+-- One line at startup so a staging or live server's log shows which data it's using.
+print(
+	("[Environment] %s (%s), place %d, store %s"):format(
+		tostring(Config.Environment),
+		tostring(Config.EnvironmentReason),
+		game.PlaceId,
+		Config.DataStoreName or "NONE (nothing will save)"
+	)
+)
 if Config.DataStoreName then
 	pcall(function()
 		store = DataStoreService:GetDataStore(Config.DataStoreName :: string)

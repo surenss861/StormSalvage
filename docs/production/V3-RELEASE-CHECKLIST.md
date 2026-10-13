@@ -3,10 +3,19 @@
 Everything here needs you or real hardware/players; none of it is done by Studio testing.
 Tick only with evidence.
 
+Procedures: `V3-RELEASE-RUNBOOK.md` (staging setup, RC builds, publishing, rollback, monitoring).
+
+## Done in Studio (evidence in the linked docs; not a substitute for the items below)
+
+- [x] Environment mapping: unit-tested (Studio is always `_STUDIO`, listed staging is `_STAGING`, unlisted or conflicting places fail closed)
+- [x] Receipt suite A–H, 20,000-receipt profile, stale lock and live lock (`V3-PRODUCTION-AUDIT.md`)
+- [x] Death, respawn and camera scenarios, plus a 51-cycle client soak (`V3-SOAK-AND-DEATH-QA.md`)
+- [x] Workshop UI runtime QA (`../art/V3-UI-WORKSHOP.md`)
+
 ## Before a private playtest
 
-- [ ] Publish `v3-art-direction` to a **separate private test place** (not the live game).
-- [ ] Studio API access on for that place; confirm DataStores save there (`debug save`).
+- [ ] **(owner)** Create the private staging experience, send its place ID, and confirm the live place ID.
+- [ ] Build an RC (`rc-*` tag) and publish it to staging; the server log shows `[Environment] Staging … StormSalvage_v1_STAGING`.
 - [ ] Device runs per `V3-PERFORMANCE-BUDGETS.md` sections B-D on an entry-level Android
       (quality 2-3), a midrange phone and a desktop: FPS p10/median, frame time p95/p99, draw
       calls, triangles, client/place/mesh/texture memory, thermal, five cold joins.
@@ -30,5 +39,5 @@ Tick only with evidence.
       death, replay intent).
 - [ ] Analytics dashboard shows the FirstSession funnel and custom events from the test place.
 - [ ] Icon, thumbnails and description from real gameplay screenshots.
-- [ ] Rollback plan: keep the current live place version id; V3 merges to `main` only after
-      approval.
+- [ ] Rollback rehearsed once on staging: publish an RC, restore the previous version, shut down servers, rejoin, and confirm the profile is intact.
+- [ ] Note the live place's version number before publishing (runbook 4.1). V3 merges to `main` only after approval.

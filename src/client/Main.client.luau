@@ -26,6 +26,7 @@ local Settings = require(script.Parent:WaitForChild("Settings"))
 local Shop = require(script.Parent:WaitForChild("Shop"))
 local StormEffects = require(script.Parent:WaitForChild("StormEffects"))
 local UI = require(script.Parent:WaitForChild("UI"))
+local PerfProbe = require(script.Parent:WaitForChild("PerfProbe"))
 local ViewHealth = require(script.Parent:WaitForChild("ViewHealth"))
 
 local player = Players.LocalPlayer
@@ -104,6 +105,7 @@ EnvironmentFX.init(StormEffects.getState, StormEffects.gustPhase, StormEffects.i
 StormEffects.setStrikeHook(EnvironmentFX.onStrike)
 CameraOcclusion.init()
 ViewHealth.init()
+PerfProbe.init() -- staging and Studio only
 
 ---------------------------------------------------------------------------- Tutorial hint
 

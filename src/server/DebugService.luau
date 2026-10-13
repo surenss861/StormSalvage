@@ -84,6 +84,18 @@ local commands: { [string]: (...any) -> any } = {
 		PlayerService.pushState(player :: Player)
 		return amount
 	end,
+	-- Append `count` synthetic PurchaseIds to a player's receipt list (long-lived profile tests).
+	padreceipts = function(playerName: string, count: number)
+		local player = Players:FindFirstChild(playerName)
+		local session = player and player:IsA("Player") and PlayerService.get(player)
+		assert(session, "no session")
+		local list = session.Data.ProcessedReceipts
+		local start = #list
+		for i = 1, count do
+			table.insert(list, ("pad-%d-%d"):format(start + i, 1000000000 + start + i))
+		end
+		return #list
+	end,
 	-- Put loot straight into a player's bag (UI captures), up to capacity.
 	give = function(playerName: string, ...: string)
 		local player = Players:FindFirstChild(playerName)

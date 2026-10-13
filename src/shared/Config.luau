@@ -14,20 +14,16 @@ local Config = {}
 Config.ProductionPlaceIds = { 99653875913460 }
 Config.StagingPlaceIds = {} :: { number }
 do
-	local isStudio = game:GetService("RunService"):IsStudio()
-	if isStudio then
-		Config.Environment = "Studio"
-		Config.DataStoreName = "StormSalvage_v1_STUDIO" :: string?
-	elseif table.find(Config.ProductionPlaceIds, game.PlaceId) then
-		Config.Environment = "Production"
-		Config.DataStoreName = "StormSalvage_v1"
-	elseif table.find(Config.StagingPlaceIds, game.PlaceId) then
-		Config.Environment = "Staging"
-		Config.DataStoreName = "StormSalvage_v1_STAGING"
-	else
-		Config.Environment = "Unknown"
-		Config.DataStoreName = nil
-	end
+	local Environment = require(script.Parent:WaitForChild("Environment"))
+	local env = Environment.resolve(
+		game:GetService("RunService"):IsStudio(),
+		game.PlaceId,
+		Config.ProductionPlaceIds,
+		Config.StagingPlaceIds
+	)
+	Config.Environment = env.Name
+	Config.DataStoreName = env.DataStoreName
+	Config.EnvironmentReason = env.Reason
 end
 Config.AutosaveSeconds = 120
 Config.StartingCoins = 0

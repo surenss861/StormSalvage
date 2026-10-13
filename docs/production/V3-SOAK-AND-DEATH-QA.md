@@ -93,6 +93,27 @@ The run was 3 warm-up cycles plus 48 measured. In total that was 51 deaths, abou
 - **Menus closed on a missed click (real bug, every modal).** A click on empty space in the Shop or Settings panel passed through to the dimmed backdrop and closed the menu. Missing a slider by a few pixels closed Settings. The cause: GuiButtons get clicks through non-button frames above them. **Fix:** the backdrop ignores any click that lands on the panel (`UI.modal`). Verified with a click on empty panel space (menu stays open), a slider click (sets exactly 75%) and a click on the dimmed area (menu closes).
 - **Notices sat on the shop's close button** when a storm started with the shop open. **Fix:** while a menu is open, notices stack downwards from the top right.
 
+## 4. Four-player Studio smoke test (local server plus 4 clients on one Mac)
+
+This is a smoke test for sync and authority bugs, **not** the section E server measurement. Five Studio processes on one machine skew every timing.
+
+| Check | Result |
+| --- | --- |
+| 8 items in the plaza, all 4 clients rushing every item at the same instant through the real prompts (two rounds) | **Conserved:** carried + left in the world = 8 in both rounds; every item had exactly one owner and nothing was duplicated |
+| Dropped bag, owner-only window (40 s) | Another player trying to take the dead player's 2 items: **both refused** |
+| Owner recovers their own bag | Works (confirmed in single-player). In the multi-client run the owner's prompt wasn't shown, because Roblox shows one prompt per key and an unrelated Scrap Can 1.6 studs away claimed it. A player just presses again. |
+| Server heartbeat with 5 Studio instances on one machine | 1 s windows: median 47.9/s, p10 40.0/s, min 22.5/s, worst frame 281 ms over 420 s. **This measures the overloaded Mac, not the game.** Real 4/8/12-player numbers need staging. |
+
+## 5. Low graphics (Studio proxy for the device draw-distance item)
+
+The Scrapyard edge was compared at Studio's lowest (`Level01`) and highest (`Level21`) quality, in the same storm phase and view (`evidence/gfx-*.jpg`).
+
+- **What stays visible at the lowest level:**
+  - all 3 Storm Core beacons (203–298 studs away), their labels
+  - the storm sign and the near town
+- **What the lowest level drops:** shadows, atmosphere and some far detail; in the Lightning view the far half of Main Street's lights.
+- **What Studio can't show:** real phones also cut draw distance and texture quality based on device memory. The world-consistency finding 1 check ("does the far town pop out at quality 2–3?") **still needs a real low-end phone**.
+
 ## What this does not prove
 
 The following are still open:

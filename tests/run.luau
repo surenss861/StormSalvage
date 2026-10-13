@@ -1,6 +1,7 @@
 -- Unit test runner (Lune): `lune run tests/run`. Each spec returns { [name] = fn }.
 local specs = {
 	require("./economy.spec"),
+	require("./environment.spec"),
 }
 local passed, failed = 0, 0
 for _, spec in specs do

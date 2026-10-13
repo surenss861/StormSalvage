@@ -70,6 +70,18 @@ snapshotted read-only before and after and is unchanged.
   - no force pushes or deletion
   - admins can still bypass
 
+## Production validation, 2026-10-13 (Studio)
+
+- **Environment:** a pure resolver with 8 unit tests in CI; Studio is always `_STUDIO` and unknown or conflicting places fail closed. The server logs `[Environment] …` at start.
+- **Persistence:**
+  - a 20,000-receipt profile is 449 KB (10.7% of the limit) and the oldest ID is still deduped
+  - a stale lock is taken over; a live lock gives a kick after 41.6 s with data untouched
+  - the release on shutdown lands within 5 s
+- **Release operations:** a `rc-*` release-candidate build workflow (artifact only, never publishes) and `V3-RELEASE-RUNBOOK.md` (staging setup, publish, rollback, monitoring).
+- **Profiling:** `PerfProbe` prints a `[Perf]` line once a minute in staging and Studio only, using the performance contract's fields.
+- **4-player smoke test:** items conserved under contention; owner-only bag window enforced (`V3-SOAK-AND-DEATH-QA.md` §4).
+- **Low graphics proxy:** beacons and labels survive the lowest Studio level; device check still needed (§5).
+
 ## Production audit
 
 See `docs/production/V3-PRODUCTION-AUDIT.md` (P0 environment isolation implemented, CI and unit tests added).

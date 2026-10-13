@@ -1,0 +1,37 @@
+name: Release candidate
+
+# Builds a release-candidate place file from a tag (rc-YYYYMMDD-N) or a manual run, after the
+# same checks as CI. It only produces a downloadable .rbxl artifact: it never publishes to Roblox
+# (that needs an Open Cloud key and an explicit go-ahead, see docs/production/V3-RELEASE-RUNBOOK.md).
+
+on:
+  push:
+    tags: ["rc-*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch Roblox models from LFS
+        run: git lfs pull --include "assets/roblox/**"
+      - uses: CompeyDev/setup-rokit@v0.1.2
+      - name: Static checks and build
+        run: tools/ci/check.sh
+      - name: Unit tests
+        run: lune run tests/run
+      - name: Build release-candidate place
+        run: |
+          name="StormSalvage-${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::7}.rbxl"
+          rojo build default.project.json -o "$name"
+          sha256sum "$name" > "$name.sha256"
+          echo "RC_FILE=$name" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-candidate-${{ github.sha }}
+          path: |
+            ${{ env.RC_FILE }}
+            ${{ env.RC_FILE }}.sha256
+          retention-days: 90
