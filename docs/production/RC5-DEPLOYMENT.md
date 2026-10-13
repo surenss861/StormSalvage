@@ -97,3 +97,16 @@ Version History → **Restore** version **2**. Restoring only saves it, so then 
   - after: `evidence/pivots-after-town.jpg` and `evidence/pivots-after-yard.jpg`
 
 **Process change:** before any candidate is published, open the **artifact file itself** in Studio and playtest it. That run must log `[AssetPivotFix] 14x asset pivots restored, 0 missing`, and the town must stand upright.
+
+## RC6 published privately (2026-10-13 14:59 local, place version 124)
+
+- **Published version:** 124 (`evidence/rc6-published-v124.jpg`). The published versions so far are 2, 121, 122 and 124. The experience is still Private.
+- **Which window it came from:** the owner published from the Studio window that the fix had been synced into. Before publishing, I hadn't yet playtested the RC6 file itself.
+- **Why that build counts as RC6:**
+  - All 47 scripts in that window are byte-identical to the CI artifact `StormSalvage-rc-20261013-6-8ec7259.rbxl` (SHA-256 `da6cdb16…2c74`).
+  - The asset files are unchanged from RC5 to RC6.
+- **Owner's report:** the buildings are now fine in-game.
+- **Stores, read-only, at 19:4x UTC:**
+  - `StormSalvage_v1` / `player_8482925865`: latest version still `…0175` from 02:22:47 UTC; 200 coins, B4 S4 A3. **Untouched.**
+  - `StormSalvage_v1_LIVETEST`: written at 18:57 and 19:38 UTC (joins and leaves). The profile is fresh: 0 coins, no upgrades, 0 items sold, lock released.
+- **Still to do:** the smoke test (collect, sell, upgrade, job, rejoin) hasn't been played yet.
