@@ -24,9 +24,16 @@
 
 The last real-save writes (01:53 and 02:22 UTC) are from before Studio isolation landed (04:38 UTC, commit `0805251`). Nothing has written your real save since.
 
+## Rollback target (recorded 2026-10-13, read-only, from Creator Hub)
+
+Place `99653875913460` → Version History, filtered to **published only** (`evidence/rc5-rollback-version-history.jpg`):
+
+- **The currently published version is 2**, saved October 8, 2026 at 11:16 PM local time. **That's the rollback target.**
+- Versions 3–119, the latest saved October 13 at 12:50 PM local time, are **saves only, never published**. Live servers still run the October 8 build, which predates the save-store isolation and `LiveTestMode`. Anyone joining the live game today writes to the real store with that old code.
+
 ## Steps (you)
 
-1. **Record the rollback version.** Creator Hub → Storm Salvage → the start place → **Version History**. Write down the current version number and take a screenshot, then send me the number.
+1. ~~Record the rollback version.~~ Done above: version **2**.
 2. **Close the Studio window I've been testing in** without saving or publishing. It runs the newer working code, which is not RC5.
 3. **Open the RC5 file.** In Studio, File → Open from File… → the `.rbxl` above.
 4. **Publish.** File → **Publish to Roblox As…**, choosing **Storm Salvage**, the existing start place `99653875913460`. Check the destination before confirming.
@@ -47,4 +54,4 @@ The last real-save writes (01:53 and 02:22 UTC) are from before Studio isolation
 
 ## Rollback
 
-Version History → **Restore** the version from step 1, then **Shut Down All Servers**. Test data stays in `_LIVETEST`, and your real save is never involved.
+Version History → **Restore** version **2**. Restoring only saves it, so then open it in Studio and publish it. Finally **Shut Down All Servers**. Test data stays in `_LIVETEST`, and your real save is never involved.
