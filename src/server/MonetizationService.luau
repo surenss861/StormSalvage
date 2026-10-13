@@ -12,8 +12,11 @@
 --     both the reward and the PurchaseId together, and the receipt is granted again, once.
 -- The live session only receives the reward after the durable write, so nothing spendable
 -- exists that a failed write could take back. PurchaseGranted is returned only after the
--- session has been saved with the grant. The purchase-history store is an audit log and a fast
--- skip, not part of the correctness argument.
+-- session has been saved with the grant. The purchase-history store is an audit log, written
+-- after that save and **never read to decide anything**: a racing whole-profile save (e.g. the
+-- shutdown save) can legitimately drop a just-made grant together with its PurchaseId, and a
+-- history record must then not stop the redelivery from granting it (RC3 fix; in RC2 a history
+-- hit returned PurchaseGranted without the reward).
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -88,16 +91,8 @@ local function processReceiptUnguarded(receipt): Enum.ProductPurchaseDecision
 	end
 	local purchaseId = tostring(receipt.PurchaseId)
 
-	-- 1. Lifetime history: granted in some earlier session or server.
-	local readOk, recorded = DataService.purchaseRecorded(purchaseId)
-	if not readOk then
-		return Enum.ProductPurchaseDecision.NotProcessedYet
-	end
-	if recorded then
-		return Enum.ProductPurchaseDecision.PurchaseGranted
-	end
-
-	-- 2. Durable grant first, live session second.
+	-- 1. Durable grant first, live session second. The profile is the only record consulted:
+	-- it's written atomically with the reward, so it can't say "granted" without the reward.
 	if not table.find(session.Data.ProcessedReceipts, purchaseId) then
 		local product = products[receipt.ProductId]
 		if not product then
@@ -120,11 +115,14 @@ local function processReceiptUnguarded(receipt): Enum.ProductPurchaseDecision
 		PlayerService.notify(player, product.message, Color3.fromRGB(255, 220, 90))
 	end
 
-	-- 3. Lifetime record, then a full save so later progress doesn't overwrite the grant.
-	if not DataService.recordPurchase(purchaseId, receipt.PlayerId, receipt.ProductId) then
+	-- 2. A full save of the session (which now holds the reward), so a save that started before
+	-- the grant can't leave the profile without it.
+	if not PlayerService.save(player, false) then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
-	if not PlayerService.save(player, false) then
+	-- 3. Audit record, only now that the reward is in the saved profile. Never read for
+	-- decisions (see the header).
+	if not DataService.recordPurchase(purchaseId, receipt.PlayerId, receipt.ProductId) then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	return Enum.ProductPurchaseDecision.PurchaseGranted

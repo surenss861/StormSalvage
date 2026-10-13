@@ -87,7 +87,8 @@ snapshotted read-only before and after and is unchanged.
 | RC | Tag | Commit | Contents | Status |
 | --- | --- | --- | --- | --- |
 | RC1 | `rc-20261013-1` | `1753ec0` | Workshop UI, data environments, persistence QA, runbook | Superseded: the RC1 review found the lost-lock overwrite defect |
-| RC2 | `rc-20261013-2` | see tag | RC1 + strict save-lock ownership (fixes a paid-grant loss on a stale-owner write) + `[ServerPerf]` log (staging/Studio) | Regression: receipt A–H, ownership attack, release, takeover all pass in Studio. **Staging: not started (needs the place ID)** |
+| RC2 | `rc-20261013-2` | `d35302d` | RC1 + strict save-lock ownership + `[ServerPerf]` | Superseded: the RC3 review found per-server tokens and the history shortcut |
+| RC3 | `rc-20261013-3` | see tag | RC2 + per-session lock tokens + history never read (write-only audit after save) + live-test data namespace and release gate | Studio regression passes (audit, RC3 sections). **Not published.** Test venue: the private live experience on `_LIVETEST` |
 
 ## Production audit
 
@@ -95,7 +96,7 @@ See `docs/production/V3-PRODUCTION-AUDIT.md` (P0 environment isolation implement
 
 ## Blockers needing you
 
-0. Create the private test experience and send its place ID; confirm `99653875913460` is the live place (`Config.ProductionPlaceIds`). Any unlisted place gets no DataStores (temporary profiles, purchases refused).
+0. Live place confirmed (`99653875913460`, experience `10769947641`). No staging experience: testing uses the private live experience with `LiveTestMode` on. **Needs you:** approval to publish RC3 there.
 
 1. Re-import `assets/exports/v3fuel/Compressor.fbx` (minor; skipped twice).
 

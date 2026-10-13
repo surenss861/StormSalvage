@@ -1,4 +1,6 @@
-# Storm Salvage V3: staging test plan (RC2)
+# Storm Salvage V3: pre-launch test plan (private live experience)
+
+There is no staging experience. Every "staging" step below runs in the existing **private** Storm Salvage experience with `Config.LiveTestMode = true`, so all data goes to `StormSalvage_v1_LIVETEST` and real saves are never opened. Each section is kept as written.
 
 For the owner and testers running the staging gates. It sets out exactly what to do, what to read and where to write it down. Thresholds come from `V3-PERFORMANCE-BUDGETS.md` (unchanged). A blank result is **NOT TESTED**, never a pass.
 
@@ -6,10 +8,10 @@ For the owner and testers running the staging gates. It sets out exactly what to
 
 ## 0. Smoke test after every staging publish (5 min, one tester)
 
-1. Join staging from the Roblox app. Open F9 → **Server** and confirm the line `[Environment] Staging (listed staging place), place <id>, store StormSalvage_v1_STAGING`.
-   - If it shows `Unknown` or `NONE`, stop: the place isn't listed, and nothing saves.
+1. Join the private experience from the Roblox app. Open F9 → **Server** and confirm `store StormSalvage_v1_LIVETEST` and `LIVE TEST`.
+   - If it shows `StormSalvage_v1` without LIVE TEST, **stop**: that is a release build on real data.
 2. Grab one item, sell it, buy one upgrade and leave.
-3. Rejoin. Coins and the upgrade must still be there, which proves saving works on `_STAGING`.
+3. Rejoin. Coins and the upgrade must still be there, which proves saving works on `_LIVETEST`.
 4. F9 → **Client** shows `[Perf]` lines once a minute; F9 → **Server** shows `[ServerPerf]` lines.
 
 ## 1. Multiplayer: 4, 8 and 12 players
@@ -83,14 +85,14 @@ Purchases stay **disabled** (all product IDs 0). What can be proven without spen
 1. **Server hop:** play on server A, earn coins, then join a *different* staging server through the friends list or a second private server. Within 45 s you're either loaded with exactly the same coins, or kicked with "Couldn't load your save data" if A is still saving. Rejoin, and it must load.
 2. **Crash recovery:** the owner uses Creator Hub → **Shut Down All Servers** while players are mid-session. After rejoining, progress up to the shutdown save is there, and nobody is locked out for more than one 42 s retry cycle.
 3. **Ownership:** the RC2 rule that a server may write only while the stored lock is its own was proven in Studio, including the stale-owner attack that RC1 failed (`V3-PRODUCTION-AUDIT.md`). Staging confirms that nobody loses progress during steps 1 and 2.
-4. **Real receipts (owner approval required):** create one cheap test developer product **in the staging experience only**, then:
+4. **Real receipts (owner approval required):** with no staging experience, a test product would live in the real experience. It stays **unconfigured** in `Config` (ID 0) until you approve a priced test. If approved, use one cheap product, set its ID only in a test RC (still `_LIVETEST`), then:
    - buy it once
    - leave mid-purchase once
    - buy, then immediately hop servers once
 
-   Confirm exactly one grant per purchase in the profile and in `StormSalvage_v1_STAGING_Purchases`. This costs real Robux, so it is your call.
+   Confirm exactly one grant per purchase in the profile and in `StormSalvage_v1_LIVETEST_Purchases`. This costs real Robux, so it is your call.
 
-## 5. Rollback rehearsal (staging)
+## 5. Rollback rehearsal (private live experience, `_LIVETEST` data)
 
 1. Note the staging place version (V1). Publish RC2 (V2).
 2. Two testers play and earn coins on V2.

@@ -107,3 +107,51 @@ A second instance of the same defect: an autosave racing the player's own leave 
 | Live-lock contention | Load code unchanged since the RC1 test (6 retries, kick at 41.6 s, data untouched) |
 
 **Residual (by design, not a safety issue):** if server A stalls and loses its lock, any progress A made after its last successful save is lost when it's refused. That trades a little progress for never overwriting newer data or purchases. A crashed server's lock blocks the player's rejoin for up to 360 s (each try retries for about 42 s, then shows "Couldn't load"). A shorter expiry would need a lock heartbeat; deferred.
+
+## RC3: ownership review of the six RC2 conditions (2026-10-13)
+
+| # | Condition | Finding | Status |
+| --- | --- | --- | --- |
+| 1 | Ownership checked atomically at commit | Every check runs inside the `UpdateAsync` transform, which Roblox re-runs against the newest value if the key changed | Holds (code review) |
+| 2 | Old servers can't release newer locks | A release is a save with `Lock = nil` and goes through the same ownership check | Holds (code + RC2 attack test) |
+| 3 | No writes after a completed leave | The session is marked unsaveable; the token is forgotten on release; a missing lock counts as lost | Holds; tested |
+| 4 | Concurrent autosave, leave and purchase | 10 purchases racing 10 saves: exact. Shutdown during in-flight purchases (2 rounds): consistent, lock released. **This found defect B below.** | Fixed in RC3; tested |
+| 5 | Receipt fulfilment atomic with the profile | The grant and PurchaseId are in one transform. **But the history store was still read as a shortcut: defect B.** | Fixed in RC3 |
+| 6 | Tokens can't be reused by an older session | **Defect A:** the token was per server (JobId), so a rejoin on the same server shared it with the old session | Fixed in RC3; tested |
+
+**Defect A (RC2): the lock token was shared across sessions on one server.**
+- **Risk:** a delayed write from a player's earlier session on the same server could pass as the new session.
+- **Fix:** every load makes a token `JobId/guid`. Writes capture their session's token, and the token is forgotten on release.
+- **Same-server takeover:** a stale lock from this server is taken over at once, which is safe because the old session's writes carry its old token.
+- **Test:** with a different session from the same server holding the lock, our save was refused, our receipt got `NotProcessedYet`, and the coins were unchanged.
+
+**Defect B (RC2): the purchase-history shortcut could swallow a paid purchase.**
+- **How it happened:**
+  1. A grant committed.
+  2. The shutdown save wrote the session's copy, which didn't have the grant yet. That is consistent by design: the reward and its ID drop together, so Roblox redelivers.
+  3. The handler then wrote the history record anyway.
+  4. On redelivery the history check answered PurchaseGranted **without granting**.
+- **Reproduced in Studio:** after a shutdown mid-purchase, receipt #1 had a history record but no profile grant.
+- **Fix:** the history store is never read; it is a write-only audit log, written only after the save that contains the reward. `purchaseRecorded` and the `historyRead` fault are removed.
+- **Tests:**
+  - redelivering the 6 interrupted purchases (including #1) granted each exactly once, and a second redelivery changed nothing
+  - new scenario I (a history record but no grant) grants once
+  - the shutdown-race rounds left no history record without its grant
+
+**RC3 regression (Studio, `_STUDIO`):**
+- receipt suite A–E, G, H, I: exactly +6,000, stored equal to live
+- the stale-owner attack was refused and B's grant survived
+- 10 purchases racing 10 saves: exact
+- shutdown races: 2 rounds consistent
+- release on leave, stale takeover and normal saving: all pass
+- 19 unit tests pass
+
+Scenario F (a history-read failure) is retired because history is no longer read.
+
+**Still not tested (needs two real servers):** cross-server redelivery and lock hand-off between two live game servers. The Studio tests stand in for the other server by writing the DataStore from the Edit session. Planned for the private live experience on `_LIVETEST` (test plan §4).
+
+## RC3: live-test data namespace (no staging experience)
+
+- The live place (`99653875913460`, confirmed) uses `StormSalvage_v1_LIVETEST` while `Config.LiveTestMode = true`, so existing real saves are never opened during testing.
+- 3 new unit tests cover it, and Studio is still `_STUDIO`.
+- **Release guard:** `tools/ci/release-gate.sh`, run on `release-*` tags, fails while the flag is on or the place ID differs. Verified both ways.

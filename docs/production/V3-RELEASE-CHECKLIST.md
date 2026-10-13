@@ -14,8 +14,8 @@ Procedures: `V3-RELEASE-RUNBOOK.md` (staging setup, RC builds, publishing, rollb
 
 ## Before a private playtest
 
-- [ ] **(owner)** Create the private staging experience, send its place ID, and confirm the live place ID.
-- [ ] Build an RC (`rc-*` tag) and publish it to staging; the server log shows `[Environment] Staging … StormSalvage_v1_STAGING`.
+- [x] Live place confirmed by the owner (`99653875913460`, experience `10769947641`); no staging experience.
+- [ ] **(owner approval)** Publish the RC to the private live experience; F9 shows `LIVE TEST … StormSalvage_v1_LIVETEST`.
 - [ ] Device runs per `V3-PERFORMANCE-BUDGETS.md` sections B-D on an entry-level Android
       (quality 2-3), a midrange phone and a desktop: FPS p10/median, frame time p95/p99, draw
       calls, triangles, client/place/mesh/texture memory, thermal, five cold joins.
@@ -41,3 +41,4 @@ Procedures: `V3-RELEASE-RUNBOOK.md` (staging setup, RC builds, publishing, rollb
 - [ ] Icon, thumbnails and description from real gameplay screenshots.
 - [ ] Rollback rehearsed once on staging: publish an RC, restore the previous version, shut down servers, rejoin, and confirm the profile is intact.
 - [ ] Note the live place's version number before publishing (runbook 4.1). V3 merges to `main` only after approval.
+- [ ] Release build has `Config.LiveTestMode = false` (enforced by the `release-*` tag gate); F9 shows `store StormSalvage_v1`.

@@ -58,8 +58,8 @@ local commands: { [string]: (...any) -> any } = {
 		assert(player and player:IsA("Player"), "no player " .. tostring(playerName))
 		return MonetizationService.simulateReceipt(player, purchaseId).Name
 	end,
-	-- Make the next `count` DataStore calls of one kind fail: "grant", "save", "historyRead",
-	-- "historyWrite" (purchase-safety tests).
+	-- Make the next `count` DataStore calls of one kind fail: "grant", "save", "historyWrite"
+	-- (purchase-safety tests).
 	faults = function(operation: string, count: number)
 		DataService.failNextForTest(operation, count)
 		return ("next %d %s calls fail"):format(count, operation)

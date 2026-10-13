@@ -73,8 +73,21 @@ end
 -- A missing lock counts as lost, not free: it means the profile was released (by this server
 -- on leave, or by another server that took over and has since finished). Writing then would
 -- overwrite newer progress and newer purchase grants with this server's stale copy.
-local function ownedByUs(old: any): boolean
-	return old ~= nil and old.Lock ~= nil and old.Lock.Session == SESSION_ID
+--
+-- The lock token is per *session*, not per server: "<server JobId>/<guid made at load>". If a
+-- player leaves and rejoins the same server, the new session has a new token, so a write
+-- still in flight from the old session (e.g. an autosave delayed by throttling) can't pass as
+-- the new owner. Every write captures its session's token when it starts.
+local tokens: { [Player]: string } = {}
+
+local function ownedBy(old: any, token: string?): boolean
+	return token ~= nil and old ~= nil and old.Lock ~= nil and old.Lock.Session == token
+end
+
+-- A lock left by an earlier session on this same server (its release failed): that session is
+-- gone and its writes carry its own token, so it is safe to take over without waiting.
+local function fromThisServer(lock: any): boolean
+	return type(lock.Session) == "string" and lock.Session:sub(1, #SESSION_ID + 1) == SESSION_ID .. "/"
 end
 
 local function key(userId: number): string
@@ -87,6 +100,7 @@ function DataService.load(player: Player): (Data?, boolean)
 	if not store then
 		return DataService.default(), false
 	end
+	local token = SESSION_ID .. "/" .. HttpService:GenerateGUID(false)
 	for attempt = 1, 6 do
 		local locked = false
 		local result: Data? = nil
@@ -94,16 +108,18 @@ function DataService.load(player: Player): (Data?, boolean)
 			(store :: DataStore):UpdateAsync(key(player.UserId), function(old)
 				local data = reconcile(old or DataService.default())
 				local now = os.time()
-				if data.Lock and data.Lock.Session ~= SESSION_ID and now - data.Lock.Time < LOCK_EXPIRY then
+				local lock = data.Lock
+				if lock and not fromThisServer(lock) and now - lock.Time < LOCK_EXPIRY then
 					locked = true
 					return nil -- abort write; another server owns this profile
 				end
-				data.Lock = { Session = SESSION_ID, Time = now }
+				data.Lock = { Session = token, Time = now }
 				result = data
 				return data
 			end)
 		end)
 		if ok and result then
+			tokens[player] = token
 			return result, true
 		end
 		if not ok then
@@ -161,10 +177,11 @@ function DataService.grantReceipt(
 	if injectedFailure("grant") then
 		return false, false, false
 	end
+	local token = tokens[player]
 	local already, lostLock = false, false
 	local ok, err = pcall(function()
 		(store :: DataStore):UpdateAsync(key(player.UserId), function(old)
-			if not ownedByUs(old) then
+			if not ownedBy(old, token) then
 				lostLock = true
 				return nil
 			end
@@ -175,7 +192,7 @@ function DataService.grantReceipt(
 			end
 			apply(data)
 			table.insert(data.ProcessedReceipts, purchaseId)
-			data.Lock = { Session = SESSION_ID, Time = os.time() }
+			data.Lock = { Session = token, Time = os.time() }
 			return data
 		end)
 	end)
@@ -186,28 +203,14 @@ function DataService.grantReceipt(
 	return not lostLock, already, lostLock
 end
 
--- Purchase audit log, one record per PurchaseId. Not needed for correctness: the profile keeps
--- every PurchaseId it has granted (never pruned), written in the same UpdateAsync as the grant.
--- This store is a fast "already done" check and an audit trail.
+-- Purchase audit log, one record per PurchaseId, written after the reward is saved in the
+-- profile. Write-only: correctness comes from the profile, which keeps every PurchaseId it has
+-- granted (never pruned) in the same UpdateAsync as the reward. Never read it to decide a grant.
 local history: DataStore? = nil
 if Config.DataStoreName then
 	pcall(function()
 		history = DataStoreService:GetDataStore((Config.DataStoreName :: string) .. "_Purchases")
 	end)
-end
-
--- Returns (ok, recorded): whether the PurchaseId is already in the lifetime history.
-function DataService.purchaseRecorded(purchaseId: string): (boolean, boolean)
-	if not history then
-		return false, false
-	end
-	if injectedFailure("historyRead") then
-		return false, false
-	end
-	local ok, value = pcall(function()
-		return (history :: DataStore):GetAsync("purchase_" .. purchaseId)
-	end)
-	return ok, ok and value ~= nil
 end
 
 function DataService.recordPurchase(purchaseId: string, userId: number, productId: number): boolean
@@ -237,19 +240,24 @@ function DataService.save(player: Player, data: Data, release: boolean): (boolea
 	if injectedFailure("save") then
 		return false, false
 	end
+	local token = tokens[player]
 	local lostLock = false
 	local ok, err = pcall(function()
 		(store :: DataStore):UpdateAsync(key(player.UserId), function(old)
-			if not ownedByUs(old) then
+			if not ownedBy(old, token) then
 				lostLock = true
 				return nil -- not ours any more (taken over or released): never overwrite it
 			end
 			lostLock = false
 			local copy = table.clone(data)
-			copy.Lock = if release then nil else { Session = SESSION_ID, Time = os.time() }
+			copy.Lock = if release then nil else { Session = token :: string, Time = os.time() }
 			return copy
 		end)
 	end)
+	if release then
+		-- Leaving: this session never writes again, whether or not the release landed.
+		tokens[player] = nil
+	end
 	if not ok then
 		warn("[DataService] save failed for", player.Name, err)
 	elseif lostLock then

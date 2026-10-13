@@ -1,6 +1,6 @@
--- Server performance log for staging and Studio (never in production). Once a minute it prints
+-- Server performance log for staging, Studio and live-test mode (never in the public release). Once a minute it prints
 -- one line to the server log, readable in the Developer Console (F9 -> Server) during the
--- 4/8/12-player staging runs (docs/production/V3-STAGING-TEST-PLAN.md):
+-- 4/8/12-player staging runs (docs/production/V3-PRELAUNCH-TEST-PLAN.md):
 --   [ServerPerf] 60s players 8 | heartbeat 1s p1 57.9 p10 59.8 median 60.0 | worst step 41ms | mem 912MB | loot 61
 -- Heartbeat is updates per second in 1-second windows (V3-PERFORMANCE-BUDGETS.md E); it is
 -- scheduling rate, not CPU time. CPU per frame comes from the MicroProfiler.
@@ -17,7 +17,7 @@ local ServerPerf = {}
 local WINDOW = 60
 
 function ServerPerf.init()
-	if Config.Environment ~= "Staging" and Config.Environment ~= "Studio" then
+	if Config.Environment ~= "Staging" and Config.Environment ~= "Studio" and not Config.IsLiveTest then
 		return
 	end
 	local windows: { number } = {}

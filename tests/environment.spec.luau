@@ -52,4 +52,23 @@ return {
 		eq(Environment.resolve(false, -1, PROD, STAGING).DataStoreName, nil, "negative")
 		eq(Environment.resolve(false, 1.5, PROD, STAGING).DataStoreName, nil, "fraction")
 	end,
+	["live test: live place uses _LIVETEST, never the real store"] = function()
+		local r = Environment.resolve(false, 99653875913460, PROD, {}, true)
+		eq(r.Name, "Production", "name")
+		eq(r.DataStoreName, "StormSalvage_v1_LIVETEST", "store")
+		eq(r.LiveTest, true, "flag")
+	end,
+	["live test off: live place uses the real store"] = function()
+		local r = Environment.resolve(false, 99653875913460, PROD, {}, false)
+		eq(r.DataStoreName, "StormSalvage_v1", "store")
+		eq(r.LiveTest, false, "flag")
+	end,
+	["live test: Studio still _STUDIO; unknown places still fail closed"] = function()
+		eq(
+			Environment.resolve(true, 99653875913460, PROD, {}, true).DataStoreName,
+			"StormSalvage_v1_STUDIO",
+			"studio"
+		)
+		eq(Environment.resolve(false, 555, PROD, {}, true).DataStoreName, nil, "unknown")
+	end,
 }

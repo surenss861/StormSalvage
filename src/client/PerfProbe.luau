@@ -1,4 +1,4 @@
--- Device performance log for staging and Studio playtests (never runs in production). Every
+-- Device performance log for staging, Studio and live-test playtests (never in the public release). Every
 -- frame's duration goes into a buffer; once a minute it prints one line to the client log, which
 -- a tester can read on a phone in the Developer Console (F9):
 --   [Perf] 60s fps1s p10 31 median 44 | frame p95 38.2ms p99 61.0ms | worst 210ms | mem 812MB | q 3
@@ -25,7 +25,7 @@ local function percentile(sorted: { number }, p: number): number
 end
 
 function PerfProbe.init()
-	if Config.Environment ~= "Staging" and Config.Environment ~= "Studio" then
+	if Config.Environment ~= "Staging" and Config.Environment ~= "Studio" and not Config.IsLiveTest then
 		return
 	end
 	local frames: { number } = {}

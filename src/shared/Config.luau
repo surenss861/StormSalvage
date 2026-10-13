@@ -3,27 +3,32 @@
 
 local Config = {}
 
--- Data environments, explicit and fail-safe:
---   Production  only the listed live place(s) read and write real player data.
---   Staging     listed private test places use their own "_STAGING" DataStores.
---   Studio      every Studio session (any place) uses "_STUDIO" DataStores, so testing and
---               fault injection never touch real profiles.
+-- Data environments, explicit and fail-safe (src/shared/Environment.luau, unit-tested):
+--   Production  the live place. Real player data, unless LiveTestMode is on (below).
+--   Staging     listed private test places use "_STAGING" DataStores (none: no staging experience).
+--   Studio      every Studio session (any place) uses "_STUDIO" DataStores.
 --   Unknown     any other place gets no DataStores at all: temporary profiles, nothing saved,
 --               purchases refused (MonetizationService requires a saving session).
--- CONFIRM before release that 99653875913460 is the live place, and add the staging place id.
+-- Live place confirmed by the owner 2026-10-13: place 99653875913460, experience 10769947641.
 Config.ProductionPlaceIds = { 99653875913460 }
 Config.StagingPlaceIds = {} :: { number }
+-- Pre-launch testing happens in the private live experience. While this is true the live place
+-- saves to "StormSalvage_v1_LIVETEST", so real saves are never opened. MUST be false for the
+-- public release: a `release-*` tag fails CI while it's true (tools/ci/release-gate.sh).
+Config.LiveTestMode = true
 do
 	local Environment = require(script.Parent:WaitForChild("Environment"))
 	local env = Environment.resolve(
 		game:GetService("RunService"):IsStudio(),
 		game.PlaceId,
 		Config.ProductionPlaceIds,
-		Config.StagingPlaceIds
+		Config.StagingPlaceIds,
+		Config.LiveTestMode
 	)
 	Config.Environment = env.Name
 	Config.DataStoreName = env.DataStoreName
 	Config.EnvironmentReason = env.Reason
+	Config.IsLiveTest = env.LiveTest
 end
 Config.AutosaveSeconds = 120
 Config.StartingCoins = 0

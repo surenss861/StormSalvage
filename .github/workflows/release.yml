@@ -1,0 +1,39 @@
+name: Release
+
+# Public-release builds only (`release-*` tags). Same checks as CI, plus the release gate: the
+# build must use real player DataStores (Config.LiveTestMode = false) and the confirmed live
+# place. Produces a .rbxl artifact; publishing stays a manual, approved step
+# (docs/production/V3-RELEASE-RUNBOOK.md).
+
+on:
+  push:
+    tags: ["release-*"]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Release gate
+        run: tools/ci/release-gate.sh
+      - name: Fetch Roblox models from LFS
+        run: git lfs pull --include "assets/roblox/**"
+      - uses: CompeyDev/setup-rokit@v0.1.2
+      - name: Static checks and build
+        run: tools/ci/check.sh
+      - name: Unit tests
+        run: lune run tests/run
+      - name: Build release place
+        run: |
+          name="StormSalvage-${GITHUB_REF_NAME}-${GITHUB_SHA::7}.rbxl"
+          rojo build default.project.json -o "$name"
+          sha256sum "$name" > "$name.sha256"
+          echo "REL_FILE=$name" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ github.sha }}
+          path: |
+            ${{ env.REL_FILE }}
+            ${{ env.REL_FILE }}.sha256
+          retention-days: 365
