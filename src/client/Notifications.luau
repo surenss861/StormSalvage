@@ -417,9 +417,26 @@ function Notifications.init(hudRoot: Frame, topStack: Frame)
 		Visible = false,
 	})
 	UI.padding(5, 14).Parent = hintPlate
+	UI.new("UIListLayout", {
+		Parent = hintPlate,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	})
+	UI.text({
+		Name = "Kicker",
+		Parent = hintPlate,
+		LayoutOrder = 1,
+		Role = "Caption",
+		TextSize = 11,
+		TextColor3 = UI.Color.TextMuted,
+		AutomaticSize = Enum.AutomaticSize.XY,
+		Size = UDim2.new(),
+		Text = "NEXT OBJECTIVE",
+	})
 	hintLabel = UI.text({
 		Name = "Text",
 		Parent = hintPlate,
+		LayoutOrder = 2,
 		Role = "Label",
 		TextSize = 15,
 		TextColor3 = Color3.fromRGB(255, 236, 160),

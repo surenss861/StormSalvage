@@ -13,6 +13,7 @@ local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
 local Districts = require(script.Parent:WaitForChild("Districts"))
@@ -34,6 +35,9 @@ local boostEndsAt = 0
 
 ---------------------------------------------------------------------------- Setup
 
+-- Interface theme (UI.useTheme). Studio QA can preview another with the ReplicatedStorage
+-- attribute "UITheme" set before players join.
+UI.useTheme(ReplicatedStorage:GetAttribute("UITheme") or "Instrument")
 Audio.init()
 UI.setReducedMotion(StormEffects.isReduced)
 UI.setClickSound(function()
@@ -97,10 +101,37 @@ StormEffects.setStrikeHook(EnvironmentFX.onStrike)
 ---------------------------------------------------------------------------- Tutorial hint
 
 -- Guidance only while it's useful: until the first sale, and never during a storm.
+-- The first expedition as a short chain of objectives; it fades out after the first upgrade.
+local function cheapestUpgrade(s: any): number?
+	local best: number? = nil
+	for id, def in Config.Upgrades do
+		local cost = def.Costs[(s.Upgrades[id] or 0) + 1]
+		if cost and (best == nil or cost < best) then
+			best = cost
+		end
+	end
+	return best
+end
+
 local function updateHint()
 	local s = playerState
-	if not s or s.Stats.ItemsSold > 0 then
+	local upgraded = 0
+	if s then
+		for _, level in s.Upgrades do
+			upgraded += level
+		end
+	end
+	if not s or (s.Stats.ItemsSold > 0 and upgraded > 0) then
 		Notifications.setHint(nil)
+	elseif s.Stats.ItemsSold > 0 then
+		local cost = cheapestUpgrade(s)
+		if cost and s.Coins >= cost then
+			Notifications.setHint("You can afford gear! Visit the Gear Shop in the Scrapyard")
+		elseif #s.Carried == 0 then
+			Notifications.setHint(("Salvage more: next upgrade costs %d coins"):format(cost or 0))
+		else
+			Notifications.setHint(nil)
+		end
 	elseif #s.Carried == 0 then
 		Notifications.setHint("Head down into town and grab glowing salvage!")
 	elseif #s.Carried >= s.Capacity then

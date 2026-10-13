@@ -18,6 +18,7 @@ local stripStroke: UIStroke
 local stripDot: Frame
 local stripTitle: TextLabel
 local stripTimer: TextLabel
+local stripCaption: TextLabel
 local timerChip: Frame
 local coreChip: Frame
 local coreLabel: TextLabel
@@ -130,17 +131,57 @@ local function buildStrip()
 		BackgroundColor3 = UI.Color.Safe,
 		BorderSizePixel = 0,
 	}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
-	stripTitle = UI.text({
-		Name = "Title",
+	-- Storm instrument: state over a caption on the left, a big mono countdown on the right.
+	local labels = UI.new("Frame", {
+		Name = "Labels",
 		Parent = row,
 		LayoutOrder = 2,
+		AutomaticSize = Enum.AutomaticSize.XY,
+		Size = UDim2.new(),
+		BackgroundTransparency = 1,
+	}, {
+		UI.new("UIListLayout", { Padding = UDim.new(0, 0), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	stripTitle = UI.text({
+		Name = "Title",
+		Parent = labels,
+		LayoutOrder = 1,
 		Role = "Title",
+		TextSize = 19,
 		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, 24),
+		Size = UDim2.fromOffset(0, 21),
+		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = "CALM SKIES",
 	})
-	timerChip, stripTimer = chip(row, 3, UI.Color.TextDim)
-	timerChip.Name = "Timer"
+	stripCaption = UI.text({
+		Name = "Caption",
+		Parent = labels,
+		LayoutOrder = 2,
+		Role = "Caption",
+		TextSize = 11,
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 13),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Color.TextMuted,
+		Text = "UNTIL STORM",
+	})
+	timerChip = UI.new("Frame", {
+		Name = "Timer",
+		Parent = row,
+		LayoutOrder = 3,
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 34),
+		BackgroundTransparency = 1,
+	})
+	stripTimer = UI.text({
+		Name = "Value",
+		Parent = timerChip,
+		Font = UI.Font.Mono,
+		TextSize = 30,
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromScale(0, 1),
+		Text = "00:00",
+	})
 	coreChip, coreLabel = chip(row, 4, Config.RarityColors.Legendary)
 	coreChip.Name = "Cores"
 	coreChip.Visible = false
@@ -160,6 +201,10 @@ end
 
 local lastPhase = ""
 
+local function loudPhase(phase: string): boolean
+	return phase == "Warning" or phase == "Storm"
+end
+
 -- `status` is the storm's live line ("Gust in 1.7s - get behind a wall!") or nil.
 function Hud.stepStorm(now: number, storm: any, status: string?, statusColor: Color3?, cores: number)
 	local remaining = math.max(0, math.ceil(storm.EndsAt - now))
@@ -167,32 +212,35 @@ function Hud.stepStorm(now: number, storm: any, status: string?, statusColor: Co
 	local info = storm.Storm and Config.Storms[storm.Storm]
 	local title, accent, timer, line, lineColor
 
+	local caption
 	if phase == "Warning" and info then
 		title = info.DisplayName .. " INCOMING"
 		accent = info.Color
-		timer = ("%ds"):format(remaining)
+		caption = "HITS IN"
 		line, lineColor = info.Hint, UI.Color.Text
 	elseif phase == "Storm" and info then
 		title = info.DisplayName
 		accent = info.Color
-		timer = ("%ds left"):format(remaining)
+		caption = "PASSES IN"
 		line, lineColor = status, statusColor or UI.Color.Text
 	elseif phase == "Aftermath" then
 		title = "STORM PASSED"
 		accent = UI.Color.Coin
-		timer = ("calm in %ds"):format(remaining)
+		caption = "CALM IN"
 	else
 		title = "CALM SKIES"
 		accent = UI.Color.Safe
-		timer = ("storm in %ds"):format(remaining)
+		caption = "NEXT STORM IN"
 	end
+	timer = ("%02d:%02d"):format(remaining // 60, remaining % 60)
+	stripCaption.Text = caption
 
 	stripTitle.Text = title
 	stripTitle.TextColor3 = if phase == "Calm" or phase == "Aftermath" then UI.Color.Text else accent
 	stripDot.BackgroundColor3 = accent
 	stripTimer.Text = timer
 	local urgent = (phase == "Warning" or phase == "Calm") and remaining <= 3
-	stripTimer.TextColor3 = if urgent then UI.Color.Warn else UI.Color.TextDim
+	stripTimer.TextColor3 = if urgent then UI.Color.Warn elseif loudPhase(phase) then accent else UI.Color.Text
 	-- The strip only stands out while a storm is coming or running.
 	local loud = phase == "Warning" or phase == "Storm"
 	stripStroke.Color = if loud then accent else UI.Color.Outline
@@ -339,7 +387,7 @@ local function buildRail()
 		LayoutOrder = 1,
 		Text = "SHOP",
 		TextSize = 18,
-		Color = Color3.fromRGB(206, 122, 34), -- rusty orange: the salvage yard's color
+		Color = UI.Accent, -- the salvage yard's colour
 		Size = UDim2.fromOffset(math.floor(size * 1.5), size),
 	})
 	local settingsButton = UI.button({
@@ -424,7 +472,7 @@ function Hud.setPlayer(s: any)
 	local carried = #s.Carried
 	local capacity = math.max(1, s.Capacity)
 	local fill = math.clamp(carried / capacity, 0, 1)
-	bagCount.Text = ("Bag %d/%d"):format(carried, s.Capacity)
+	bagCount.Text = ("CARRY %d/%d"):format(carried, s.Capacity)
 	UI.tween(bagFill, 0.25, { Size = UDim2.fromScale(fill, 1) })
 	local full = carried >= s.Capacity
 	bagFill.BackgroundColor3 = if full

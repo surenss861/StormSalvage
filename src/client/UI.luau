@@ -12,6 +12,7 @@ UI.Font = {
 	Title = Enum.Font.FredokaOne,
 	Label = Enum.Font.GothamBold,
 	Body = Enum.Font.GothamMedium,
+	Mono = Enum.Font.GothamBold, -- timers and counts
 }
 
 UI.TextSize = { Display = 28, Title = 20, Label = 14, Body = 14, Caption = 13 }
@@ -35,6 +36,83 @@ UI.Color = {
 
 UI.PlateTransparency = 0.18
 UI.Radius = { Chip = 6, Panel = 10, Modal = 14 }
+UI.StrokeTransparency = 0
+UI.Accent = Color3.fromRGB(206, 122, 34) -- primary action colour (Shop button, Buy)
+
+-- Interface themes. Applied once by Main before anything is built; every module reads the
+-- token tables above, so a theme re-skins the whole HUD, cards and modals together.
+--   Classic     the V2 look (rounded dark plates, Fredoka)
+--   Instrument  Concept A: storm-monitor equipment. Warm charcoal, amber hairlines, condensed
+--               Oswald titles, mono numerals, tight corners
+--   Stencil     Concept B: painted steel. Blue-grey plates, heavy black borders, hazard yellow,
+--               Bangers titles, square corners
+local THEMES = {
+	Instrument = {
+		Font = {
+			Display = Enum.Font.Oswald,
+			Title = Enum.Font.Oswald,
+			Label = Enum.Font.GothamBold,
+			Body = Enum.Font.GothamMedium,
+			Mono = Enum.Font.RobotoMono,
+		},
+		Color = {
+			Plate = Color3.fromRGB(22, 21, 19),
+			PlateLight = Color3.fromRGB(48, 45, 40),
+			Outline = Color3.fromRGB(232, 160, 52),
+			Text = Color3.fromRGB(242, 236, 222),
+			TextDim = Color3.fromRGB(190, 182, 166),
+			TextMuted = Color3.fromRGB(136, 130, 118),
+			Slate = Color3.fromRGB(58, 54, 48),
+			Disabled = Color3.fromRGB(52, 50, 46),
+			Buy = Color3.fromRGB(64, 150, 78),
+		},
+		Radius = { Chip = 2, Panel = 3, Modal = 4 },
+		PlateTransparency = 0.1,
+		StrokeTransparency = 0.45,
+		Accent = Color3.fromRGB(214, 138, 30),
+		TextSize = { Display = 30, Title = 21 },
+	},
+	Stencil = {
+		Font = {
+			Display = Enum.Font.Bangers,
+			Title = Enum.Font.Bangers,
+			Label = Enum.Font.GothamBlack,
+			Body = Enum.Font.GothamBold,
+			Mono = Enum.Font.RobotoMono,
+		},
+		Color = {
+			Plate = Color3.fromRGB(50, 58, 66),
+			PlateLight = Color3.fromRGB(74, 84, 94),
+			Outline = Color3.fromRGB(8, 8, 10),
+			Text = Color3.fromRGB(250, 246, 232),
+			TextDim = Color3.fromRGB(206, 210, 214),
+			Slate = Color3.fromRGB(84, 92, 102),
+			Buy = Color3.fromRGB(60, 160, 70),
+		},
+		Radius = { Chip = 0, Panel = 0, Modal = 0 },
+		PlateTransparency = 0.05,
+		StrokeTransparency = 0,
+		Accent = Color3.fromRGB(240, 190, 30),
+		TextSize = { Display = 32, Title = 23 },
+	},
+}
+
+function UI.useTheme(name: string?)
+	local theme = THEMES[name or ""]
+	if not theme then
+		return -- Classic: the defaults above
+	end
+	for group, values in theme do
+		local target = (UI :: any)[group]
+		if type(values) == "table" and type(target) == "table" then
+			for k, v in values do
+				target[k] = v
+			end
+		else
+			(UI :: any)[group] = values
+		end
+	end
+end
 UI.Time = { Press = 0.08, Enter = 0.22, Exit = 0.18, Count = 0.5 }
 
 -- Set by Main: whether Reduced Effects is on (motion becomes plain fades) and the click cue.
@@ -90,7 +168,7 @@ function UI.stroke(color: Color3?, thickness: number?, transparency: number?): U
 	return UI.new("UIStroke", {
 		Color = color or UI.Color.Outline,
 		Thickness = thickness or 2,
-		Transparency = transparency or 0,
+		Transparency = transparency or UI.StrokeTransparency,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
 end
@@ -451,6 +529,120 @@ function UI.bagIcon(parent: Instance, size: number, color: Color3?): Frame
 		BorderSizePixel = 0,
 	}, { UI.corner(2) })
 	return holder
+end
+
+-- Running boot: shaft, foot, toe cap, sole and laces.
+function UI.bootIcon(parent: Instance, size: number, color: Color3?): Frame
+	local leather = color or Color3.fromRGB(150, 96, 56)
+	local holder = UI.new("Frame", {
+		Name = "BootIcon",
+		Parent = parent,
+		Size = UDim2.fromOffset(size, size),
+		BackgroundTransparency = 1,
+	})
+	local function piece(name: string, pos: UDim2, sz: UDim2, c: Color3, radius: number)
+		return UI.new(
+			"Frame",
+			{
+				Name = name,
+				Parent = holder,
+				Position = pos,
+				Size = sz,
+				BackgroundColor3 = c,
+				BorderSizePixel = 0,
+			},
+			{
+				UI.corner(radius),
+				UI.new("UIStroke", { Thickness = 1.5, Color = UI.Color.Outline, Transparency = 0.2 }),
+			}
+		)
+	end
+	piece("Shaft", UDim2.fromScale(0.18, 0.05), UDim2.fromScale(0.38, 0.62), leather, math.max(2, size // 12))
+	piece("Foot", UDim2.fromScale(0.18, 0.5), UDim2.fromScale(0.7, 0.3), leather, math.max(3, size // 7))
+	piece("Sole", UDim2.fromScale(0.14, 0.8), UDim2.fromScale(0.78, 0.13), Color3.fromRGB(40, 38, 36), 2)
+	piece("Cuff", UDim2.fromScale(0.15, 0.03), UDim2.fromScale(0.44, 0.12), Color3.fromRGB(232, 160, 52), 2)
+	for i = 0, 2 do
+		UI.new("Frame", {
+			Parent = holder,
+			Position = UDim2.fromScale(0.28, 0.24 + i * 0.12),
+			Size = UDim2.fromScale(0.18, 0.04),
+			BackgroundColor3 = Color3.fromRGB(242, 236, 222),
+			BorderSizePixel = 0,
+		})
+	end
+	return holder
+end
+
+-- Storm armor: a chest plate with shoulder guards and a hazard stripe.
+function UI.armorIcon(parent: Instance, size: number, color: Color3?): Frame
+	local steel = color or Color3.fromRGB(110, 124, 136)
+	local holder = UI.new("Frame", {
+		Name = "ArmorIcon",
+		Parent = parent,
+		Size = UDim2.fromOffset(size, size),
+		BackgroundTransparency = 1,
+	})
+	for _, x in { 0.04, 0.66 } do
+		UI.new(
+			"Frame",
+			{
+				Name = "Shoulder",
+				Parent = holder,
+				Position = UDim2.fromScale(x, 0.08),
+				Size = UDim2.fromScale(0.3, 0.22),
+				BackgroundColor3 = steel:Lerp(Color3.new(0, 0, 0), 0.25),
+				BorderSizePixel = 0,
+			},
+			{
+				UI.corner(math.max(2, size // 8)),
+				UI.new("UIStroke", { Thickness = 1.5, Color = UI.Color.Outline, Transparency = 0.2 }),
+			}
+		)
+	end
+	local plate = UI.new(
+		"Frame",
+		{
+			Name = "Plate",
+			Parent = holder,
+			Position = UDim2.fromScale(0.18, 0.16),
+			Size = UDim2.fromScale(0.64, 0.78),
+			BackgroundColor3 = steel,
+			BorderSizePixel = 0,
+		},
+		{
+			UI.corner(math.max(3, size // 5)),
+			UI.new("UIStroke", { Thickness = 1.5, Color = UI.Color.Outline, Transparency = 0.2 }),
+		}
+	)
+	UI.new("Frame", {
+		Name = "Stripe",
+		Parent = plate,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0.3),
+		Size = UDim2.fromScale(1, 0.16),
+		BackgroundColor3 = Color3.fromRGB(232, 160, 52),
+		BorderSizePixel = 0,
+	})
+	UI.new("Frame", {
+		Name = "Bolt",
+		Parent = plate,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.7),
+		Size = UDim2.fromScale(0.22, 0.14),
+		BackgroundColor3 = Color3.fromRGB(242, 236, 222),
+		BorderSizePixel = 0,
+	}, { UI.corner(2) })
+	return holder
+end
+
+-- The icon for an upgrade id.
+function UI.upgradeIcon(id: string, parent: Instance, size: number): Frame
+	if id == "Boots" then
+		return UI.bootIcon(parent, size)
+	elseif id == "Armor" then
+		return UI.armorIcon(parent, size)
+	end
+	return UI.bagIcon(parent, size)
 end
 
 -- Three slider lines: reads as "settings" without needing an image asset.
