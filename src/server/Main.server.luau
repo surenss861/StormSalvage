@@ -15,6 +15,8 @@ local SessionStats = require(script.Parent.SessionStats)
 local ServerPerf = require(script.Parent.ServerPerf)
 local ContractService = require(script.Parent.ContractService)
 
+require(script.Parent.AssetPivotFix).apply() -- before anything places an asset
+
 local map = MapBuilder.build()
 
 SessionStats.init()

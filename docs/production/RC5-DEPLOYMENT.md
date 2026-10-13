@@ -71,3 +71,29 @@ Place `99653875913460` → Version History, filtered to **published only** (`evi
 ## Rollback
 
 Version History → **Restore** version **2**. Restoring only saves it, so then open it in Studio and publish it. Finally **Shut Down All Servers**. Test data stays in `_LIVETEST`, and your real save is never involved.
+
+## Defect found live: everything sat half underground (blocks RC5)
+
+**Found by the owner on the live place (v122):** every building and prop was half underground (`evidence/rc5-live-sunk-yard.png`). This was not the flood, as I first suggested; I was wrong about that.
+
+**Cause:**
+- Placement code moves each asset by its **pivot**. For most assets that's the base centre; 74 of 146 also carry deliberate offsets, e.g. the crane by 13 studs and the shop counters.
+- The Rojo-built place file *does* hold those pivots. All 146 are present in the RC5 artifact, checked with Lune.
+- But when Studio **opens** that place file, it resets every asset pivot to the bounding-box centre. Each model was then placed with its centre at ground level.
+- When Studio reads the same assets as a model file, the pivots survive. So this happens only on place load, and its trigger is not yet understood.
+
+**Why no test caught it:** every Studio test ran in the dev place, whose assets were imported in Studio and kept their pivots. **No test had ever run on the artifact file itself.** RC1–RC5 all had this defect.
+
+**Fix (RC6):**
+- `tools/assets/pivots.luau` records the authored pivots from the asset files into `src/server/AssetPivots.luau`. This is generated, and CI fails if it drifts from the assets.
+- `src/server/AssetPivotFix.luau` applies them to the templates at server start, before anything is placed, and logs `[AssetPivotFix] N asset pivots restored`.
+
+**Verified on the exact broken state:**
+- Test setup: the Studio window opened from the RC5 file (pivots at centre, as live), with the fixed code synced in.
+  - Log: `146 asset pivots restored, 0 missing`, no errors.
+  - Placement: 402 of 403 placed models now sit on their base. The remaining one is the deliberately tipped-over shopping cart.
+- Captures:
+  - before: `evidence/pivots-before-town.jpg` (roofs on the grass)
+  - after: `evidence/pivots-after-town.jpg` and `evidence/pivots-after-yard.jpg`
+
+**Process change:** before any candidate is published, open the **artifact file itself** in Studio and playtest it. That run must log `[AssetPivotFix] 14x asset pivots restored, 0 missing`, and the town must stand upright.
