@@ -3,7 +3,13 @@
 
 local Config = {}
 
-Config.DataStoreName = "StormSalvage_v1"
+-- The live experience's place(s). Every other place (a private test place, a copy) saves to
+-- separate "_TEST" DataStores, so test sessions never read or write real player data.
+-- CONFIRM before release: 99653875913460 is the place currently developed in Studio.
+Config.ProductionPlaceIds = { 99653875913460 }
+Config.DataStoreName = if table.find(Config.ProductionPlaceIds, game.PlaceId)
+	then "StormSalvage_v1"
+	else "StormSalvage_v1_TEST"
 Config.AutosaveSeconds = 120
 Config.StartingCoins = 0
 

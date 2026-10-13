@@ -15,8 +15,8 @@ described), **Studio-tested**, **Blocked** (needs something only you can do), **
 | C4 Warehouse | Done (Studio-tested) | `docs/art/V3-C4-WAREHOUSE.md` |
 | C5 Motel | Done (Studio-tested) | `docs/art/V3-C5-MOTEL.md` |
 | World consistency pass | Done (findings + crosswalk fix) | `docs/art/V3-WORLD-CONSISTENCY.md`; finding 1 is a device gate |
-| D Premium UI | **Partial**: storm-specific safety wording (Wind/Flood/Lightning hints; 'Buildings flood too' indoors) verified in Studio. Gear Shop already shows current/next/price/affordability/progress (`docs/art/v3/ui/`). Workbench restyle, icons and receipt redesign not started | |
-| E Gameplay polish | Not started | |
+| D Premium UI | **In progress**: Instrument theme chosen over Stencil (`docs/art/v3/ui/conceptA-*`, `conceptB-*`); storm instrument HUD with mm:ss countdown; NEXT OBJECTIVE chain to first upgrade; Gear Shop workbench with Backpack/Boots/Armor icons (real purchase verified: coins deducted, level 4, saved); weigh-ticket sale receipt; notices move above modals; storm-specific safety wording. **To do**: rarity/Storm Core feedback, hub wayfinding, mobile layout check, armor icon polish | |
+| E Gameplay polish | **In progress**: camera kept inside buildings (`src/client/CameraOcclusion.luau`), freezer gap verified. **To do**: pickup/sell/upgrade feel, audio levels, death and bag recovery review | |
 | F QA and optimisation | In progress: per-district Studio regressions; full-town bot loop after C5 (2 full sales, storm survived, 0 errors). Device gates **Not tested** | |
 | G Purchase safety | **Studio-tested** (below) | |
 | G Release prep | **Partial**: AnalyticsService FirstSession funnel + custom events (verified firing in a 4-min bot run); release checklist `docs/production/V3-RELEASE-CHECKLIST.md` | |
@@ -58,6 +58,8 @@ The test account (your own profile) was restored to its pre-test 347 coins and s
 `Config`, a test purchase in a private published place, and your explicit go-ahead. Not done.
 
 ## Blockers needing you
+
+0. Create the private test experience and send its place ID; confirm `99653875913460` is the live place (`Config.ProductionPlaceIds`). Any other place now saves to `StormSalvage_v1_TEST`.
 
 1. Re-import `assets/exports/v3fuel/Compressor.fbx` (minor; skipped twice).
 

@@ -294,6 +294,12 @@ end
 
 function Notifications.setModalOpen(open: boolean)
 	suppress.Modal = open
+	-- With a modal up, server notices sit just under the storm instrument instead of over the
+	-- modal's buttons.
+	if feedHolder then
+		feedHolder.AnchorPoint = if open then Vector2.new(0.5, 0) else Vector2.new(0.5, 1)
+		feedHolder.Position = if open then UDim2.new(0.5, 0, 0, 2) else UDim2.new(0.5, 0, 1, -62)
+	end
 	if open and dangerText == "" then
 		-- A district title would sit over the modal's top edge; danger alerts still show.
 		locationUntil = 0

@@ -541,21 +541,17 @@ function UI.bootIcon(parent: Instance, size: number, color: Color3?): Frame
 		BackgroundTransparency = 1,
 	})
 	local function piece(name: string, pos: UDim2, sz: UDim2, c: Color3, radius: number)
-		return UI.new(
-			"Frame",
-			{
-				Name = name,
-				Parent = holder,
-				Position = pos,
-				Size = sz,
-				BackgroundColor3 = c,
-				BorderSizePixel = 0,
-			},
-			{
-				UI.corner(radius),
-				UI.new("UIStroke", { Thickness = 1.5, Color = UI.Color.Outline, Transparency = 0.2 }),
-			}
-		)
+		return UI.new("Frame", {
+			Name = name,
+			Parent = holder,
+			Position = pos,
+			Size = sz,
+			BackgroundColor3 = c,
+			BorderSizePixel = 0,
+		}, {
+			UI.corner(radius),
+			UI.new("UIStroke", { Thickness = 1.5, Color = UI.Color.Outline, Transparency = 0.2 }),
+		})
 	end
 	piece("Shaft", UDim2.fromScale(0.18, 0.05), UDim2.fromScale(0.38, 0.62), leather, math.max(2, size // 12))
 	piece("Foot", UDim2.fromScale(0.18, 0.5), UDim2.fromScale(0.7, 0.3), leather, math.max(3, size // 7))
@@ -583,37 +579,29 @@ function UI.armorIcon(parent: Instance, size: number, color: Color3?): Frame
 		BackgroundTransparency = 1,
 	})
 	for _, x in { 0.04, 0.66 } do
-		UI.new(
-			"Frame",
-			{
-				Name = "Shoulder",
-				Parent = holder,
-				Position = UDim2.fromScale(x, 0.08),
-				Size = UDim2.fromScale(0.3, 0.22),
-				BackgroundColor3 = steel:Lerp(Color3.new(0, 0, 0), 0.25),
-				BorderSizePixel = 0,
-			},
-			{
-				UI.corner(math.max(2, size // 8)),
-				UI.new("UIStroke", { Thickness = 1.5, Color = UI.Color.Outline, Transparency = 0.2 }),
-			}
-		)
-	end
-	local plate = UI.new(
-		"Frame",
-		{
-			Name = "Plate",
+		UI.new("Frame", {
+			Name = "Shoulder",
 			Parent = holder,
-			Position = UDim2.fromScale(0.18, 0.16),
-			Size = UDim2.fromScale(0.64, 0.78),
-			BackgroundColor3 = steel,
+			Position = UDim2.fromScale(x, 0.08),
+			Size = UDim2.fromScale(0.3, 0.22),
+			BackgroundColor3 = steel:Lerp(Color3.new(0, 0, 0), 0.25),
 			BorderSizePixel = 0,
-		},
-		{
-			UI.corner(math.max(3, size // 5)),
+		}, {
+			UI.corner(math.max(2, size // 8)),
 			UI.new("UIStroke", { Thickness = 1.5, Color = UI.Color.Outline, Transparency = 0.2 }),
-		}
-	)
+		})
+	end
+	local plate = UI.new("Frame", {
+		Name = "Plate",
+		Parent = holder,
+		Position = UDim2.fromScale(0.18, 0.16),
+		Size = UDim2.fromScale(0.64, 0.78),
+		BackgroundColor3 = steel,
+		BorderSizePixel = 0,
+	}, {
+		UI.corner(math.max(3, size // 5)),
+		UI.new("UIStroke", { Thickness = 1.5, Color = UI.Color.Outline, Transparency = 0.2 }),
+	})
 	UI.new("Frame", {
 		Name = "Stripe",
 		Parent = plate,

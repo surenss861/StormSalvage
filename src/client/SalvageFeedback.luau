@@ -182,10 +182,19 @@ function SalvageFeedback.onSale(receipt: any)
 		Height = height,
 		Seconds = if receipt.HadCore then 5.5 else 3.8,
 		Build = function(card)
-			line(card, 8, 22, {
+			-- A weigh-station ticket: header with the ticket number, itemised lines, total, balance
+			-- and a PAID stamp. Every number is the server's.
+			line(card, 6, 22, {
 				Role = "Title",
-				Text = if receipt.HadCore then "STORM CORE DELIVERED!" else "SOLD!",
+				Text = if receipt.HadCore then "STORM CORE DELIVERED" else "SCRAP BUYER · SOLD",
 				TextColor3 = accent,
+			})
+			line(card, 10, 14, {
+				Font = UI.Font.Mono,
+				TextSize = 12,
+				TextXAlignment = Enum.TextXAlignment.Right,
+				Text = ("TICKET #%03d"):format(receipt.Sale),
+				TextColor3 = UI.Color.TextMuted,
 			})
 			local y = 34
 			local function row(left: string, right: string, color: Color3?)
@@ -197,7 +206,7 @@ function SalvageFeedback.onSale(receipt: any)
 					TextColor3 = color or UI.Color.TextDim,
 				})
 				line(card, y, 17, {
-					Role = "Label",
+					Font = UI.Font.Mono,
 					TextSize = 14,
 					Position = UDim2.new(0.72, 0, 0, y),
 					Size = UDim2.new(0.28, 0, 0, 17),
@@ -223,16 +232,20 @@ function SalvageFeedback.onSale(receipt: any)
 			for _, bonus in receipt.Multipliers do
 				row(bonus.Name, ("x%s"):format(tostring(bonus.Factor)), UI.Color.Coin)
 			end
-			UI.new("Frame", {
-				Parent = card,
-				Position = UDim2.fromOffset(0, y + 3),
-				Size = UDim2.new(1, 0, 0, 2),
-				BackgroundColor3 = UI.Color.Slate,
-				BorderSizePixel = 0,
-			})
+			-- Perforated rule above the total.
+			for i = 0, 30 do
+				UI.new("Frame", {
+					Parent = card,
+					Position = UDim2.new(i / 31, 0, 0, y + 4),
+					Size = UDim2.new(1 / 62, 0, 0, 2),
+					BackgroundColor3 = UI.Color.TextMuted,
+					BorderSizePixel = 0,
+				})
+			end
 			line(card, y + 9, 30, { Role = "Title", Size = UDim2.new(0.45, 0, 0, 30), Text = "TOTAL" })
 			local total = line(card, y + 9, 30, {
-				Role = "Display",
+				Font = UI.Font.Mono,
+				TextSize = 26,
 				Position = UDim2.new(0.35, 0, 0, y + 9),
 				Size = UDim2.new(0.65, 0, 0, 30),
 				TextXAlignment = Enum.TextXAlignment.Right,
@@ -243,8 +256,25 @@ function SalvageFeedback.onSale(receipt: any)
 				Role = "Body",
 				TextSize = 13,
 				TextXAlignment = Enum.TextXAlignment.Right,
-				Text = ("Balance %d coins"):format(receipt.Balance),
+				Text = ("BALANCE %d"):format(receipt.Balance),
 				TextColor3 = UI.Color.TextDim,
+			})
+			local stamp = UI.text({
+				Parent = card,
+				Role = "Title",
+				TextSize = 18,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(0.16, 0, 0, y + 50),
+				Size = UDim2.fromOffset(70, 24),
+				Rotation = -8,
+				Text = "PAID",
+				TextColor3 = accent,
+			})
+			UI.new("UIStroke", {
+				Parent = stamp,
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+				Color = accent,
+				Thickness = 2,
 			})
 			-- Count up to the exact server total (visual only; the coins were already paid).
 			UI.countUp(total, 0, receipt.Total, if UI.reduced() then 0.01 else UI.Time.Count, "+%d")

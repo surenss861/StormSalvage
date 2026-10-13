@@ -16,6 +16,7 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
+local CameraOcclusion = require(script.Parent:WaitForChild("CameraOcclusion"))
 local Districts = require(script.Parent:WaitForChild("Districts"))
 local EnvironmentFX = require(script.Parent:WaitForChild("EnvironmentFX"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
@@ -97,6 +98,7 @@ StormEffects.init(Remotes.get("LightningWarning"))
 Districts.init()
 EnvironmentFX.init(StormEffects.getState, StormEffects.gustPhase, StormEffects.isReduced)
 StormEffects.setStrikeHook(EnvironmentFX.onStrike)
+CameraOcclusion.init()
 
 ---------------------------------------------------------------------------- Tutorial hint
 
