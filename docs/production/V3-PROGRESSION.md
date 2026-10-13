@@ -131,3 +131,11 @@ Either way, re-measure with real players. Unchanged until you decide.
 ### Bot reliability (QA tool, not game)
 
 The autopilot stalled several times behind the Scrap Buyer shack. Roblox only shows a prompt that's on screen and inside its range, and the bot's approach points were landing on the shack roof. The bot now looks at what it presses and walks to verified spots in front of the counter. Runs made before that fix are not used for conclusions.
+
+## RC5 review follow-up
+
+- **Heavy-Duty Pack is now +2 slots** (owner decision), in the next candidate RC6. RC5 is unchanged.
+- **Matched +2 run** (seed 42, same bot, fresh profile, 15 min): total **1,557** (sales 1,082, jobs 375 from 7, storms 100). XP 404 / Salvager; Backpack 3. That's **+13% total** against the free run's 1,380, compared with +54% at +4. Sales were +40%, but this run had 2 deaths and two empty trips, so treat it as one noisy sample. **Free Backpack upgrades stay worthwhile:** the free run also reached Backpack 3, and the +2 player still bought Backpack 3. Re-measure with more seeds and real players in the private test.
+- **Finishes in-game:** all seven drawn as real overhead nameplates over Town Square (`docs/art/v3/ui/jobs/06` Calm, `07` Lightning).
+  - Calm: each finish is distinct and every name is readable.
+  - Lightning: the storm grading dims them all. They stay legible, and Hazard and Storm Glass stand out most, but Chrome loses most of its shine. Acceptable for now; revisit if players say so.

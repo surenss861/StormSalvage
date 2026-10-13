@@ -355,8 +355,9 @@ Config.GamePasses = {
 	HeavyDuty = {
 		Id = 0,
 		DisplayName = "Heavy-Duty Pack",
-		Description = "+4 bag slots on top of your Backpack upgrades. Permanent.",
-		BonusCapacity = 4,
+		-- +2 (owner decision 2026-10-13): +4 gave +54% income in a matched 15-min test.
+		Description = "+2 bag slots on top of your Backpack upgrades. Permanent.",
+		BonusCapacity = 2,
 		RobuxPrice = 149,
 	},
 }

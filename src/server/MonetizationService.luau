@@ -49,7 +49,11 @@ local function grantHeavyDuty(player: Player, announce: boolean)
 	session.OwnsHeavyDuty = true
 	PlayerService.pushState(player)
 	if announce then
-		PlayerService.notify(player, "Heavy-Duty Pack unlocked: +4 bag slots!", Color3.fromRGB(255, 220, 90))
+		PlayerService.notify(
+			player,
+			("Heavy-Duty Pack unlocked: +%d bag slots!"):format(Config.GamePasses.HeavyDuty.BonusCapacity),
+			Color3.fromRGB(255, 220, 90)
+		)
 		deliveredRemote:FireClient(player, { Kind = "Pass", Key = "HeavyDuty" })
 		SessionStats.purchased(player, "HeavyDuty")
 	end

@@ -1,0 +1,50 @@
+# RC5 private deployment: owner checklist
+
+**Build:** `rc-20261013-5`, commit `858aa8f`, approved for private testing by the owner on 2026-10-13. Not for a public launch; purchases stay off.
+
+**File to publish:** `.tools/rc/StormSalvage-rc-20261013-5-858aa8f.rbxl` (in the repo folder, git-ignored). This is the CI artifact from run 38390046991.
+
+- SHA-256: `ba03c100113eff234bc1204994179cdeb6e4b6e8f073d622424be4b961246575`
+- **Inspected inside the file:**
+  - `Config.LiveTestMode = true`
+  - `PurchasesEnabled = false`
+  - no product IDs
+  - `ProductionPlaceIds = { 99653875913460 }`
+  - the `_LIVETEST` store present
+  - 45 scripts, and no QA scripts
+
+**Only two places in the code open a DataStore:** the profile store and its `_Purchases` audit store, and both use `Config.DataStoreName`. In this build that name resolves to `StormSalvage_v1_LIVETEST` on the live place (unit-tested).
+
+## Baseline taken before publishing (read-only, 2026-10-13 16:2x UTC)
+
+| Store | Key `player_8482925865` (your account) |
+| --- | --- |
+| `StormSalvage_v1` (real saves) | Latest version `08DF2633FC1D5556.0000000175.08DF28D0DF8E075C.01` written 2026-10-13 02:22:47 UTC. 200 coins, Backpack 4, Boots 4, Armor 3. |
+| `StormSalvage_v1_LIVETEST` | Doesn't exist yet |
+
+The last real-save writes (01:53 and 02:22 UTC) are from before Studio isolation landed (04:38 UTC, commit `0805251`). Nothing has written your real save since.
+
+## Steps (you)
+
+1. **Record the rollback version.** Creator Hub → Storm Salvage → the start place → **Version History**. Write down the current version number and take a screenshot, then send me the number.
+2. **Close the Studio window I've been testing in** without saving or publishing. It runs the newer working code, which is not RC5.
+3. **Open the RC5 file.** In Studio, File → Open from File… → the `.rbxl` above.
+4. **Publish.** File → **Publish to Roblox As…**, choosing **Storm Salvage**, the existing start place `99653875913460`. Check the destination before confirming.
+5. **Keep it private.** Creator Hub → experience settings: confirm it's still **Private**.
+6. **Check the environment.** Join from the Roblox app, press **F9 → Server log**, and look for:
+   `[Environment] Production (listed production place, LIVE TEST namespace (real saves untouched)), place 99653875913460, store StormSalvage_v1_LIVETEST`.
+   If it says `store StormSalvage_v1` without LIVE TEST, **stop: leave the game without collecting or buying anything** and tell me.
+7. **Smoke test (about 5 min).**
+   1. Collect, sell, buy one upgrade.
+   2. Open JOBS (after the first sale) and finish or advance a job.
+   3. Leave, rejoin: the same coins, upgrade and job progress should be there.
+
+## Steps (me, right after your smoke test)
+
+- **Confirm the real save is untouched:** `StormSalvage_v1` / `player_8482925865` still has latest version `…0175` from 02:22:47 UTC (read-only check).
+- **Confirm test progress landed in the test store:** `StormSalvage_v1_LIVETEST` now has your key, with the progress you made.
+- Then multiplayer and device testing per `V3-PRELAUNCH-TEST-PLAN.md`, plus the open RC5 items in the tracker.
+
+## Rollback
+
+Version History → **Restore** the version from step 1, then **Shut Down All Servers**. Test data stays in `_LIVETEST`, and your real save is never involved.
