@@ -31,6 +31,15 @@ Place `99653875913460` → Version History, filtered to **published only** (`evi
 - **The currently published version is 2**, saved October 8, 2026 at 11:16 PM local time. **That's the rollback target.**
 - Versions 3–119, the latest saved October 13 at 12:50 PM local time, are **saves only, never published**. Live servers still run the October 8 build, which predates the save-store isolation and `LiveTestMode`. Anyone joining the live game today writes to the real store with that old code.
 
+## Publish log (2026-10-13)
+
+1. **14:26 local.** The first attempt used "Publish to Roblox As…", which created a **new private experience**, "ztromsalvage1" (experience `10770701335`, place `122733895388261`). Nothing saves there: RC5 doesn't recognise that place ID, so it finds no matching store and fails closed. It's left private and unused.
+2. **14:30 local.** Storm Salvage **version 121 published**, and the experience is still Private. Comparing every script in the Studio window that's connected to the place:
+   - **It is not the RC5 artifact.** All 45 game scripts are byte-identical to branch HEAD `ac5ba68`, the RC6 work: Heavy-Duty Pack +2, with `Config` and `MonetizationService` differing from RC5.
+   - The window also holds Rojo and LuauLSP settings objects, which the RC5 file doesn't have. So the window that was published was the **Studio testing window**, not the RC5 file.
+   - Data safety is the same as RC5: `LiveTestMode = true`, `PurchasesEnabled = false`, and the same `Environment` and `DataService` code, so saves go to `_LIVETEST`.
+   - But the build isn't traceable to a tagged candidate. **Plan:** republish the actual RC5 file before any testing counts.
+
 ## Steps (you)
 
 1. ~~Record the rollback version.~~ Done above: version **2**.
