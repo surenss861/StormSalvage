@@ -32,9 +32,9 @@ The three review risks are fixed in `MonetizationService` / `DataService`:
 2. **Failed receipt retried, then re-delivered.** Every failure returns `NotProcessedYet`; a retry
    finds the PurchaseId in the profile or the lifetime history and finishes the bookkeeping
    without granting again.
-3. **Bounded history.** The profile still keeps the last 100 PurchaseIds, but every granted
-   PurchaseId is also recorded in a never-pruned purchase-history DataStore
-   (`StormSalvage_v1_Purchases`, key `purchase_<PurchaseId>`), checked first.
+3. **Bounded history.** Removed on 2026-10-13: the profile's PurchaseId list is never pruned, so
+   correctness no longer depends on the purchase-history store (now an audit log and fast skip).
+   Re-tested A–H in the `_STUDIO` store; see `V3-PRODUCTION-AUDIT.md`.
 
 Also: a receipt already being processed in this server is never processed concurrently.
 
@@ -52,7 +52,9 @@ via `debug:Invoke("faults", op, n)`, unique PurchaseIds, DataStore read back aft
 | G Two concurrent deliveries of one receipt | PASS: one Granted, one NotProcessedYet, one grant |
 | H Receipt pruned from the profile, re-delivered | PASS: lifetime history blocks the regrant |
 
-The test account (your own profile) was restored to its pre-test 347 coins and saved.
+That 2026-10-12 run used your real profile (restored to 347 coins afterwards). It's superseded by
+the 2026-10-13 re-run, which used the disposable `_STUDIO` profile only; your live profile was
+snapshotted read-only before and after and is unchanged.
 
 **Still required before enabling real purchases** (needs you): real product and game-pass IDs in
 `Config`, a test purchase in a private published place, and your explicit go-ahead. Not done.
@@ -63,7 +65,7 @@ See `docs/production/V3-PRODUCTION-AUDIT.md` (P0 environment isolation implement
 
 ## Blockers needing you
 
-0. Create the private test experience and send its place ID; confirm `99653875913460` is the live place (`Config.ProductionPlaceIds`). Any other place now saves to `StormSalvage_v1_TEST`.
+0. Create the private test experience and send its place ID; confirm `99653875913460` is the live place (`Config.ProductionPlaceIds`). Any unlisted place gets no DataStores (temporary profiles, purchases refused).
 
 1. Re-import `assets/exports/v3fuel/Compressor.fbx` (minor; skipped twice).
 

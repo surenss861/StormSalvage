@@ -1,16 +1,19 @@
 -- Game passes and developer products. IDs live in Config; an Id of 0 disables that item.
 --
--- Developer-product receipts are processed so a reward can never be granted twice or spent
--- before it is durable:
---   1. A PurchaseId already in the lifetime purchase history is acknowledged without granting.
---   2. The grant and its PurchaseId are written to the stored profile in one UpdateAsync
---      (DataService.grantReceipt). Only after that succeeds does the live session get the
---      reward, so nothing spendable exists that a failed save could take back.
---   3. The PurchaseId goes into the lifetime history store, the session is saved, and only
---      then is PurchaseGranted returned. Any failure returns NotProcessedYet; Roblox re-delivers
---      the receipt and steps 1-2 make the retry a no-op apart from finishing the bookkeeping.
--- A receipt already being processed in this server is never processed concurrently.
-
+-- Developer-product receipts. Correctness rests on one invariant: **a PurchaseId is in the
+-- stored profile if and only if its reward is in the stored profile.** Both are written in a
+-- single UpdateAsync (DataService.grantReceipt), the transform checks the PurchaseId first and
+-- has no side effects, and the profile's PurchaseId list is never pruned. So:
+--   - a retry, a duplicate callback or a delivery after rejoining finds the PurchaseId and
+--     grants nothing;
+--   - only the server holding the profile's session lock can write it (grantReceipt refuses
+--     otherwise and the receipt stays unprocessed until that server's session ends);
+--   - live-session saves write the whole profile, so a save that predates the grant overwrites
+--     both the reward and the PurchaseId together, and the receipt is granted again, once.
+-- The live session only receives the reward after the durable write, so nothing spendable
+-- exists that a failed write could take back. PurchaseGranted is returned only after the
+-- session has been saved with the grant. The purchase-history store is an audit log and a fast
+-- skip, not part of the correctness argument.
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -20,8 +23,6 @@ local DataService = require(script.Parent.DataService)
 local PlayerService = require(script.Parent.PlayerService)
 
 local MonetizationService = {}
-
-local MAX_RECEIPT_HISTORY = 100
 
 local function ownsPass(player: Player, passId: number): boolean
 	if passId == 0 then
@@ -72,9 +73,6 @@ local inFlight: { [string]: boolean } = {}
 
 local function rememberReceipt(receipts: { string }, purchaseId: string)
 	table.insert(receipts, purchaseId)
-	while #receipts > MAX_RECEIPT_HISTORY do
-		table.remove(receipts, 1)
-	end
 end
 
 local function processReceiptUnguarded(receipt): Enum.ProductPurchaseDecision

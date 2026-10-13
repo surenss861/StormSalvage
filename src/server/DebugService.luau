@@ -63,7 +63,7 @@ local commands: { [string]: (...any) -> any } = {
 		DataService.failNextForTest(operation, count)
 		return ("next %d %s calls fail"):format(count, operation)
 	end,
-	-- Drop a PurchaseId from the live profile's recent-receipt list (simulates history pruning).
+	-- Drop a PurchaseId from the live profile's receipt list (fault-injection tests).
 	forgetreceipt = function(playerName: string, purchaseId: string)
 		local player = Players:FindFirstChild(playerName)
 		local session = player and player:IsA("Player") and PlayerService.get(player)
@@ -82,6 +82,15 @@ local commands: { [string]: (...any) -> any } = {
 		session.Data.Coins = amount
 		PlayerService.pushState(player :: Player)
 		return amount
+	end,
+	-- Race test: start `times` sales for one player in the same frame.
+	sellrace = function(playerName: string, times: number)
+		local player = Players:FindFirstChild(playerName)
+		assert(player and player:IsA("Player"), "no player " .. tostring(playerName))
+		for _ = 1, times do
+			task.spawn(PlayerService.sell, player)
+		end
+		return "started " .. times
 	end,
 	save = function(playerName: string)
 		local player = Players:FindFirstChild(playerName)

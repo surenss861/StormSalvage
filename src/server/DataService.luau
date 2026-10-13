@@ -128,8 +128,6 @@ local function injectedFailure(operation: string): boolean
 	return false
 end
 
-local RECEIPT_HISTORY = 100
-
 -- Applies a developer-product grant to the *stored* profile and records its PurchaseId in the
 -- same write, so the grant and its receipt are durable together before the live session ever
 -- sees the reward. Returns (ok, alreadyGranted, lostLock).
@@ -160,9 +158,6 @@ function DataService.grantReceipt(
 			end
 			apply(data)
 			table.insert(data.ProcessedReceipts, purchaseId)
-			while #data.ProcessedReceipts > RECEIPT_HISTORY do
-				table.remove(data.ProcessedReceipts, 1)
-			end
 			data.Lock = { Session = SESSION_ID, Time = os.time() }
 			return data
 		end)
@@ -174,8 +169,9 @@ function DataService.grantReceipt(
 	return not lostLock, already, lostLock
 end
 
--- Lifetime purchase history, one record per PurchaseId, never pruned. The profile only keeps
--- the last 100 receipts; this store is what makes a very old re-delivery still idempotent.
+-- Purchase audit log, one record per PurchaseId. Not needed for correctness: the profile keeps
+-- every PurchaseId it has granted (never pruned), written in the same UpdateAsync as the grant.
+-- This store is a fast "already done" check and an audit trail.
 local history: DataStore? = nil
 if Config.DataStoreName then
 	pcall(function()
