@@ -1133,13 +1133,14 @@ function MapBuilder.build()
 			CanQuery = true,
 		})
 	end
-	-- Crosswalks at the junction
+	-- Crosswalks at the junction. Worn off-white: pure TRIM white blooms out in calm light.
+	local ROAD_PAINT = Color3.fromRGB(172, 168, 158)
 	for i = -2, 2 do
 		for _, z in { -5, 25 } do
 			prop({
 				Size = Vector3.new(1.4, 0.05, 5),
 				Position = Vector3.new(i * 4, 0.22, z),
-				Color = TRIM,
+				Color = ROAD_PAINT,
 				Material = Enum.Material.SmoothPlastic,
 				CanCollide = false,
 			})
@@ -1148,7 +1149,7 @@ function MapBuilder.build()
 			prop({
 				Size = Vector3.new(5, 0.05, 1.4),
 				Position = Vector3.new(x, 0.22, 10 + i * 4),
-				Color = TRIM,
+				Color = ROAD_PAINT,
 				Material = Enum.Material.SmoothPlastic,
 				CanCollide = false,
 			})
