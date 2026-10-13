@@ -1,8 +1,9 @@
--- The Gear Shop as a mechanic's workbench: the three pieces of equipment on a rack on the left,
--- the selected one on the bench on the right (big icon, what it does now, what the next level
--- gives, the price, one BUY button). Buying asks the server (BuyUpgrade); the bench only
--- celebrates once the server's player state shows the new level, so the UI never runs ahead of
--- what was actually bought.
+-- The Gear Shop as the Scrapyard's pegboard (Workshop direction). The three pieces of equipment
+-- hang on the left as tool tags (level punched in, price sticker); the selected one is laid out
+-- on a spec sheet on the right in a strict order: what it is, level, what it does now -> next
+-- level, the level track, your coins, the price, one BUY button.
+-- Buying asks the server (BuyUpgrade); the sheet only celebrates once the server's player state
+-- shows the new level, so the UI never runs ahead of what was actually bought.
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -13,6 +14,7 @@ local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local UI = require(script.Parent:WaitForChild("UI"))
 
 local Shop = {}
+local M = UI.Mat
 
 export type Hooks = {
 	Notify: (text: string, color: Color3?) -> (),
@@ -24,20 +26,31 @@ local hooks: Hooks
 local state: any = nil
 local selected = Config.UpgradeOrder[1]
 
-type Tile = { Frame: TextButton, Stroke: UIStroke, Pips: { Frame }, Level: number? }
+type Tile = {
+	Frame: TextButton,
+	Stroke: UIStroke,
+	Holes: { Frame },
+	Price: Frame,
+	PriceText: TextLabel,
+	Tilt: number,
+	Level: number?,
+}
 local tiles: { [string]: Tile } = {}
 
--- Bench widgets.
-local benchIconHolder: Frame
-local benchTitle: TextLabel
-local benchDesc: TextLabel
-local benchLevel: TextLabel
-local benchNow: TextLabel
-local benchNext: TextLabel
-local benchArrow: TextLabel
-local benchBuy: TextButton
-local benchStroke: UIStroke
-local benchScale: UIScale
+-- Spec sheet widgets.
+local sheet: Frame
+local sheetScale: UIScale
+local sheetIcon: Frame
+local sheetTitle: TextLabel
+local sheetLevel: TextLabel
+local sheetDesc: TextLabel
+local sheetNow: TextLabel
+local sheetArrow: TextLabel
+local sheetNext: TextLabel
+local track: Frame
+local wallet: TextLabel
+local buy: TextButton
+local installed: Frame
 
 local function formatValue(id: string, value: any): string
 	if id == "Backpack" then
@@ -50,154 +63,176 @@ local function formatValue(id: string, value: any): string
 	return ("-%d%% DAMAGE"):format(math.floor(value * 100 + 0.5))
 end
 
-local function formatCoins(n: number): string
-	local s = tostring(math.floor(n))
-	return (s:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", ""))
-end
+---------------------------------------------------------------------------- Pegboard tags
 
----------------------------------------------------------------------------- Rack (left)
+local TILTS = { -1.5, 1.2, -0.8 }
 
 local function makeTile(rack: Instance, id: string, order: number): Tile
 	local def = Config.Upgrades[id]
-	local frame = UI.new("TextButton", {
+	local holder = UI.new("Frame", {
 		Name = id,
 		Parent = rack,
 		LayoutOrder = order,
-		Size = UDim2.new(1, -6, 0, 72),
-		BackgroundColor3 = UI.Color.PlateLight,
+		Size = UDim2.new(1, -8, 0, 84),
+		BackgroundTransparency = 1,
+		ZIndex = 21,
+	})
+	local tilt = TILTS[order] or 0
+	local frame = UI.new("TextButton", {
+		Name = "Tag",
+		Parent = holder,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -8, 1, -8),
+		Rotation = tilt,
+		BackgroundColor3 = M.Manila,
 		AutoButtonColor = false,
 		BorderSizePixel = 0,
 		Text = "",
-		ZIndex = 21,
-	}, { UI.corner(UI.Radius.Panel) })
-	local stroke = UI.stroke(UI.Color.Outline, 1.5, 0.75)
+		ZIndex = 22,
+	}, { UI.corner(8) })
+	local stroke = UI.stroke(M.KraftEdge, 2)
 	stroke.Parent = frame
-	local icon = UI.upgradeIcon(id, frame, 40)
-	icon.Position = UDim2.fromOffset(10, 16)
-	icon.ZIndex = 22
+	UI.punchHole(frame, UDim2.fromOffset(14, 14), 11, 23)
+	local icon = UI.upgradeIcon(id, frame, 44)
+	icon.Position = UDim2.fromOffset(18, 22)
+	for _, d in icon:GetDescendants() do
+		if d:IsA("GuiObject") then
+			d.ZIndex = 24
+		end
+	end
 	UI.text({
 		Parent = frame,
-		Role = "Title",
-		TextSize = 18,
-		Position = UDim2.fromOffset(60, 12),
-		Size = UDim2.new(1, -66, 0, 22),
+		Font = UI.Font.Title,
+		TextSize = 17,
+		Position = UDim2.fromOffset(70, 8),
+		Size = UDim2.new(1, -140, 0, 26),
 		TextXAlignment = Enum.TextXAlignment.Left,
-		Text = string.upper(def.DisplayName),
-		ZIndex = 22,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextColor3 = M.Marker,
+		Text = def.DisplayName,
+		ZIndex = 23,
 	})
-	local pips = {}
+	-- Level, punched into the tag.
+	local holes = {}
 	for i = 1, #def.Costs do
-		local pip = UI.new("Frame", {
-			Name = "Pip" .. i,
+		local hole = UI.new("Frame", {
+			Name = "Level" .. i,
 			Parent = frame,
-			Position = UDim2.fromOffset(60 + (i - 1) * 14, 44),
-			Size = UDim2.fromOffset(10, 10),
-			BackgroundColor3 = UI.Color.Disabled,
+			Position = UDim2.fromOffset(70 + (i - 1) * 17, 44),
+			Size = UDim2.fromOffset(12, 12),
+			BackgroundColor3 = M.Manila,
 			BorderSizePixel = 0,
-			ZIndex = 22,
-		}, { UI.corner(2) })
-		UI.new("UIScale", { Parent = pip })
-		table.insert(pips, pip)
+			ZIndex = 23,
+		}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), UI.stroke(M.Marker, 2) })
+		UI.new("UIScale", { Parent = hole })
+		table.insert(holes, hole)
 	end
+	-- Price sticker.
+	local price = UI.new("Frame", {
+		Name = "Price",
+		Parent = frame,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -8, 0.5, 0),
+		Size = UDim2.fromOffset(60, 44),
+		Rotation = -6,
+		BackgroundColor3 = M.Orange,
+		BorderSizePixel = 0,
+		ZIndex = 23,
+	}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	local priceText = UI.text({
+		Parent = price,
+		Font = UI.Font.Mono,
+		TextSize = 16,
+		Size = UDim2.fromScale(1, 1),
+		TextColor3 = Color3.new(1, 1, 1),
+		Text = "",
+		ZIndex = 24,
+	})
 	frame.Activated:Connect(function()
 		selected = id
 		Shop.refresh()
 	end)
-	return { Frame = frame, Stroke = stroke, Pips = pips }
+	return {
+		Frame = frame,
+		Stroke = stroke,
+		Holes = holes,
+		Price = price,
+		PriceText = priceText,
+		Tilt = tilt,
+	}
 end
 
----------------------------------------------------------------------------- Bench (right)
+---------------------------------------------------------------------------- Spec sheet
 
-local function buildBench(parent: Instance)
-	local bench = UI.new("Frame", {
-		Name = "Bench",
+local function buildSheet(parent: Instance)
+	sheet = UI.new("Frame", {
+		Name = "Sheet",
 		Parent = parent,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(1, 0),
-		Size = UDim2.new(0.62, 0, 1, 0),
-		BackgroundColor3 = UI.Color.PlateLight,
-		BackgroundTransparency = 0.35,
+		Position = UDim2.new(1, -4, 0, 4),
+		Size = UDim2.new(0.6, -4, 1, -8),
+		BackgroundColor3 = M.Paper,
 		BorderSizePixel = 0,
-		ClipsDescendants = true,
 		ZIndex = 21,
-	}, { UI.corner(UI.Radius.Panel) })
-	benchStroke = UI.stroke(UI.Color.Outline, 1.5, 0.5)
-	benchStroke.Parent = bench
-	benchScale = UI.new("UIScale", { Parent = bench })
-	-- Hazard tape along the top edge of the bench.
-	local tape = UI.new("Frame", {
-		Name = "Tape",
-		Parent = bench,
-		Size = UDim2.new(1, 0, 0, 5),
-		BackgroundColor3 = Color3.fromRGB(232, 160, 52),
-		BorderSizePixel = 0,
-		ClipsDescendants = true,
-		ZIndex = 22,
-	})
-	for i = 0, 40 do
-		UI.new("Frame", {
-			Parent = tape,
-			Position = UDim2.fromOffset(i * 16, -4),
-			Size = UDim2.fromOffset(6, 14),
-			Rotation = 35,
-			BackgroundColor3 = Color3.fromRGB(26, 24, 22),
-			BorderSizePixel = 0,
-			ZIndex = 22,
-		})
-	end
-	benchIconHolder = UI.new("Frame", {
+	}, { UI.corner(3), UI.stroke(M.KraftEdge, 2) })
+	sheetScale = UI.new("UIScale", { Parent = sheet })
+	UI.tape(sheet, UDim2.new(0.5, 0, 0, 0), Vector2.new(90, 20), 2, nil, 26)
+
+	sheetIcon = UI.new("Frame", {
 		Name = "Icon",
-		Parent = bench,
+		Parent = sheet,
 		Position = UDim2.fromOffset(14, 18),
-		Size = UDim2.fromOffset(84, 84),
-		BackgroundColor3 = UI.Color.Plate,
-		BackgroundTransparency = 0.2,
+		Size = UDim2.fromOffset(76, 76),
+		BackgroundColor3 = M.Manila,
 		BorderSizePixel = 0,
 		ZIndex = 22,
-	}, { UI.corner(UI.Radius.Panel) })
-	benchTitle = UI.text({
+	}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), UI.stroke(M.KraftEdge, 2) })
+	sheetTitle = UI.text({
 		Name = "Title",
-		Parent = bench,
-		Role = "Display",
-		TextSize = 28,
-		Position = UDim2.fromOffset(110, 16),
-		Size = UDim2.new(1, -120, 0, 32),
+		Parent = sheet,
+		Font = UI.Font.Title,
+		TextSize = 25,
+		Position = UDim2.fromOffset(102, 16),
+		Size = UDim2.new(1, -112, 0, 32),
 		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextColor3 = M.Marker,
 		Text = "",
 		ZIndex = 22,
 	})
-	benchLevel = UI.text({
+	sheetLevel = UI.text({
 		Name = "Level",
-		Parent = bench,
+		Parent = sheet,
 		Font = UI.Font.Mono,
-		TextSize = 14,
-		Position = UDim2.fromOffset(110, 50),
-		Size = UDim2.new(1, -120, 0, 16),
+		TextSize = 13,
+		Position = UDim2.fromOffset(102, 48),
+		Size = UDim2.new(1, -112, 0, 16),
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = UI.Color.Outline,
+		TextColor3 = M.Pencil,
 		Text = "",
 		ZIndex = 22,
 	})
-	benchDesc = UI.text({
+	sheetDesc = UI.text({
 		Name = "Desc",
-		Parent = bench,
-		Role = "Body",
+		Parent = sheet,
+		Font = UI.Font.Body,
 		TextSize = 14,
-		Position = UDim2.fromOffset(110, 70),
-		Size = UDim2.new(1, -120, 0, 32),
+		Position = UDim2.fromOffset(102, 66),
+		Size = UDim2.new(1, -112, 0, 30),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextWrapped = true,
-		TextColor3 = UI.Color.TextDim,
+		TextColor3 = M.Pencil,
 		Text = "",
 		ZIndex = 22,
 	})
-	-- Now -> next, the biggest numbers on the bench.
+	-- Now -> next: the biggest numbers on the sheet.
 	local stats = UI.new("Frame", {
 		Name = "Stats",
-		Parent = bench,
-		Position = UDim2.fromOffset(14, 114),
-		Size = UDim2.new(1, -28, 0, 44),
+		Parent = sheet,
+		Position = UDim2.fromOffset(14, 104),
+		Size = UDim2.new(1, -28, 0, 34),
 		BackgroundTransparency = 1,
 		ZIndex = 22,
 	}, {
@@ -212,8 +247,8 @@ local function buildBench(parent: Instance)
 		return UI.text({
 			Parent = stats,
 			LayoutOrder = order,
-			Role = "Title",
-			TextSize = 24,
+			Font = UI.Font.Mono,
+			TextSize = 22,
 			AutomaticSize = Enum.AutomaticSize.X,
 			Size = UDim2.fromOffset(0, 30),
 			TextColor3 = color,
@@ -221,107 +256,201 @@ local function buildBench(parent: Instance)
 			ZIndex = 22,
 		})
 	end
-	benchNow = stat(1, UI.Color.TextDim)
-	benchArrow = stat(2, UI.Color.TextMuted)
-	benchArrow.Text = "→"
-	benchNext = stat(3, UI.Color.Safe)
-	benchBuy = UI.button({
+	sheetNow = stat(1, M.Pencil)
+	sheetArrow = stat(2, M.Pencil)
+	sheetArrow.Text = "→"
+	sheetNext = stat(3, Color3.fromRGB(34, 130, 56))
+	-- Level track: installed levels filled, the next one orange, the rest empty.
+	track = UI.new("Frame", {
+		Name = "Track",
+		Parent = sheet,
+		Position = UDim2.fromOffset(14, 142),
+		Size = UDim2.new(1, -28, 0, 14),
+		BackgroundTransparency = 1,
+		ZIndex = 22,
+	}, {
+		UI.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			Padding = UDim.new(0, 4),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+	wallet = UI.text({
+		Name = "Wallet",
+		Parent = sheet,
+		Font = UI.Font.Label,
+		TextSize = 13,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 14, 1, -70),
+		Size = UDim2.new(1, -28, 0, 16),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = M.Pencil,
+		Text = "",
+		ZIndex = 22,
+	})
+	buy = UI.button({
 		Name = "Buy",
-		Parent = bench,
+		Parent = sheet,
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -12),
-		Size = UDim2.new(1, -28, 0, math.min(UI.buttonSize(), 58)),
+		Position = UDim2.new(0.5, 0, 1, -10),
+		Size = UDim2.new(1, -28, 0, math.min(UI.buttonSize(), 56)),
 		TextSize = 20,
 		Color = UI.Color.Buy,
 		ZIndex = 22,
 	})
-	benchBuy.Activated:Connect(function()
+	buy.Font = UI.Font.Mono
+	buy.Activated:Connect(function()
 		-- Unaffordable presses still go to the server, which explains what's missing.
 		Remotes.get("BuyUpgrade"):FireServer(selected)
 	end)
+	-- "INSTALLED" stamp, shown when the server confirms a purchase.
+	installed = UI.new("Frame", {
+		Name = "Installed",
+		Parent = sheet,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0, 196),
+		Size = UDim2.fromOffset(170, 44),
+		Rotation = -10,
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 30,
+	}, { UI.corner(6), UI.stroke(Color3.fromRGB(34, 130, 56), 4) })
+	UI.text({
+		Parent = installed,
+		Font = UI.Font.Mono,
+		TextSize = 24,
+		Size = UDim2.fromScale(1, 1),
+		TextColor3 = Color3.fromRGB(34, 130, 56),
+		Text = "INSTALLED",
+		ZIndex = 30,
+	})
+	UI.new("UIScale", { Parent = installed })
 end
 
 local shownIcon: string? = nil
+local celebrating = false
 
 function Shop.refresh()
 	if not state then
 		return
 	end
 	for id, tile in tiles do
+		local def = Config.Upgrades[id]
 		local level = state.Upgrades[id] or 0
-		for i, pip in tile.Pips do
-			pip.BackgroundColor3 = if i <= level then UI.Color.Outline else UI.Color.Disabled
+		for i, hole in tile.Holes do
+			hole.BackgroundColor3 = if i <= level then M.Marker else M.Manila
+		end
+		local cost = def.Costs[level + 1]
+		if cost then
+			tile.PriceText.Text = UI.comma(cost)
+			tile.Price.BackgroundColor3 = if state.Coins >= cost
+				then M.Orange
+				else Color3.fromRGB(176, 166, 148)
+		else
+			tile.PriceText.Text = "MAX"
+			tile.Price.BackgroundColor3 = Color3.fromRGB(80, 170, 90)
 		end
 		local active = id == selected
-		tile.Stroke.Transparency = if active then 0 else 0.75
-		tile.Stroke.Thickness = if active then 2 else 1.5
-		tile.Frame.BackgroundTransparency = if active then 0 else 0.4
+		tile.Stroke.Color = if active then M.Orange else M.KraftEdge
+		tile.Stroke.Thickness = if active then 4 else 2
+		tile.Frame.Rotation = if active or UI.reduced() then 0 else tile.Tilt
+		tile.Frame.BackgroundColor3 = if active then Color3.fromRGB(252, 236, 196) else M.Manila
 	end
 
 	local def = Config.Upgrades[selected]
 	local level = state.Upgrades[selected] or 0
 	if shownIcon ~= selected then
 		shownIcon = selected
-		for _, child in benchIconHolder:GetChildren() do
-			if not child:IsA("UICorner") then
+		for _, child in sheetIcon:GetChildren() do
+			if child:IsA("GuiObject") then
 				child:Destroy()
 			end
 		end
-		local icon = UI.upgradeIcon(selected, benchIconHolder, 64)
-		icon.Position = UDim2.fromOffset(10, 10)
+		local icon = UI.upgradeIcon(selected, sheetIcon, 54)
+		icon.Position = UDim2.fromOffset(11, 11)
+		for _, d in icon:GetDescendants() do
+			if d:IsA("GuiObject") then
+				d.ZIndex = 24
+			end
+		end
 		icon.ZIndex = 23
 	end
-	benchTitle.Text = string.upper(def.DisplayName)
-	benchDesc.Text = def.Description
-	benchLevel.Text = ("LEVEL %d / %d"):format(level, #def.Costs)
-	if benchBuy.Text == "UPGRADED!" then
+	sheetTitle.Text = def.DisplayName
+	sheetDesc.Text = def.Description
+	sheetLevel.Text = ("LEVEL %d / %d"):format(level, #def.Costs)
+	wallet.Text = ("YOU HAVE %s COINS"):format(UI.comma(state.Coins))
+
+	for _, c in track:GetChildren() do
+		if c:IsA("Frame") then
+			c:Destroy()
+		end
+	end
+	local steps = #def.Costs
+	for i = 1, steps do
+		UI.new("Frame", {
+			Parent = track,
+			LayoutOrder = i,
+			Size = UDim2.new(1 / steps, -4, 1, 0),
+			BackgroundColor3 = if i <= level
+				then M.Marker
+				elseif i == level + 1 then M.Orange
+				else Color3.fromRGB(226, 220, 204),
+			BorderSizePixel = 0,
+			ZIndex = 22,
+		}, { UI.corner(2) })
+	end
+
+	if celebrating then
 		return
 	end
 	local cost = def.Costs[level + 1]
-	benchNow.Text = formatValue(selected, def.Values[level + 1])
+	sheetNow.Text = formatValue(selected, def.Values[level + 1])
 	if cost then
-		benchNext.Text = formatValue(selected, def.Values[level + 2])
-		benchArrow.Visible = true
-		benchNext.Visible = true
+		sheetNext.Text = formatValue(selected, def.Values[level + 2])
+		sheetArrow.Visible = true
+		sheetNext.Visible = true
 		local short = cost - state.Coins
 		if short > 0 then
-			benchBuy.Text = ("%s COINS  ·  NEED %s MORE"):format(formatCoins(cost), formatCoins(short))
-			benchBuy:SetAttribute("Disabled", true)
+			buy.Text = ("NEED %s MORE"):format(UI.comma(short))
+			buy:SetAttribute("Disabled", true)
 		else
-			benchBuy.Text = ("UPGRADE  ·  %s COINS"):format(formatCoins(cost))
-			benchBuy:SetAttribute("Disabled", false)
+			buy.Text = ("BUY  ·  %s COINS"):format(UI.comma(cost))
+			buy:SetAttribute("Disabled", false)
 		end
 	else
-		benchArrow.Visible = false
-		benchNext.Visible = false
-		benchBuy.Text = "FULLY UPGRADED"
-		benchBuy:SetAttribute("Disabled", true)
+		sheetArrow.Visible = false
+		sheetNext.Visible = false
+		buy.Text = "MAXED OUT"
+		buy:SetAttribute("Disabled", true)
 	end
 end
 
--- The server confirmed a level-up: light the new pip, flash the bench.
+-- The server confirmed a level-up: punch the new hole, stamp the sheet.
 local function celebrate(id: string, level: number)
 	local tile = tiles[id]
-	local pip = tile and tile.Pips[level]
-	if pip then
-		UI.pop(pip:FindFirstChildOfClass("UIScale") :: UIScale, 1.8, 0.35)
+	local hole = tile and tile.Holes[level]
+	if hole then
+		UI.pop(hole:FindFirstChildOfClass("UIScale") :: UIScale, 1.8, 0.35)
 	end
 	if id ~= selected then
 		return
 	end
-	benchStroke.Color = UI.Color.Safe
-	benchStroke.Transparency = 0
-	benchStroke.Thickness = 3
-	UI.pop(benchScale, 1.03, 0.3)
-	benchBuy.Text = "UPGRADED!"
-	task.delay(0.9, function()
-		benchStroke.Color = UI.Color.Outline
-		benchStroke.Transparency = 0.5
-		benchStroke.Thickness = 1.5
-		if benchBuy.Text == "UPGRADED!" then
-			benchBuy.Text = ""
-			Shop.refresh()
-		end
+	celebrating = true
+	UI.pop(sheetScale, 1.03, 0.3)
+	installed.Visible = true
+	local scale = installed:FindFirstChildOfClass("UIScale") :: UIScale
+	if UI.reduced() then
+		scale.Scale = 1
+	else
+		scale.Scale = 1.8
+		UI.tween(scale, 0.14, { Scale = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	end
+	buy.Text = "UPGRADED!"
+	buy:SetAttribute("Disabled", true)
+	task.delay(1.1, function()
+		installed.Visible = false
+		celebrating = false
+		Shop.refresh()
 	end)
 end
 
@@ -357,21 +486,62 @@ function Shop.modal(): UI.Modal
 	return modal
 end
 
+-- Re-dress the standard modal as a pegboard with a tape title.
+local function dressPanel(panel: Frame)
+	panel.BackgroundColor3 = M.Peg
+	panel.BackgroundTransparency = 0
+	local stroke = panel:FindFirstChildOfClass("UIStroke")
+	if stroke then
+		stroke.Color = M.WoodDark
+		stroke.Thickness = 5
+	end
+	local holes = UI.new("Frame", {
+		Name = "Pegholes",
+		Parent = panel,
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
+		ZIndex = 20,
+	})
+	for x = 1, 20 do
+		for y = 1, 12 do
+			UI.new("Frame", {
+				Parent = holes,
+				Position = UDim2.fromOffset(x * 34 - 14, y * 34 - 14),
+				Size = UDim2.fromOffset(5, 5),
+				BackgroundColor3 = M.PegHole,
+				BorderSizePixel = 0,
+				ZIndex = 20,
+			}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+		end
+	end
+	local title = panel:FindFirstChild("Title") :: TextLabel?
+	if title then
+		title.TextColor3 = M.Marker
+		title.TextXAlignment = Enum.TextXAlignment.Center
+		title.Size = UDim2.fromOffset(230, 36)
+		title.ZIndex = 23
+		local tape = UI.tape(panel, UDim2.fromOffset(18 + 115, 12 + 18), Vector2.new(240, 40), -1.5, nil, 22)
+		tape.BackgroundTransparency = 0
+	end
+end
+
 function Shop.init(root: Frame, h: Hooks)
 	hooks = h
-	modal = UI.modal(root, "Shop", "GEAR SHOP", Vector2.new(640, 380))
+	modal = UI.modal(root, "Shop", "GEAR SHOP", Vector2.new(660, 400))
+	dressPanel(modal.Panel)
 	local rack = UI.new("ScrollingFrame", {
 		Name = "List",
 		Parent = modal.Content,
-		Size = UDim2.new(0.36, 0, 1, 0),
+		Size = UDim2.new(0.4, 0, 1, 0),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 4,
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		CanvasSize = UDim2.new(),
 		ZIndex = 21,
-	}, { UI.new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }) })
-	buildBench(modal.Content)
+	}, { UI.new("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }) })
+	buildSheet(modal.Content)
 
 	for i, id in Config.UpgradeOrder do
 		tiles[id] = makeTile(rack, id, i)
@@ -386,7 +556,7 @@ function Shop.init(root: Frame, h: Hooks)
 			Name = label,
 			Parent = rack,
 			LayoutOrder = order,
-			Size = UDim2.new(1, -6, 0, 44),
+			Size = UDim2.new(1, -8, 0, 44),
 			Text = label,
 			TextSize = 15,
 			Color = UI.Color.Slate,

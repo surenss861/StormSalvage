@@ -3,7 +3,7 @@
 --
 --   UI             design tokens and builders (docs/ui-design-spec.md)
 --   Audio          sound groups, cue throttling, ambience crossfades
---   Hud            storm strip and the right rail (coins, bag, Shop, Settings)
+--   Hud            cash tag, crate, storm sign, Gear Shop tag and Settings plate
 --   Notifications  which message shows where (cards, feed, alerts, hint)
 --   Shop/Settings  the two modals
 --   SalvageFeedback, StormEffects, Districts   world-facing feedback
@@ -26,7 +26,6 @@ local Settings = require(script.Parent:WaitForChild("Settings"))
 local Shop = require(script.Parent:WaitForChild("Shop"))
 local StormEffects = require(script.Parent:WaitForChild("StormEffects"))
 local UI = require(script.Parent:WaitForChild("UI"))
-local UIStudies = require(script.Parent:WaitForChild("UIStudies"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -37,9 +36,9 @@ local boostEndsAt = 0
 
 ---------------------------------------------------------------------------- Setup
 
--- Interface theme (UI.useTheme). Studio QA can preview another with the ReplicatedStorage
--- attribute "UITheme" set before players join.
-UI.useTheme(ReplicatedStorage:GetAttribute("UITheme") or "Instrument")
+-- Interface theme (UI.useTheme): Workshop, the V3 direction. Studio QA can preview Classic
+-- with the ReplicatedStorage attribute "UITheme" set before players join.
+UI.useTheme(ReplicatedStorage:GetAttribute("UITheme") or "Workshop")
 Audio.init()
 UI.setReducedMotion(StormEffects.isReduced)
 UI.setClickSound(function()
@@ -57,7 +56,7 @@ local gui = UI.new("ScreenGui", {
 })
 local root, topStack = Hud.init(gui)
 Notifications.init(root, topStack)
-UIStudies.init(playerGui, gui) -- Studio-only art-direction studies
+Hud.onLayout(Notifications.applyLayout)
 
 Shop.init(root, {
 	Notify = Notifications.feed,
@@ -81,7 +80,9 @@ Settings.init(root, {
 })
 for _, modal in { Shop.modal(), Settings.modal() } do
 	modal.Changed.Event:Connect(function()
-		Notifications.setModalOpen(Shop.modal().IsOpen() or Settings.modal().IsOpen())
+		local open = Shop.modal().IsOpen() or Settings.modal().IsOpen()
+		Notifications.setModalOpen(open)
+		Hud.setModalOpen(open)
 	end)
 end
 
@@ -167,7 +168,6 @@ Remotes.get("PlayerState").OnClientEvent:Connect(function(s)
 	lastLevels = levels
 	Hud.setPlayer(s)
 	Shop.setState(s)
-	UIStudies.setPlayer(s)
 	updateHint()
 end)
 
@@ -176,11 +176,9 @@ Remotes.get("Pickup").OnClientEvent:Connect(function(info)
 	local carried = playerState and #playerState.Carried or 0
 	local capacity = playerState and playerState.Capacity or 0
 	SalvageFeedback.onPickup(info, carried, capacity)
-	UIStudies.onPickup(info)
 end)
 Remotes.get("SaleReceipt").OnClientEvent:Connect(function(receipt)
 	SalvageFeedback.onSale(receipt)
-	UIStudies.onSale(receipt)
 end)
 
 Remotes.get("Notify").OnClientEvent:Connect(function(text, color)
@@ -204,7 +202,6 @@ Remotes.get("StormState").OnClientEvent:Connect(function(s)
 	Audio.setAmbience("Rain", storming and (s.Storm == "Flood" or s.Storm == "Lightning"))
 	Audio.setAmbience("Flood", storming and s.Storm == "Flood")
 	StormEffects.setState(s)
-	UIStudies.setStorm(s)
 	updateHint()
 end)
 
@@ -258,7 +255,6 @@ RunService.RenderStepped:Connect(function()
 	EnvironmentFX.step(now)
 	SalvageFeedback.step(now)
 	Notifications.step()
-	UIStudies.step(now)
 end)
 
 -- Studio QA: lets test scripts read audio asset status without reaching into modules.

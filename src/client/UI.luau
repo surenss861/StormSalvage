@@ -39,62 +39,60 @@ UI.Radius = { Chip = 6, Panel = 10, Modal = 14 }
 UI.StrokeTransparency = 0
 UI.Accent = Color3.fromRGB(206, 122, 34) -- primary action colour (Shop button, Buy)
 
--- Interface themes. Applied once by Main before anything is built; every module reads the
--- token tables above, so a theme re-skins the whole HUD, cards and modals together.
---   Classic     the V2 look (rounded dark plates, Fredoka)
---   Instrument  Concept A: storm-monitor equipment. Warm charcoal, amber hairlines, condensed
---               Oswald titles, mono numerals, tight corners
---   Stencil     Concept B: painted steel. Blue-grey plates, heavy black borders, hazard yellow,
---               Bangers titles, square corners
+-- Interface theme. Applied once by Main before anything is built; every module reads the token
+-- tables above, so the theme re-skins the HUD, cards and modals together.
+--   Classic   the V2 look (the defaults above)
+--   Workshop  the V3 direction (docs/art/V3-UI-STUDIES.md): the HUD is built from objects in
+--             the salvage yard. Marker lettering for titles only; every number (coins, prices,
+--             timers, counts) uses a bold plain face so it reads at a glance.
 local THEMES = {
-	Instrument = {
+	Workshop = {
 		Font = {
-			Display = Enum.Font.Oswald,
-			Title = Enum.Font.Oswald,
+			Display = Enum.Font.PermanentMarker,
+			Title = Enum.Font.PermanentMarker,
 			Label = Enum.Font.GothamBold,
 			Body = Enum.Font.GothamMedium,
-			Mono = Enum.Font.RobotoMono,
+			Mono = Enum.Font.GothamBlack,
 		},
 		Color = {
-			Plate = Color3.fromRGB(22, 21, 19),
-			PlateLight = Color3.fromRGB(48, 45, 40),
-			Outline = Color3.fromRGB(232, 160, 52),
-			Text = Color3.fromRGB(242, 236, 222),
-			TextDim = Color3.fromRGB(190, 182, 166),
-			TextMuted = Color3.fromRGB(136, 130, 118),
-			Slate = Color3.fromRGB(58, 54, 48),
-			Disabled = Color3.fromRGB(52, 50, 46),
-			Buy = Color3.fromRGB(64, 150, 78),
+			Plate = Color3.fromRGB(46, 40, 34), -- dark workbench wood
+			PlateLight = Color3.fromRGB(72, 62, 52),
+			Outline = Color3.fromRGB(22, 18, 14),
+			Text = Color3.fromRGB(248, 240, 222),
+			TextDim = Color3.fromRGB(214, 200, 176),
+			TextMuted = Color3.fromRGB(156, 144, 126),
+			Slate = Color3.fromRGB(96, 102, 108), -- galvanised tin
+			Disabled = Color3.fromRGB(78, 72, 64),
+			Buy = Color3.fromRGB(58, 150, 72),
 		},
-		Radius = { Chip = 2, Panel = 3, Modal = 4 },
-		PlateTransparency = 0.1,
-		StrokeTransparency = 0.45,
-		Accent = Color3.fromRGB(214, 138, 30),
+		Radius = { Chip = 3, Panel = 6, Modal = 10 },
+		PlateTransparency = 0.08,
+		StrokeTransparency = 0,
+		Accent = Color3.fromRGB(232, 120, 30),
 		TextSize = { Display = 30, Title = 21 },
 	},
-	Stencil = {
-		Font = {
-			Display = Enum.Font.Bangers,
-			Title = Enum.Font.Bangers,
-			Label = Enum.Font.GothamBlack,
-			Body = Enum.Font.GothamBold,
-			Mono = Enum.Font.RobotoMono,
-		},
-		Color = {
-			Plate = Color3.fromRGB(50, 58, 66),
-			PlateLight = Color3.fromRGB(74, 84, 94),
-			Outline = Color3.fromRGB(8, 8, 10),
-			Text = Color3.fromRGB(250, 246, 232),
-			TextDim = Color3.fromRGB(206, 210, 214),
-			Slate = Color3.fromRGB(84, 92, 102),
-			Buy = Color3.fromRGB(60, 160, 70),
-		},
-		Radius = { Chip = 0, Panel = 0, Modal = 0 },
-		PlateTransparency = 0.05,
-		StrokeTransparency = 0,
-		Accent = Color3.fromRGB(240, 190, 30),
-		TextSize = { Display = 32, Title = 23 },
-	},
+}
+
+-- Salvage-yard materials for the Workshop surfaces (cash tag, crate, tin sign, notes, tags).
+UI.Mat = {
+	Kraft = Color3.fromRGB(206, 168, 118),
+	KraftEdge = Color3.fromRGB(146, 108, 66),
+	Manila = Color3.fromRGB(240, 220, 170),
+	Tape = Color3.fromRGB(238, 228, 190),
+	Marker = Color3.fromRGB(34, 30, 28),
+	Pencil = Color3.fromRGB(96, 90, 84),
+	RedPen = Color3.fromRGB(204, 40, 36),
+	Tin = Color3.fromRGB(184, 190, 194),
+	TinDark = Color3.fromRGB(104, 110, 116),
+	Wood = Color3.fromRGB(162, 110, 62),
+	WoodDark = Color3.fromRGB(110, 72, 38),
+	Peg = Color3.fromRGB(148, 104, 60),
+	PegHole = Color3.fromRGB(88, 60, 32),
+	Note = Color3.fromRGB(255, 226, 110),
+	Paper = Color3.fromRGB(250, 248, 238),
+	Rule = Color3.fromRGB(170, 200, 230),
+	Orange = Color3.fromRGB(240, 128, 36),
+	Tile = Color3.fromRGB(34, 34, 36),
 }
 
 function UI.useTheme(name: string?)
@@ -113,6 +111,7 @@ function UI.useTheme(name: string?)
 		end
 	end
 end
+
 UI.Time = { Press = 0.08, Enter = 0.22, Exit = 0.18, Count = 0.5 }
 
 -- Set by Main: whether Reduced Effects is on (motion becomes plain fades) and the click cue.
@@ -135,6 +134,16 @@ end
 
 function UI.isTouch(): boolean
 	return UserInputService.TouchEnabled
+end
+
+-- Compact (phone) composition: touch devices, or Studio's phone-frame preview (Hud).
+local compactOverride = false
+function UI.setCompactOverride(on: boolean)
+	compactOverride = on
+end
+
+function UI.compact(): boolean
+	return compactOverride or UserInputService.TouchEnabled
 end
 
 -- Touch targets: 64 design px is about 45 pt on the smallest phone tested (HUD scale 0.7).
@@ -461,6 +470,66 @@ function UI.modal(parent: Instance, name: string, title: string, maxSize: Vector
 		setOpen(false)
 	end)
 	return modal
+end
+
+---------------------------------------------------------------------------- Workshop pieces
+
+-- A strip of masking tape (or coloured tape) centred at `pos`.
+function UI.tape(
+	parent: Instance,
+	pos: UDim2,
+	size: Vector2,
+	rotation: number,
+	color: Color3?,
+	z: number?
+): Frame
+	return UI.new("Frame", {
+		Name = "Tape",
+		Parent = parent,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = pos,
+		Size = UDim2.fromOffset(size.X, size.Y),
+		Rotation = rotation,
+		BackgroundColor3 = color or UI.Mat.Tape,
+		BackgroundTransparency = if color then 0.04 else 0.12,
+		BorderSizePixel = 0,
+		ZIndex = z or 1,
+	})
+end
+
+function UI.rivet(parent: Instance, pos: UDim2, z: number?): Frame
+	return UI.new("Frame", {
+		Name = "Rivet",
+		Parent = parent,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = pos,
+		Size = UDim2.fromOffset(7, 7),
+		BackgroundColor3 = UI.Mat.TinDark,
+		BorderSizePixel = 0,
+		ZIndex = z or 1,
+	}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+end
+
+-- A punched hole with a reinforcement ring (tags, cards).
+function UI.punchHole(parent: Instance, pos: UDim2, size: number, z: number?): Frame
+	return UI.new("Frame", {
+		Name = "Hole",
+		Parent = parent,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = pos,
+		Size = UDim2.fromOffset(size, size),
+		BackgroundColor3 = UI.Mat.Paper,
+		BorderSizePixel = 0,
+		ZIndex = z or 1,
+	}, {
+		UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+		UI.new("UIStroke", { Thickness = 3, Color = UI.Mat.KraftEdge }),
+	})
+end
+
+function UI.comma(n: number): string
+	local s = tostring(math.floor(n))
+	return (s:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", ""))
 end
 
 ---------------------------------------------------------------------------- Icons

@@ -15,7 +15,7 @@ described), **Studio-tested**, **Blocked** (needs something only you can do), **
 | C4 Warehouse | Done (Studio-tested) | `docs/art/V3-C4-WAREHOUSE.md` |
 | C5 Motel | Done (Studio-tested) | `docs/art/V3-C5-MOTEL.md` |
 | World consistency pass | Done (findings + crosswalk fix) | `docs/art/V3-WORLD-CONSISTENCY.md`; finding 1 is a device gate |
-| D Premium UI | **Reset in progress**: Instrument and Stencil rejected (Instrument stays as the functional baseline). Three complete directions built and Studio-captured (Salvage Adventure, Storm Chaser, Scrapyard Workshop; Calm, Lightning, shop, receipt, rarity, phone layout): `docs/art/V3-UI-STUDIES.md`. Recommendation: Workshop with fixes. **Waiting for your choice; nothing implemented.** | `docs/art/v3/ui/studies/` |
+| D Premium UI | **Studio-tested, Workshop implemented** (approved 2026-10-13 with Chaser weather hierarchy and Adventure accessibility): cash tag, crate, tin storm sign with non-scrolling survival orders, sticky-note objective, rarity tags/stamps, clipboard sale tally, pegboard Gear Shop on real `BuyUpgrade`, separate phone composition, Reduced Effects verified. QA table in `docs/art/V3-UI-WORKSHOP.md`. **Open:** black screen once after a lightning death (cause unknown), physical-device check, Settings not re-dressed | `docs/art/v3/ui/workshop/` |
 | E Gameplay polish | **In progress**: camera kept inside buildings (`src/client/CameraOcclusion.luau`), freezer gap verified. **To do**: pickup/sell/upgrade feel, audio levels, death and bag recovery review | |
 | F QA and optimisation | In progress: per-district Studio regressions; full-town bot loop after C5 (2 full sales, storm survived, 0 errors). Device gates **Not tested** | |
 | G Purchase safety | **Studio-tested** (below) | |
