@@ -52,6 +52,8 @@ Tags are the trigger. The workflow's "Run workflow" button only appears once the
 
 ## 3. Staging test pass (before anything goes live)
 
+The exact scripts and evidence templates are in `V3-STAGING-TEST-PLAN.md`: the smoke test after every publish (§0), 4/8/12 players (§1), devices (§2), mobile UI (§3), persistence (§4) and the rollback rehearsal (§5).
+
 Use `docs/production/V3-RELEASE-CHECKLIST.md`. The minimum is:
 - the device runs per `V3-PERFORMANCE-BUDGETS.md` B–D
 - 4, 8 and 12-player sessions (section E)

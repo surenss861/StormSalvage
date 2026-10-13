@@ -12,6 +12,7 @@ local StormService = require(script.Parent.StormService)
 local MonetizationService = require(script.Parent.MonetizationService)
 local DebugService = require(script.Parent.DebugService)
 local SessionStats = require(script.Parent.SessionStats)
+local ServerPerf = require(script.Parent.ServerPerf)
 
 local map = MapBuilder.build()
 
@@ -21,6 +22,7 @@ MonetizationService.init()
 LootService.init(map)
 StormService.init(map)
 DebugService.init()
+ServerPerf.init() -- staging and Studio only
 
 ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
 	if prompt == map.SellPrompt and PlayerService.isNear(player, prompt) then

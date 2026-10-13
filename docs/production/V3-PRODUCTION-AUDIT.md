@@ -77,3 +77,33 @@ rendering investigation on hardware, join timing, release runbook. UI creative r
 | Cross-server redelivery | **Not tested**: it needs two real servers in a published place. Covered by design (lock check inside the grant transaction) and by the foreign-lock test. |
 
 The test profile was cleaned afterwards (synthetic IDs and the planted lock removed).
+
+## RC2: save-lock ownership fix (found in the RC1 review, 2026-10-13)
+
+**Defect in RC1.** `save` and `grantReceipt` refused only when the stored lock belonged to *another* session; a profile with **no lock** was accepted. That allowed this sequence:
+1. Server A stalls, its lock expires, and the player moves to server B, which takes over.
+2. B grants a paid product (durable, and Roblox is told PurchaseGranted).
+3. The player leaves B, which releases the lock.
+4. A wakes up and autosaves its stale whole-profile copy, wiping B's progress **and the paid grant and its PurchaseId**. Roblox won't redeliver, so the purchase is lost.
+
+A second instance of the same defect: an autosave racing the player's own leave could re-lock a released profile and lock the player out of other servers for up to 6 minutes.
+
+**Reproduced on RC1 code** (Studio, `_STUDIO`): after B granted +5,000 and released, A's autosave returned `true` and the stored profile went from 11,100 back to 6,100 coins, with receipt `B-paid-2` gone.
+
+**Fix (RC2).**
+- Every write after load (`save`, `grantReceipt`) requires the stored lock to be **this server's own** (`ownedByUs`). A missing lock counts as lost.
+- After the leave-save releases the profile, the session is marked unsaveable.
+- Load and takeover are unchanged: a lock is taken over only after 360 s without a refresh, and `UpdateAsync` re-runs a delayed write's check against the newest stored value, so an old owner's late write sees the new owner (or no owner) and is refused.
+
+**RC2 verification (Studio):**
+
+| Test | Result |
+| --- | --- |
+| Same attack on RC2 | A's autosave `false`, A's late receipt `NotProcessedYet`, B's +5,000 and `B-paid-1` intact, A stops saving |
+| Normal ownership | Save and receipt work while the lock is ours |
+| Receipt suite A–H | All pass; +6,000 exactly; stored = live |
+| Release on leave | Lock released after Stop |
+| Stale-lock takeover then save | Loaded in 0.1 s; the new owner saves normally |
+| Live-lock contention | Load code unchanged since the RC1 test (6 retries, kick at 41.6 s, data untouched) |
+
+**Residual (by design, not a safety issue):** if server A stalls and loses its lock, any progress A made after its last successful save is lost when it's refused. That trades a little progress for never overwriting newer data or purchases. A crashed server's lock blocks the player's rejoin for up to 360 s (each try retries for about 42 s, then shows "Couldn't load"). A shorter expiry would need a lock heartbeat; deferred.

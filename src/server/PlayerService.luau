@@ -428,6 +428,9 @@ local function onPlayerRemoving(player: Player)
 		return
 	end
 	PlayerService.save(player, true)
+	-- Released: nothing may write this profile from here again (an autosave or BindToClose
+	-- already in flight is refused by DataService because the lock is gone).
+	session.CanSave = false
 	sessions[player] = nil
 	buyWindows[player] = nil
 end

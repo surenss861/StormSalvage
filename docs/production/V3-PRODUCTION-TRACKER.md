@@ -82,6 +82,13 @@ snapshotted read-only before and after and is unchanged.
 - **4-player smoke test:** items conserved under contention; owner-only bag window enforced (`V3-SOAK-AND-DEATH-QA.md` §4).
 - **Low graphics proxy:** beacons and labels survive the lowest Studio level; device check still needed (§5).
 
+## Release candidates
+
+| RC | Tag | Commit | Contents | Status |
+| --- | --- | --- | --- | --- |
+| RC1 | `rc-20261013-1` | `1753ec0` | Workshop UI, data environments, persistence QA, runbook | Superseded: the RC1 review found the lost-lock overwrite defect |
+| RC2 | `rc-20261013-2` | see tag | RC1 + strict save-lock ownership (fixes a paid-grant loss on a stale-owner write) + `[ServerPerf]` log (staging/Studio) | Regression: receipt A–H, ownership attack, release, takeover all pass in Studio. **Staging: not started (needs the place ID)** |
+
 ## Production audit
 
 See `docs/production/V3-PRODUCTION-AUDIT.md` (P0 environment isolation implemented, CI and unit tests added).

@@ -93,6 +93,24 @@ The run was 3 warm-up cycles plus 48 measured. In total that was 51 deaths, abou
 - **Menus closed on a missed click (real bug, every modal).** A click on empty space in the Shop or Settings panel passed through to the dimmed backdrop and closed the menu. Missing a slider by a few pixels closed Settings. The cause: GuiButtons get clicks through non-button frames above them. **Fix:** the backdrop ignores any click that lands on the panel (`UI.modal`). Verified with a click on empty panel space (menu stays open), a slider click (sets exactly 75%) and a click on the dimmed area (menu closes).
 - **Notices sat on the shop's close button** when a storm started with the shop open. **Fix:** while a menu is open, notices stack downwards from the top right.
 
+## 3b. Respawn memory investigation (RC1 review item)
+
+The soak's instance-memory drift was isolated with 25-death loops and nothing else (deltas in MB per 25 deaths):
+
+| Run | Instances | Animation | Physics |
+| --- | --- | --- | --- |
+| Full game, deaths 1–25 (warm-up) | +31.7 | +7.9 | +5.3 |
+| Full game, deaths 26–50 | +4.3 | +5.3 | +4.9 |
+| Full game, deaths 51–75 | +4.2 | +4.9 | +4.6 |
+| **Control 1:** game *client* code disabled | +4.2 | +5.8 | +4.7 |
+| **Control 2:** *all* game code disabled (bare Roblox character respawning on a floor) | +3.6 | +4.8 | +4.1 |
+
+**Conclusions:**
+- **Not caused by Storm Salvage code.** The growth, about 0.5 MB per death after warm-up, is the same with no game code at all, so it is Roblox's own character respawn in Studio.
+- **Instance counts stay flat.** Instance-level references weren't measurable: script wrappers around instances are recreated, which made the weak-table check inconclusive.
+- **Phone check still needed:** whether the standalone client also grows, and whether it ever settles (staging plan §2 step 8).
+- **Session impact:** a 20-minute session with about 10 deaths would add roughly 5 MB if the same held on device.
+
 ## 4. Four-player Studio smoke test (local server plus 4 clients on one Mac)
 
 This is a smoke test for sync and authority bugs, **not** the section E server measurement. Five Studio processes on one machine skew every timing.

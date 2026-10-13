@@ -69,6 +69,14 @@ local function reconcile(data: any): Data
 	return data
 end
 
+-- Ownership for every write after load: the stored profile must carry *this* server's lock.
+-- A missing lock counts as lost, not free: it means the profile was released (by this server
+-- on leave, or by another server that took over and has since finished). Writing then would
+-- overwrite newer progress and newer purchase grants with this server's stale copy.
+local function ownedByUs(old: any): boolean
+	return old ~= nil and old.Lock ~= nil and old.Lock.Session == SESSION_ID
+end
+
 local function key(userId: number): string
 	return "player_" .. userId
 end
@@ -156,11 +164,11 @@ function DataService.grantReceipt(
 	local already, lostLock = false, false
 	local ok, err = pcall(function()
 		(store :: DataStore):UpdateAsync(key(player.UserId), function(old)
-			if old and old.Lock and old.Lock.Session ~= SESSION_ID then
+			if not ownedByUs(old) then
 				lostLock = true
 				return nil
 			end
-			local data = reconcile(old or DataService.default())
+			local data = reconcile(old)
 			if table.find(data.ProcessedReceipts, purchaseId) then
 				already = true
 				return nil -- nothing to write
@@ -232,9 +240,9 @@ function DataService.save(player: Player, data: Data, release: boolean): (boolea
 	local lostLock = false
 	local ok, err = pcall(function()
 		(store :: DataStore):UpdateAsync(key(player.UserId), function(old)
-			if old and old.Lock and old.Lock.Session ~= SESSION_ID then
+			if not ownedByUs(old) then
 				lostLock = true
-				return nil -- we lost the lock; never overwrite another server's data
+				return nil -- not ours any more (taken over or released): never overwrite it
 			end
 			lostLock = false
 			local copy = table.clone(data)
