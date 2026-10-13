@@ -58,6 +58,13 @@ local commands: { [string]: (...any) -> any } = {
 		assert(player and player:IsA("Player"), "no player " .. tostring(playerName))
 		return MonetizationService.simulateReceipt(player, purchaseId, productKey).Name
 	end,
+	-- Salvager XP through the real rank-up path (Contracts/Reputation tests).
+	xp = function(playerName: string, amount: number)
+		local player = Players:FindFirstChild(playerName)
+		assert(player and player:IsA("Player"), "no player " .. tostring(playerName))
+		require(script.Parent.ContractService).addXPForTest(player, amount)
+		return player:GetAttribute("RankTitle")
+	end,
 	-- Simulate Roblox reporting a completed Heavy-Duty Pack purchase.
 	passbuy = function(playerName: string)
 		local player = Players:FindFirstChild(playerName)

@@ -64,6 +64,7 @@ local rail: Frame
 
 Hud.ShopButton = nil :: TextButton?
 Hud.SettingsButton = nil :: TextButton?
+Hud.JobsButton = nil :: TextButton?
 
 local layoutListeners: { (compact: boolean) -> () } = {}
 local compact = false
@@ -531,6 +532,31 @@ local function buildRail()
 		end
 	end
 	Hud.SettingsButton = settings
+
+	-- Jobs: a clipboard plate left of Settings (the Contract board in the Scrapyard opens it too).
+	local jobs = UI.new("TextButton", {
+		Name = "JobsButton",
+		Parent = rail,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -4 - size - 8, 0, 0),
+		Size = UDim2.fromOffset(size, size),
+		BackgroundColor3 = M.Paper,
+		AutoButtonColor = false,
+		BorderSizePixel = 0,
+		Font = UI.Font.Mono,
+		TextSize = 14,
+		TextColor3 = M.Marker,
+		Text = "JOBS",
+	}, { UI.corner(4), UI.stroke(M.WoodDark, 3) })
+	UI.new("Frame", {
+		Parent = jobs,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0, 2),
+		Size = UDim2.fromOffset(math.floor(size * 0.45), 8),
+		BackgroundColor3 = M.Tin,
+		BorderSizePixel = 0,
+	}, { UI.corner(3), UI.stroke(M.TinDark, 1.5) })
+	Hud.JobsButton = jobs
 
 	-- Gear Shop: a manila tool tag hanging on a string.
 	local shop = UI.new("TextButton", {

@@ -2,6 +2,7 @@
 local specs = {
 	require("./economy.spec"),
 	require("./environment.spec"),
+	require("./progression.spec"),
 }
 local passed, failed = 0, 0
 for _, spec in specs do

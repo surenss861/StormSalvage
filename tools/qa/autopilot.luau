@@ -76,6 +76,14 @@ local function walkTo(goal: Vector3, near: number): boolean
 end
 
 local function press(prompt: ProximityPrompt)
+	-- Roblox only shows (and so only lets you trigger) a prompt that's on screen, so look at it the
+	-- way a player would before pressing.
+	local target = prompt.Parent
+	local camera = workspace.CurrentCamera
+	if camera and target and target:IsA("BasePart") then
+		camera.CFrame = CFrame.lookAt(target.Position + Vector3.new(0, 8, 0) - camera.CFrame.LookVector * 12, target.Position)
+		task.wait(0.15)
+	end
 	prompt:InputHoldBegin()
 	task.wait(prompt.HoldDuration + 0.1)
 	prompt:InputHoldEnd()
@@ -158,17 +166,20 @@ while true do
 		local prompt = sellPrompt()
 		local counter = prompt and prompt.Parent :: BasePart?
 		if prompt and counter then
-			-- Try each side of the counter; some sides are inside the shack.
+			-- Try each side of the counter (some are inside the shack or behind containers) until
+			-- the sale goes through; a prompt at the edge of its range isn't shown, so get close.
 			for _, side in
-				{ Vector3.new(6, 0, 0), Vector3.new(0, 0, 6), Vector3.new(-6, 0, 0), Vector3.new(0, 0, -6) }
+				{ Vector3.new(0, 0, 8), Vector3.new(6, 0, 0), Vector3.new(0, 0, -8), Vector3.new(-6, 0, 0) }
 			do
-				if walkTo(groundNear(counter.Position, side), 4) then
-					break
+				walkTo(groundNear(counter.Position, side), 3)
+				local _, r = character()
+				if r and (r.Position - counter.Position).Magnitude <= prompt.MaxActivationDistance - 3 then
+					press(prompt)
+					task.wait(0.4)
+					if #state.Carried == 0 then
+						break
+					end
 				end
-			end
-			local _, r = character()
-			if r and (r.Position - counter.Position).Magnitude <= prompt.MaxActivationDistance then
-				press(prompt)
 			end
 		end
 		task.wait(0.2)

@@ -17,6 +17,7 @@ local Shelter = require(ReplicatedStorage.Shared.Shelter)
 local PlayerService = require(script.Parent.PlayerService)
 local LootService = require(script.Parent.LootService)
 local SessionStats = require(script.Parent.SessionStats)
+local ContractService = require(script.Parent.ContractService)
 local StormStats = require(script.Parent.StormStats)
 local LookService = require(script.Parent.LookService)
 
@@ -424,6 +425,7 @@ local function rewardSurvivors(stormSeconds: number)
 			StormStats.survived(player)
 			SessionStats.survivedStorm(player)
 			PlayerService.addCoins(player, T.SurvivorBonus)
+			ContractService.survived(player)
 			PlayerService.notify(
 				player,
 				("Survived the storm in town! +%d coins"):format(T.SurvivorBonus),

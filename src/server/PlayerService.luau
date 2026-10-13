@@ -25,6 +25,13 @@ export type Session = {
 local sessions: { [Player]: Session } = {}
 local loadedCallbacks: { (Player, Session) -> () } = {}
 local diedCallbacks: { (Player, Model) -> () } = {}
+-- Called synchronously after each sale with (player, items sold, coins paid, Storm Cores sold).
+-- Callbacks must not yield, so a sale and its contract progress land in the same frame.
+local soldCallbacks: { (Player, number, number, number) -> () } = {}
+
+function PlayerService.onSold(callback: (Player, number, number, number) -> ())
+	table.insert(soldCallbacks, callback)
+end
 
 local playerStateRemote = Remotes.get("PlayerState")
 local notifyRemote = Remotes.get("Notify")
@@ -132,6 +139,9 @@ function PlayerService.pushState(player: Player)
 		OwnsHeavyDuty = session.OwnsHeavyDuty,
 		Stats = session.Data.Stats,
 		CanSave = session.CanSave,
+		Rep = session.Data.Rep,
+		Contracts = session.Data.Contracts,
+		Cosmetics = session.Data.Cosmetics,
 	})
 	local leaderstats = player:FindFirstChild("leaderstats")
 	local coins = leaderstats and leaderstats:FindFirstChild("Coins")
@@ -248,11 +258,15 @@ function PlayerService.sell(player: Player)
 	end
 	local base, earned = Economy.sellTotal(values, factors)
 	local hadCore = counts.StormCore ~= nil
+	local itemsSold = #session.Carried
 	session.Data.Stats.ItemsSold += #session.Carried
 	session.Carried = {}
 	session.Sales += 1
 	refreshCoreGlow(player, session)
 	PlayerService.addCoins(player, earned)
+	for _, cb in soldCallbacks do
+		cb(player, itemsSold, earned, counts.StormCore or 0)
+	end
 	StormStats.sold(player, earned)
 	SessionStats.sold(player, earned)
 	saleReceiptRemote:FireClient(player, {

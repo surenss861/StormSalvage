@@ -342,7 +342,8 @@ Config.Sounds = {
 } :: { [string]: SoundDef }
 
 -- Monetization. Set IDs after creating products on the Creator Dashboard; 0 disables.
--- Robux shop (owner's launch catalog, 2026-10-13). Optional purchases that speed progress up;
+-- Robux shop (owner's launch catalog, 2026-10-13; packs resized to 300/1,200/3,000 so no single
+-- pack buys more than ~30% of all equipment). Optional purchases that speed progress up;
 -- nothing here is pay-to-win in a storm, random, or a second currency.
 --   Id 0 = not created on the Creator Hub yet (shown as "not on sale yet", can't be bought).
 --   RobuxPrice is the planned price, shown only until the real price is read from Roblox
@@ -360,9 +361,9 @@ Config.GamePasses = {
 	},
 }
 Config.DevProducts = {
-	CoinsSmall = { Id = 0, DisplayName = "Pocket Change", Coins = 500, RobuxPrice = 29, Order = 1 },
-	CoinsMedium = { Id = 0, DisplayName = "Scrap Bundle", Coins = 2000, RobuxPrice = 99, Order = 2 },
-	CoinsLarge = { Id = 0, DisplayName = "Salvage Haul", Coins = 5000, RobuxPrice = 199, Order = 3 },
+	CoinsSmall = { Id = 0, DisplayName = "Pocket Change", Coins = 300, RobuxPrice = 29, Order = 1 },
+	CoinsMedium = { Id = 0, DisplayName = "Scrap Bundle", Coins = 1200, RobuxPrice = 99, Order = 2 },
+	CoinsLarge = { Id = 0, DisplayName = "Salvage Haul", Coins = 3000, RobuxPrice = 199, Order = 3 },
 }
 
 return Config

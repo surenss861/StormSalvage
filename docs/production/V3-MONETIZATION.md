@@ -2,13 +2,13 @@
 
 **Status: built and Studio-tested, not on sale.** `Config.PurchasesEnabled = false` and every product ID is `0`. No product exists on Roblox yet, no Robux has been spent, and the experience is still private.
 
-## 1. Launch catalog (owner's plan)
+## 1. Launch catalog (owner's plan; packs resized to 300 / 1,200 / 3,000 on 2026-10-13)
 
 | Item | Type | Gives | Planned price | Config key |
 | --- | --- | --- | --- | --- |
-| Pocket Change | Developer product, repeatable | 500 coins | 29 R$ | `DevProducts.CoinsSmall` |
-| Scrap Bundle | Developer product, repeatable | 2,000 coins | 99 R$ | `DevProducts.CoinsMedium` |
-| Salvage Haul | Developer product, repeatable | 5,000 coins | 199 R$ | `DevProducts.CoinsLarge` |
+| Pocket Change | Developer product, repeatable | 300 coins | 29 R$ | `DevProducts.CoinsSmall` |
+| Scrap Bundle | Developer product, repeatable | 1,200 coins | 99 R$ | `DevProducts.CoinsMedium` |
+| Salvage Haul | Developer product, repeatable | 3,000 coins | 199 R$ | `DevProducts.CoinsLarge` |
 | Heavy-Duty Pack | Game pass, permanent | +4 bag slots on top of Backpack upgrades | 149 R$ | `GamePasses.HeavyDuty` |
 
 The old placeholder items are removed. "Big Bag" (+5) and "VIP" (+20% sell value) had never been created on Roblox (ID 0), and VIP was a paid power boost the plan doesn't include. The unused "2x Salvage" product is gone too.
@@ -56,6 +56,8 @@ Plus the RC3 receipt suite (A–I, ownership attacks, shutdown races) from `V3-P
 
 ## 4. Economy check: do the packs trivialize progression?
 
+**Updated:** the packs are now 300 / 1,200 / 3,000 (3% / 11% / 29% of all equipment). Contracts and the 30,000-coin nameplate sink are added. The current measurements are in `V3-PROGRESSION.md`; the original analysis follows for the record.
+
 **Measured, a 10-minute bot run from a fresh profile in Studio.** The bot is naive and ignores storms, so a skilled player will be faster.
 - **Milestones:** first pickup at about 81 s, first sale at 113 s, first upgrade at **150 s** (it bought all three level-1 upgrades early).
 - **Earnings:** 796 coins in about 9.5 min of active play, roughly **84 coins/min**. **543 of the 796 came from 3 Storm Core trips**; ordinary trips paid 10–54 coins.
@@ -90,9 +92,9 @@ Which way to go is a pricing decision for you. The quantities are one-line chang
 Creating products doesn't put them on sale in the game. The in-game buttons stay off until `PurchasesEnabled` is true.
 
 1. **Creator Hub → Storm Salvage → Monetization → Developer Products → Create.** Create three:
-   - "Pocket Change": 29 R$, description "500 coins"
-   - "Scrap Bundle": 99 R$, "2,000 coins"
-   - "Salvage Haul": 199 R$, "5,000 coins"
+   - "Pocket Change": 29 R$, description "300 coins"
+   - "Scrap Bundle": 99 R$, "1,200 coins"
+   - "Salvage Haul": 199 R$, "3,000 coins"
 
    Upload a simple icon for each. Copy each product's **ID**.
 2. **Monetization → Passes → Create a Pass.** "Heavy-Duty Pack": 149 R$, "+4 bag slots, permanent". Put it **on sale** in its settings, then copy the pass **ID**.

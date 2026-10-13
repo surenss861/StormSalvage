@@ -82,6 +82,10 @@ snapshotted read-only before and after and is unchanged.
 - **4-player smoke test:** items conserved under contention; owner-only bag window enforced (`V3-SOAK-AND-DEATH-QA.md` §4).
 - **Low graphics proxy:** beacons and labels survive the lowest Studio level; device check still needed (§5).
 
+## Progression (2026-10-13)
+
+Salvage Contracts (3 jobs, board + JOBS button, pinned job on the HUD), Salvager Reputation (7 ranks, titles only) and nameplate finishes (a 30,000-coin cosmetic sink), all server-authoritative. Studio-tested, including duplicate sales, dropped-bag farming, hostile input, rejoin and rollback to RC3. Job rewards were rebalanced from bot runs to about 27% of income. Details: `V3-PROGRESSION.md`.
+
 ## Monetization (2026-10-13)
 
 The Supply Counter is built as a Gear Shop tab, with three coin packs and the Heavy-Duty Pack pass. It is **off**: `PurchasesEnabled = false` and all IDs are 0. Studio-tested: exact coins, duplicate and concurrent deliveries, no pass stacking, server-confirmed delivered state. Economy check and setup steps: `V3-MONETIZATION.md`. **Needs you:** a decision on pack sizes, the four Creator Hub IDs, and later approval for one real test purchase.
@@ -92,7 +96,8 @@ The Supply Counter is built as a Gear Shop tab, with three coin packs and the He
 | --- | --- | --- | --- | --- |
 | RC1 | `rc-20261013-1` | `1753ec0` | Workshop UI, data environments, persistence QA, runbook | Superseded: the RC1 review found the lost-lock overwrite defect |
 | RC2 | `rc-20261013-2` | `d35302d` | RC1 + strict save-lock ownership + `[ServerPerf]` | Superseded: the RC3 review found per-server tokens and the history shortcut |
-| RC3 | `rc-20261013-3` | see tag | RC2 + per-session lock tokens + history never read (write-only audit after save) + live-test data namespace and release gate | Studio regression passes (audit, RC3 sections). **Not published.** Test venue: the private live experience on `_LIVETEST` |
+| RC3 | `rc-20261013-3` | `1ce6f6f` | RC2 + per-session lock tokens + history never read (write-only audit after save) + live-test data namespace and release gate | Studio regression passes (audit, RC3 sections). Superseded by RC4 for testing; still the purchase-safety baseline. |
+| RC4 | `rc-20261013-4` | see tag | RC3 + Supply Counter (packs 300/1,200/3,000, Heavy-Duty Pack; purchases **off**) + Contracts, Reputation and nameplate finishes | Studio: progression suite, receipt A–I, rollback-to-RC3 compatibility. **Not published**; awaiting your approval to publish to the private experience |
 
 ## Production audit
 

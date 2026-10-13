@@ -38,6 +38,11 @@ export type Data = {
 	Stats: { TotalEarned: number, ItemsSold: number, StormsSurvived: number },
 	ProcessedReceipts: { string },
 	BoostUntil: number,
+	-- Added in V3 (Contracts + Reputation). Older profiles get these from reconcile; older
+	-- code that loads a profile with them keeps them untouched (it saves whole tables).
+	Rep: { XP: number },
+	Contracts: { Active: { any }, Done: number, Pinned: string? },
+	Cosmetics: { Owned: { [string]: boolean }, Plate: string },
 	Lock: { Session: string, Time: number }?,
 }
 
@@ -49,6 +54,9 @@ function DataService.default(): Data
 		Stats = { TotalEarned = 0, ItemsSold = 0, StormsSurvived = 0 },
 		ProcessedReceipts = {},
 		BoostUntil = 0,
+		Rep = { XP = 0 },
+		Contracts = { Active = {}, Done = 0 },
+		Cosmetics = { Owned = { Cardboard = true }, Plate = "Cardboard" },
 	}
 end
 

@@ -20,6 +20,8 @@ local CameraOcclusion = require(script.Parent:WaitForChild("CameraOcclusion"))
 local Districts = require(script.Parent:WaitForChild("Districts"))
 local EnvironmentFX = require(script.Parent:WaitForChild("EnvironmentFX"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
+local Jobs = require(script.Parent:WaitForChild("Jobs"))
+local Nameplates = require(script.Parent:WaitForChild("Nameplates"))
 local Notifications = require(script.Parent:WaitForChild("Notifications"))
 local SalvageFeedback = require(script.Parent:WaitForChild("SalvageFeedback"))
 local Settings = require(script.Parent:WaitForChild("Settings"))
@@ -80,9 +82,11 @@ Settings.init(root, {
 	IsReduced = StormEffects.isReduced,
 	SetReduced = StormEffects.setReduced,
 })
-for _, modal in { Shop.modal(), Settings.modal() } do
+Jobs.init(root)
+Nameplates.init()
+for _, modal in { Shop.modal(), Settings.modal(), Jobs.modal() } do
 	modal.Changed.Event:Connect(function()
-		local open = Shop.modal().IsOpen() or Settings.modal().IsOpen()
+		local open = Shop.modal().IsOpen() or Settings.modal().IsOpen() or Jobs.modal().IsOpen()
 		Notifications.setModalOpen(open)
 		Hud.setModalOpen(open)
 	end)
@@ -91,10 +95,13 @@ end
 local shopButton = Hud.ShopButton :: TextButton
 local settingsButton = Hud.SettingsButton :: TextButton
 shopButton.Activated:Connect(Shop.toggle)
-settingsButton.Activated:Connect(Settings.toggle)
+settingsButton.Activated:Connect(Settings.toggle);
+(Hud.JobsButton :: TextButton).Activated:Connect(Jobs.toggle)
 ProximityPromptService.PromptTriggered:Connect(function(prompt)
 	if prompt.Name == "UpgradePrompt" then
 		Shop.open()
+	elseif prompt.Name == "JobsPrompt" then
+		Jobs.open()
 	end
 end)
 
@@ -131,7 +138,8 @@ local function updateHint()
 		end
 	end
 	if not s or (s.Stats.ItemsSold > 0 and upgraded > 0) then
-		Notifications.setHint(nil)
+		-- After the first-session chain, the note shows the pinned job.
+		Notifications.setHint(Jobs.pinnedLine(s))
 	elseif s.Stats.ItemsSold > 0 then
 		local cost = cheapestUpgrade(s)
 		if cost and s.Coins >= cost then
@@ -139,7 +147,7 @@ local function updateHint()
 		elseif #s.Carried == 0 then
 			Notifications.setHint(("Salvage more: next upgrade costs %d coins"):format(cost or 0))
 		else
-			Notifications.setHint(nil)
+			Notifications.setHint(Jobs.pinnedLine(s))
 		end
 	elseif #s.Carried == 0 then
 		Notifications.setHint("Head down into town and grab glowing salvage!")
@@ -172,6 +180,7 @@ Remotes.get("PlayerState").OnClientEvent:Connect(function(s)
 	lastLevels = levels
 	Hud.setPlayer(s)
 	Shop.setState(s)
+	Jobs.setState(s)
 	updateHint()
 end)
 
@@ -183,6 +192,69 @@ Remotes.get("Pickup").OnClientEvent:Connect(function(info)
 end)
 Remotes.get("SaleReceipt").OnClientEvent:Connect(function(receipt)
 	SalvageFeedback.onSale(receipt)
+end)
+
+-- Contract completions and rank-ups (server-confirmed; the coins and XP are already in the state).
+Remotes.get("ProgressEvent").OnClientEvent:Connect(function(e)
+	if type(e) ~= "table" then
+		return
+	end
+	if e.Kind == "Job" then
+		Notifications.feed(
+			("JOB DONE: %s  +%d coins  +%d XP"):format(tostring(e.Text), e.Coins or 0, e.XP or 0),
+			Color3.fromRGB(140, 230, 140),
+			4.5
+		)
+		Audio.play("Upgrade", 0.6)
+	elseif e.Kind == "RankUp" then
+		local unlocked = if type(e.Unlocked) == "table" and #e.Unlocked > 0
+			then ("New nameplate finish: %s"):format(table.concat(e.Unlocked, ", "))
+			else "Check the Jobs board"
+		Notifications.card({
+			Priority = 6,
+			Accent = Color3.fromRGB(80, 150, 230),
+			Height = 96,
+			Width = 270,
+			Seconds = 4,
+			Surface = "Tag",
+			Build = function(card)
+				UI.text({
+					Parent = card,
+					Font = UI.Font.Mono,
+					TextSize = 16,
+					Position = UDim2.fromOffset(24, 8),
+					Size = UDim2.new(1, -34, 0, 26),
+					TextColor3 = Color3.new(1, 1, 1),
+					Text = "RANK UP!",
+					ZIndex = 7,
+				})
+				UI.text({
+					Parent = card,
+					Font = UI.Font.Title,
+					TextSize = 24,
+					Position = UDim2.fromOffset(0, 40),
+					Size = UDim2.new(1, 0, 0, 28),
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextColor3 = UI.Mat.Marker,
+					Text = tostring(e.Title),
+					ZIndex = 7,
+				})
+				UI.text({
+					Parent = card,
+					Font = UI.Font.Label,
+					TextSize = 12,
+					Position = UDim2.fromOffset(0, 70),
+					Size = UDim2.new(1, 0, 0, 16),
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextTruncate = Enum.TextTruncate.AtEnd,
+					TextColor3 = UI.Mat.Pencil,
+					Text = unlocked,
+					ZIndex = 7,
+				})
+			end,
+		})
+		Audio.play("Upgrade")
+	end
 end)
 
 Remotes.get("Notify").OnClientEvent:Connect(function(text, color)

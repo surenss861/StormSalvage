@@ -11,6 +11,7 @@ local Shelter = require(ReplicatedStorage.Shared.Shelter)
 local PlayerService = require(script.Parent.PlayerService)
 local SessionStats = require(script.Parent.SessionStats)
 local StormStats = require(script.Parent.StormStats)
+local ContractService = require(script.Parent.ContractService)
 
 local LootService = {}
 
@@ -93,7 +94,8 @@ local function createLoot(
 	onTaken: (() -> ())?,
 	lifetime: number?,
 	owner: Player?,
-	ownerOnlyUntil: number?
+	ownerOnlyUntil: number?,
+	zone: string?
 ): Part
 	local def = Config.Loot[lootId]
 	local rarityColor = Config.RarityColors[def.Rarity]
@@ -207,6 +209,7 @@ local function createLoot(
 		end
 		StormStats.collected(player, lootId)
 		SessionStats.collected(player, lootId)
+		ContractService.collected(player, lootId, zone, owner ~= nil)
 		taken = true
 		item:Destroy()
 		pickupRemote:FireClient(player, { Id = lootId, Position = item.Position })
@@ -251,7 +254,7 @@ local function spawnInZone(zoneName: string)
 	local floor = point - Vector3.new(0, 1.5, 0)
 	zone.Occupied[index] = createLoot(pickWeighted(zone.Pool), floor, function()
 		zone.Occupied[index] = nil
-	end)
+	end, nil, nil, nil, zoneName)
 end
 
 local function zoneCount(zone: Zone): number
