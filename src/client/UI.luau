@@ -7,6 +7,8 @@
 -- modals and world markers all use one type scale, palette, shape language and motion
 -- timing. See docs/ui-design-spec.md for the reasoning behind each value.
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
@@ -241,12 +243,20 @@ function UI.setCompactOverride(on: boolean)
 end
 
 function UI.compact(): boolean
-	return compactOverride or UserInputService.TouchEnabled
+	return compactOverride
+		or UserInputService.TouchEnabled
+		or (RunService:IsStudio() and ReplicatedStorage:GetAttribute("QA_PhoneFrame") == true)
 end
 
 -- Touch targets: 64 design px is about 45 pt on the smallest phone tested (HUD scale 0.7).
+-- Keyed to the compact composition (not raw touch) so Studio's phone preview measures true.
 function UI.buttonSize(): number
-	return if UI.isTouch() then 64 else 52
+	return if UI.compact() then 64 else 52
+end
+
+-- Height of a modal's tab row: 40 on desktop; on phones, big enough for a thumb after scaling.
+function UI.tabHeight(): number
+	return if UI.compact() then 64 else 40
 end
 
 ---------------------------------------------------------------------------- Builders
@@ -570,7 +580,7 @@ function UI.modal(parent: Instance, name: string, title: string, maxSize: Vector
 		Text = title,
 		ZIndex = 21,
 	})
-	local size = math.min(UI.buttonSize(), 56)
+	local size = UI.buttonSize()
 	local close = UI.button({
 		Name = "Close",
 		Parent = panel,

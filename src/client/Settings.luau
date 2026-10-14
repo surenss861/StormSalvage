@@ -33,8 +33,9 @@ local function rowFrame(list: Instance, order: number, title: string, desc: stri
 		Name = title,
 		Parent = list,
 		LayoutOrder = order,
-		Size = UDim2.new(1, -8, 0, 58),
-		BackgroundColor3 = Color3.fromRGB(212, 216, 218),
+		-- Phones: tall enough that the fader is a full thumb target after scaling.
+		Size = UDim2.new(1, -8, 0, if UI.compact() then 70 else 58),
+		BackgroundColor3 = M.Manila, -- the theme's card (dark plate in Arcade)
 		BorderSizePixel = 0,
 	}, { UI.corner(4), UI.stroke(M.TinDark, 1.5) })
 	-- Label-maker tape: white embossed capitals on black.
@@ -46,7 +47,7 @@ local function rowFrame(list: Instance, order: number, title: string, desc: stri
 		Size = UDim2.fromOffset(0, 22),
 		BackgroundColor3 = Color3.fromRGB(24, 24, 26),
 		BorderSizePixel = 0,
-	}, { UI.corner(3), UI.padding(0, 8) })
+	}, { UI.corner(3), UI.padding(0, 8), UI.stroke(M.KraftEdge, 1) })
 	UI.text({
 		Parent = tape,
 		Font = UI.Font.Mono,
@@ -88,7 +89,7 @@ local function slider(frame: Frame, kind: string)
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromScale(0, 0.5),
 		Size = UDim2.new(1, 0, 0, 10),
-		BackgroundColor3 = Color3.fromRGB(46, 46, 48), -- the fader slot
+		BackgroundColor3 = M.TrackOff, -- the fader slot
 		BorderSizePixel = 0,
 	}, { UI.corner(2) })
 	local fill = UI.new("Frame", {
@@ -244,7 +245,7 @@ function Settings.init(root: Frame, h: Hooks)
 		Parent = reducedRow,
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -10, 0.5, 0),
-		Size = UDim2.fromOffset(96, math.min(UI.buttonSize(), 56)),
+		Size = UDim2.fromOffset(96, UI.buttonSize()),
 		TextSize = 18,
 	})
 	toggle.Font = UI.Font.Mono

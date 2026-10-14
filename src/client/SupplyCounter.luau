@@ -22,6 +22,7 @@ local UI = require(script.Parent:WaitForChild("UI"))
 
 local SupplyCounter = {}
 local M = UI.Mat
+local STICKER = Color3.fromRGB(250, 248, 238) -- price stickers stay paper-white in every theme
 
 export type Hooks = {
 	Notify: (text: string, color: Color3?) -> (),
@@ -173,10 +174,13 @@ local function ticket(parent: Instance, order: number, key: string, kind: "Produ
 			else BigMoney.tag(def.Coins),
 		ZIndex = 23,
 	})
+	-- Phones: the buy button is a full thumb target, so the caption goes and the rest moves up.
+	local lift = if UI.compact() then 18 else 0
 	UI.text({
 		Parent = card,
 		Font = UI.Font.Label,
 		TextSize = 12,
+		Visible = lift == 0,
 		Position = UDim2.fromOffset(0, 126),
 		Size = UDim2.new(1, 0, 0, 14),
 		TextColor3 = M.Pencil,
@@ -187,7 +191,7 @@ local function ticket(parent: Instance, order: number, key: string, kind: "Produ
 		Parent = card,
 		Font = UI.Font.Title,
 		TextSize = 16,
-		Position = UDim2.fromOffset(6, 144),
+		Position = UDim2.fromOffset(6, 144 - lift),
 		Size = UDim2.new(1, -12, 0, 20),
 		TextColor3 = M.Marker,
 		TextTruncate = Enum.TextTruncate.AtEnd,
@@ -198,19 +202,19 @@ local function ticket(parent: Instance, order: number, key: string, kind: "Produ
 	local sticker = UI.new("Frame", {
 		Parent = card,
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 168),
+		Position = UDim2.new(0.5, 0, 0, 168 - lift),
 		Size = UDim2.fromOffset(86, 30),
 		Rotation = -4,
-		BackgroundColor3 = Color3.fromRGB(250, 248, 238),
+		BackgroundColor3 = STICKER,
 		BorderSizePixel = 0,
 		ZIndex = 23,
-	}, { UI.corner(15), UI.stroke(M.Marker, 2) })
+	}, { UI.corner(15), UI.stroke(UI.inkOn(STICKER), 2) })
 	local price = UI.text({
 		Parent = sticker,
 		Font = UI.Font.Mono,
 		TextSize = 16,
 		Size = UDim2.fromScale(1, 1),
-		TextColor3 = M.Marker,
+		TextColor3 = UI.inkOn(STICKER),
 		Text = ("R$ %d"):format(def.RobuxPrice),
 		ZIndex = 24,
 	})
@@ -218,7 +222,7 @@ local function ticket(parent: Instance, order: number, key: string, kind: "Produ
 		Parent = card,
 		Font = UI.Font.Label,
 		TextSize = 10,
-		Position = UDim2.fromOffset(0, 200),
+		Position = UDim2.fromOffset(0, 200 - lift),
 		Size = UDim2.new(1, 0, 0, 12),
 		TextColor3 = M.Pencil,
 		Text = if def.Id == 0 then "planned price" else "",
@@ -229,7 +233,7 @@ local function ticket(parent: Instance, order: number, key: string, kind: "Produ
 		Parent = card,
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -8),
-		Size = UDim2.new(1, -12, 0, math.min(UI.buttonSize(), 48)),
+		Size = UDim2.new(1, -12, 0, if UI.compact() then UI.buttonSize() else 48),
 		TextSize = 12,
 		Color = M.Orange,
 		ZIndex = 24,
@@ -361,7 +365,7 @@ function SupplyCounter.build(parent: Instance, hooks: Hooks): Frame
 		Position = UDim2.fromScale(0, 1),
 		Size = UDim2.new(1, 0, 0, 24),
 		TextWrapped = true,
-		TextColor3 = M.Paper,
+		TextColor3 = M.Pencil,
 		Text = "Optional. Coins arrive after Roblox confirms the payment, even if you leave mid-purchase. Equipment can always be earned by salvaging.",
 		ZIndex = 22,
 	})

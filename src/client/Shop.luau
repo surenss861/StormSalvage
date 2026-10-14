@@ -312,7 +312,7 @@ local function buildSheet(parent: Instance)
 		Name = "Ladder",
 		Parent = sheet,
 		Position = UDim2.fromOffset(14, 166),
-		Size = UDim2.new(1, -28, 1, -256),
+		Size = UDim2.new(1, -28, 1, -(166 + UI.buttonSize() + 34)),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 4,
@@ -333,7 +333,7 @@ local function buildSheet(parent: Instance)
 		Font = UI.Font.Label,
 		TextSize = 13,
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 14, 1, -70),
+		Position = UDim2.new(0, 14, 1, -(UI.buttonSize() + 14)),
 		Size = UDim2.new(1, -28, 0, 16),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = M.Pencil,
@@ -345,7 +345,7 @@ local function buildSheet(parent: Instance)
 		Parent = sheet,
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -10),
-		Size = UDim2.new(1, -28, 0, math.min(UI.buttonSize(), 56)),
+		Size = UDim2.new(1, -28, 0, UI.buttonSize()),
 		TextSize = 20,
 		Color = UI.Color.Buy,
 		ZIndex = 22,
@@ -494,7 +494,14 @@ function Shop.refresh()
 		)
 	end
 	-- The next level is the first row (installed ones are above, a scroll away).
-	ladder.CanvasPosition = Vector2.new(0, math.min(level, steps - 1) * 29)
+	-- (Measured after layout: the canvas is in screen pixels, which the phone scale shrinks.)
+	local focus = ladder:FindFirstChild("Level" .. math.min(level + 1, steps)) :: Frame?
+	task.defer(function()
+		if focus and focus.Parent == ladder then
+			ladder.CanvasPosition =
+				Vector2.new(0, focus.AbsolutePosition.Y - ladder.AbsolutePosition.Y + ladder.CanvasPosition.Y)
+		end
+	end)
 
 	if celebrating then
 		return
@@ -668,7 +675,7 @@ local function buildTabs(panel: Frame)
 		Name = "Tabs",
 		Parent = panel,
 		Position = UDim2.fromOffset(268, 14),
-		Size = UDim2.new(1, -350, 0, 40),
+		Size = UDim2.new(1, -350, 0, UI.tabHeight()),
 		BackgroundTransparency = 1,
 		ZIndex = 23,
 	}, {

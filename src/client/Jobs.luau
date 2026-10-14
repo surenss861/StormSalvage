@@ -66,6 +66,7 @@ type LogTile = {
 }
 local logTiles: { LogTile } = {}
 local logFilter = "All"
+local RARITY_FILTERS = { "All", "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" }
 local logSelected: string? = nil
 local detail: { [string]: any } = {}
 
@@ -146,7 +147,7 @@ local function buildSlip(parent: Instance, i: number): Slip
 		Parent = frame,
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -8),
-		Size = UDim2.new(1, -16, 0, math.min(UI.buttonSize(), 44)),
+		Size = UDim2.new(1, -16, 0, if UI.compact() then UI.buttonSize() else 44),
 		BackgroundTransparency = 1,
 		ZIndex = 23,
 	}, {
@@ -534,12 +535,15 @@ local function buildLog(parent: Instance): Frame
 		ZIndex = 24,
 	}, { UI.corner(3) })
 
-	-- Rarity filter chips.
+	-- Rarity filter: chips on desktop; on phones, where seven chips can't each be a thumb
+	-- target, one full-size button that steps through the rarities.
+	local compact = UI.compact()
+	local filterH = if compact then UI.buttonSize() else 26
 	local chips = UI.new("Frame", {
 		Name = "Filters",
 		Parent = view,
 		Position = UDim2.fromOffset(0, 46),
-		Size = UDim2.new(0.66, 0, 0, 26),
+		Size = UDim2.new(0.66, 0, 0, filterH),
 		BackgroundTransparency = 1,
 		ZIndex = 22,
 	}, {
@@ -549,7 +553,30 @@ local function buildLog(parent: Instance): Frame
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
-	for k, r in { "All", "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" } do
+	if compact then
+		local cycle = UI.new("TextButton", {
+			Name = "Cycle",
+			Parent = chips,
+			Size = UDim2.new(0.6, 0, 1, 0),
+			BackgroundColor3 = M.Manila,
+			BorderSizePixel = 0,
+			AutoButtonColor = false,
+			FontFace = UI.Heading,
+			TextSize = 16,
+			TextColor3 = M.Marker,
+			Text = "",
+			ZIndex = 23,
+		}, { UI.corner(10), UI.stroke(M.KraftEdge, 2) })
+		cycle.Activated:Connect(function()
+			logFilter = RARITY_FILTERS[(table.find(RARITY_FILTERS, logFilter) or 1) % #RARITY_FILTERS + 1]
+			refreshLog()
+		end)
+		detail.Cycle = cycle
+	end
+	for k, r in RARITY_FILTERS do
+		if compact then
+			break
+		end
 		local chip = UI.new("TextButton", {
 			Name = r,
 			Parent = chips,
@@ -649,8 +676,8 @@ local function buildLog(parent: Instance): Frame
 	local grid = UI.new("ScrollingFrame", {
 		Name = "Entries",
 		Parent = view,
-		Position = UDim2.fromOffset(0, 78),
-		Size = UDim2.new(0.67, -6, 1, -78),
+		Position = UDim2.fromOffset(0, 46 + filterH + 6),
+		Size = UDim2.new(0.67, -6, 1, -(46 + filterH + 6)),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 5,
@@ -853,10 +880,20 @@ function refreshLog()
 		stroke.Color = if logSelected == tile.Id then M.Orange else M.KraftEdge
 		stroke.Thickness = if logSelected == tile.Id then 3 else 1.5
 	end
-	for _, r in { "All", "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" } do
-		local chip = detail["Chip" .. r] :: TextButton
-		chip.BackgroundColor3 = if logFilter == r then M.Orange else M.Manila
-		chip.TextColor3 = UI.inkOn(chip.BackgroundColor3)
+	for _, r in RARITY_FILTERS do
+		local chip = detail["Chip" .. r] :: TextButton?
+		if chip then
+			chip.BackgroundColor3 = if logFilter == r then M.Orange else M.Manila
+			chip.TextColor3 = UI.inkOn(chip.BackgroundColor3)
+		end
+	end
+	local cycle = detail.Cycle :: TextButton?
+	if cycle then
+		cycle.Text = ("SHOWING: %s  >"):format(string.upper(logFilter))
+		local stroke = cycle:FindFirstChildOfClass("UIStroke") :: UIStroke
+		stroke.Color = if logFilter == "All"
+			then M.KraftEdge
+			else (Config.RarityColors[logFilter] or M.KraftEdge)
 	end
 	-- Detail: the selected kind, or the rarest one found so far.
 	local pick = logSelected
@@ -1221,7 +1258,7 @@ function Jobs.init(root: Frame)
 		Name = "Tabs",
 		Parent = panel,
 		Position = UDim2.fromOffset(220, 14),
-		Size = UDim2.new(1, -300, 0, 40),
+		Size = UDim2.new(1, -300, 0, UI.tabHeight()),
 		BackgroundTransparency = 1,
 		ZIndex = 23,
 	}, {
@@ -1248,7 +1285,8 @@ function Jobs.init(root: Frame)
 			AutoButtonColor = false,
 			BorderSizePixel = 0,
 			Font = UI.Font.Mono,
-			TextSize = 11,
+			TextSize = if UI.compact() then 14 else 11, -- phones: two lines in the taller tab
+			TextWrapped = true,
 			TextColor3 = M.Marker,
 			Text = entry[2],
 			ZIndex = 24,
