@@ -157,6 +157,33 @@ Titles.List = {
 			return v.Found.GaleShard == true and v.Found.TideRelic == true and v.Found.Fulgurite == true
 		end,
 	},
+	{
+		Id = "HeavyHauler",
+		Name = "Heavy Hauler",
+		Category = "Career",
+		How = "Earn the Heavy Salvage License",
+		earned = function(v)
+			return v.Licenses.Heavy == true
+		end,
+	},
+	{
+		Id = "Safecracker",
+		Name = "Safecracker",
+		Category = "Pursuit",
+		How = "Help cut open an Armored Wreck's vault",
+		earned = function(v)
+			return rec(v, "VaultsOpened") >= 1
+		end,
+	},
+	{
+		Id = "CrownThief",
+		Name = "Crown Thief",
+		Category = "Discovery",
+		How = "Log the Crown Jewels",
+		earned = function(v)
+			return v.Found.CrownJewels == true
+		end,
+	},
 } :: { Def }
 
 -- Wealth titles: lifetime-earnings milestones, so spending never takes one away. One per named

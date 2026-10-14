@@ -132,6 +132,51 @@ return {
 		assert(Bands.Harness.Values[#Bands.Harness.Values] < 1, "never immune")
 		eq(#Bands.Harness.Values, #Bands.Harness.Costs + 1, "a value per level")
 	end,
+	["titles: band 4 titles"] = function()
+		local got = Titles.earned(view({ VaultsOpened = 1 }, { CrownJewels = true }, 0, { Heavy = true }))
+		for _, id in { "HeavyHauler", "Safecracker", "CrownThief" } do
+			assert(has(got, id), id)
+		end
+		eq(has(Titles.earned(view({ WreckLocks = 3 })), "Safecracker"), false, "locks alone aren't a vault")
+	end,
+	["bands: heavy licence needs the artifacts and a Storm Heart"] = function()
+		local base = {
+			Rank = 5,
+			Extractions = 25,
+			Coins = "1000000000",
+			Owned = false,
+			Found = { Artifact = 3 },
+			Records = { EyeHearts = 1 },
+		}
+		eq(Bands.checkLicense("Heavy", base).Ok, true, "all met")
+		local p = table.clone(base)
+		p.Records = { EyeHearts = 0 }
+		local r = Bands.checkLicense("Heavy", p)
+		eq(r.Reason, "requirements", "no Heart")
+		eq(r.Missing[1], "Deliver a Storm Heart", "named")
+		p = table.clone(base)
+		p.Coins = "999999999"
+		eq(Bands.checkLicense("Heavy", p).Reason, "short", "one coin short of a billion")
+		eq(Bands.bandOf({ Pro = true, Hunter = true, Heavy = true }), 4, "band 4")
+	end,
+	["bands: the vault outvalues the band below; bars grow with the crew and stop at the cap"] = function()
+		assert(
+			Bands.Vault.Strongbox.Value > Bands.Artifacts[#Bands.Artifacts].Value,
+			"strongbox beats an artifact"
+		)
+		assert(Bands.Vault.BullionBar.Value > Bands.StormHeart.Value, "a bar beats the Heart")
+		assert(Bands.Vault.CrownJewels.Value > Bands.Vault.BullionBar.Value * 5, "the jewels are the jackpot")
+		eq(Bands.barsFor(1), Bands.Wreck.BarsBase + 1, "solo")
+		eq(Bands.barsFor(0), Bands.Wreck.BarsBase, "nobody counted")
+		eq(Bands.barsFor(50), Bands.Wreck.BarsMax, "capped")
+		assert(Bands.Wreck.JewelChance > 0 and Bands.Wreck.JewelChance < 1, "real odds")
+		assert(Bands.Wreck.ChargeRadius < Bands.Wreck.CutReach * 2, "a charge can be stepped out of")
+		for i = 2, #Bands.Cutter.Values do
+			assert(Bands.Cutter.Values[i] > Bands.Cutter.Values[i - 1], "cutter speeds rise")
+		end
+		eq(#Bands.Cutter.Values, #Bands.Cutter.Costs + 1, "a value per level")
+		eq(#Bands.EventBonus, 4, "a bonus row per band")
+	end,
 	["titles: bad records never grant"] = function()
 		local got = Titles.earned(view({ Extractions = 0 / 0, BestExtract = -5, BestStreak = "9" }))
 		eq(#got, 0, "nothing from garbage")
@@ -210,7 +255,11 @@ return {
 		eq(Bands.eventBonus(1, "Pursuit", true), 150, "band 1 golden (unchanged)")
 		eq(Bands.eventBonus(2, "Pursuit", false), 6000, "band 2")
 		eq(Bands.eventBonus(2, "Pursuit", true), 18000, "band 2 golden")
-		eq(Bands.eventBonus(99, "Pursuit", false), 90000, "clamped to the top band")
+		eq(
+			Bands.eventBonus(99, "Pursuit", false),
+			Bands.EventBonus[#Bands.EventBonus].Pursuit,
+			"clamped to the top band"
+		)
 	end,
 	["bands: industrial salvage outvalues town salvage, rarer is worth more"] = function()
 		for i = 2, #Bands.Industrial do

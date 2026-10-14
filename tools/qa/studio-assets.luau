@@ -36,7 +36,8 @@ local function build(node, parent)
 		inst.Material = Enum.Material[pr.Material]
 		inst.Shape = Enum.PartType[pr.Shape]
 		inst.Transparency = pr.Transparency
-		inst.Anchored, inst.CanCollide, inst.CanQuery, inst.CanTouch = true, false, false, false
+		inst.Anchored, inst.CanCollide, inst.CanQuery, inst.CanTouch =
+			true, pr.CanCollide == true, pr.CanQuery == true, pr.CanTouch == true
 		inst.CastShadow = pr.CastShadow
 		inst.TopSurface, inst.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
 	elseif node.className == "Model" then
@@ -70,7 +71,11 @@ local SETS = {
 		"TideRelic",
 		"Fulgurite",
 		"StormHeart",
+		"Strongbox",
+		"BullionBar",
+		"CrownJewels",
 	},
+	events = { "ArmoredWreck" },
 	animations = { "Dodge", "CoreCarry", "Celebrate" },
 }
 local built = 0

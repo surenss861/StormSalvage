@@ -173,6 +173,16 @@ local commands: { [string]: (...any) -> any } = {
 	eyestate = function()
 		return require(script.Parent.StormEyeService).state()
 	end,
+	-- Band 4: put an Armored Wreck out now (skips the band check); its state.
+	wreck = function(siteId: string?, seconds: number?)
+		return require(script.Parent.WreckService).start(siteId, true, seconds)
+	end,
+	wreckprogress = function(index: number, progress: number)
+		return require(script.Parent.WreckService).qaProgress(index, progress)
+	end,
+	wreckstate = function()
+		return require(script.Parent.WreckService).state()
+	end,
 	-- A harmless debris strike on a player (0 damage); its verdict lands in strikehits.
 	strikeat = function(playerName: string)
 		local player = Players:FindFirstChild(playerName)

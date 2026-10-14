@@ -77,6 +77,19 @@ local function upgradeValue(session: Session, id: string): any
 	return def.Values[(session.Data.Upgrades[id] or 0) + 1]
 end
 
+-- A licence-gated upgrade's current value for `player` (its level-0 value without the licence).
+function PlayerService.gearValue(player: Player, id: string): any
+	local session = PlayerService.get(player)
+	local def = Config.Upgrades[id]
+	if not session or not def then
+		return def and def.Values[1]
+	end
+	if def.License and not PlayerService.hasLicense(session, def.License) then
+		return def.Values[1]
+	end
+	return upgradeValue(session, id)
+end
+
 function PlayerService.getCapacity(session: Session): number
 	return upgradeValue(session, "Backpack")
 		+ (if session.OwnsHeavyDuty then Config.GamePasses.HeavyDuty.BonusCapacity else 0)

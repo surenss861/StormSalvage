@@ -268,7 +268,7 @@ local qaHits: { string } = {} -- Studio QA: each strike's outcome as the server 
 -- One player's hit check for a zone. Judged where the server trusts the player is
 -- (DodgeService): a teleport or a spammed dodge doesn't escape a hit an honest player in the same
 -- spot would take.
-local function hitPlayer(player: Player, at: Pursuit.Vec2, radius: number, damage: number, y: number)
+local function hitPlayer(player: Player, at: Pursuit.Vec2, radius: number, damage: number, y: number): boolean
 	local pos = DodgeService.judgedPosition(player)
 	if pos and RunService:IsStudio() then
 		table.insert(
@@ -288,7 +288,9 @@ local function hitPlayer(player: Player, at: Pursuit.Vec2, radius: number, damag
 		and Pursuit.distance(flat(pos), at) <= radius
 	then
 		PlayerService.damage(player, damage)
+		return true
 	end
+	return false
 end
 
 -- A telegraphed strike: everyone sees the warning now; each player is judged at the end of the
@@ -301,7 +303,8 @@ local function strikeZone(
 	warn: number,
 	damage: number,
 	y: number,
-	live: () -> boolean
+	live: () -> boolean,
+	onHit: ((Player) -> ())?
 )
 	strikeRemote:FireAllClients(style, Vector3.new(at.X, y, at.Z), radius, warn)
 	for _, player in Players:GetPlayers() do
@@ -310,7 +313,9 @@ local function strikeZone(
 		SessionStats.peak(player, "StrikeLagAllowanceMs", math.floor(allowance * 1000))
 		task.delay(warn + P.HitGrace + allowance, function()
 			if live() and player.Parent then
-				hitPlayer(player, at, radius - P.HitTolerance, damage, y)
+				if hitPlayer(player, at, radius - P.HitTolerance, damage, y) and onHit then
+					onHit(player)
+				end
 			end
 		end)
 	end
@@ -620,6 +625,20 @@ function PursuitService.takeQaHits(): { string }
 	local out = qaHits
 	qaHits = {}
 	return out
+end
+
+-- A telegraphed strike for other events (the Armored Wreck's security charges): the same
+-- warning, lag allowance and dodge judgement as the twister's. `onHit` runs for each player hit.
+function PursuitService.strike(
+	style: string,
+	at: Vector3,
+	radius: number,
+	warn: number,
+	damage: number,
+	live: () -> boolean,
+	onHit: ((Player) -> ())?
+)
+	strikeZone(style, flat(at), radius, warn, damage, at.Y, live, onHit)
 end
 
 function PursuitService.running(): boolean

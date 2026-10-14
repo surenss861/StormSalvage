@@ -215,7 +215,9 @@ local function createLoot(
 		if def.License and not PlayerService.licensed(player, def.License) then
 			PlayerService.notify(
 				player,
-				"Needs the Pro Salvage License (Gear Shop).",
+				("Needs the %s (Gear Shop)."):format(
+					Bands.Licenses[def.License] and Bands.Licenses[def.License].DisplayName or "licence"
+				),
 				Color3.fromRGB(255, 200, 120)
 			)
 			return
@@ -266,11 +268,29 @@ local function createLoot(
 	return item
 end
 
+-- Areas kept clear of zone salvage for a while (the Armored Wreck: a "Grab" prompt next to a lock
+-- would take the cutting prompt's key).
+type Clear = { Center: Vector3, Radius: number, Until: number }
+local clearAreas: { Clear } = {}
+
+local function blocked(point: Vector3): boolean
+	local now = os.clock()
+	for i = #clearAreas, 1, -1 do
+		local a = clearAreas[i]
+		if now >= a.Until then
+			table.remove(clearAreas, i)
+		elseif ((point - a.Center) * Vector3.new(1, 0, 1)).Magnitude <= a.Radius then
+			return true
+		end
+	end
+	return false
+end
+
 local function spawnInZone(zoneName: string)
 	local zone = zones[zoneName]
 	local free = {}
 	for i in zone.Points do
-		if not zone.Occupied[i] then
+		if not zone.Occupied[i] and not blocked(zone.Points[i]) then
 			table.insert(free, i)
 		end
 	end
@@ -301,7 +321,7 @@ local function spawnIndustrial(zoneName: string)
 	local zone = zones[zoneName]
 	local free = {}
 	for i in zone.Points do
-		if not zone.Occupied[i] then
+		if not zone.Occupied[i] and not blocked(zone.Points[i]) then
 			table.insert(free, i)
 		end
 	end
@@ -421,6 +441,20 @@ end
 function LootService.spawnForTest(lootId: string, position: Vector3): Instance
 	assert(Config.Loot[lootId], "unknown loot " .. lootId)
 	return createLoot(lootId, position)
+end
+
+-- Keep zone salvage out of a circle for `seconds`: what's there now goes, nothing respawns there.
+function LootService.keepClear(center: Vector3, radius: number, seconds: number)
+	table.insert(clearAreas, { Center = center, Radius = radius, Until = os.clock() + seconds })
+	for _, zone in zones do
+		for index, item in zone.Occupied do
+			local point = zone.Points[index]
+			if point and ((point - center) * Vector3.new(1, 0, 1)).Magnitude <= radius then
+				zone.Occupied[index] = nil
+				item:Destroy()
+			end
+		end
+	end
 end
 
 -- Refill every zone instantly (used after a storm so the town feels "fresh").

@@ -782,11 +782,48 @@ function UI.harnessIcon(parent: Instance, size: number): Frame
 	return holder
 end
 
+-- A cutting torch: a tank, a nozzle and an orange flame.
+function UI.cutterIcon(parent: Instance, size: number): Frame
+	local holder = UI.new("Frame", {
+		Name = "CutterIcon",
+		Parent = parent,
+		Size = UDim2.fromOffset(size, size),
+		BackgroundTransparency = 1,
+	})
+	UI.new("Frame", {
+		Parent = holder,
+		Position = UDim2.fromScale(0.1, 0.3),
+		Size = UDim2.fromScale(0.3, 0.6),
+		BackgroundColor3 = Color3.fromRGB(200, 60, 50),
+		BorderSizePixel = 0,
+	}, { UI.corner(4), UI.stroke(UI.Mat.Marker, 2) })
+	UI.new("Frame", {
+		Parent = holder,
+		Position = UDim2.fromScale(0.35, 0.36),
+		Size = UDim2.fromScale(0.4, 0.12),
+		Rotation = -20,
+		BackgroundColor3 = UI.Mat.Tin,
+		BorderSizePixel = 0,
+	}, { UI.stroke(UI.Mat.Marker, 2) })
+	UI.new("Frame", {
+		Parent = holder,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.84, 0.24),
+		Size = UDim2.fromScale(0.22, 0.22),
+		Rotation = 45,
+		BackgroundColor3 = Color3.fromRGB(255, 170, 50),
+		BorderSizePixel = 0,
+	}, { UI.corner(3) })
+	return holder
+end
+
 function UI.upgradeIcon(id: string, parent: Instance, size: number): Frame
 	if id == "Press" then
 		return UI.pressIcon(parent, size)
 	elseif id == "Harness" then
 		return UI.harnessIcon(parent, size)
+	elseif id == "Cutter" then
+		return UI.cutterIcon(parent, size)
 	elseif id == "Boots" then
 		return UI.bootIcon(parent, size)
 	elseif id == "Armor" then

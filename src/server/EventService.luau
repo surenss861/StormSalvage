@@ -244,6 +244,11 @@ function EventService.start(kind: string, siteId: string, prize: string?): (bool
 	return ok, if ok then nil else "could not start"
 end
 
+-- The site the last (or current) event used, so a concurrent event can pick another.
+function EventService.lastSiteId(): string?
+	return lastSite
+end
+
 -- The next scheduled event: rotate kind and site; if a site fails its check, try the others.
 function EventService.startNext(): (boolean, string?)
 	local ids = {}

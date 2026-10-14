@@ -377,6 +377,8 @@ local function whereFound(id: string): string
 		return ("Mid-%s, out in the open · Hunter"):format(string.lower(name))
 	elseif class == "StormHeart" then
 		return "The Storm's Eye · Storm Hunter license"
+	elseif class == "Vault" then
+		return "The Armored Wreck · Heavy license"
 	elseif id == "StormCore" then
 		return "Mid-storm, anywhere in town"
 	elseif id == "GoldenCore" then

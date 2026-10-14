@@ -111,7 +111,7 @@ export type LootDef = {
 	Shape: Enum.PartType?,
 	Upright: boolean?, -- stand a cylinder on its end
 	Jackpot: boolean?,
-	Class: string?, -- "Industrial" (band 2), "Artifact" / "StormHeart" (band 3): Bands.luau
+	Class: string?, -- "Industrial" (band 2), "Artifact" / "StormHeart" (band 3), "Vault" (band 4)
 	License: string?, -- licence needed to pick it up
 	Storm: string?, -- artifacts: the storm type that forms it
 }
@@ -296,6 +296,42 @@ do
 	}
 end
 
+-- V4 band 4: vault salvage from the Armored Wreck (values in Bands.luau). Heavy licence only.
+do
+	local looks = {
+		Strongbox = {
+			Size = Vector3.new(2.2, 1.6, 1.6),
+			Color = Color3.fromRGB(70, 74, 82),
+			Material = Enum.Material.DiamondPlate,
+		},
+		BullionBar = {
+			Size = Vector3.new(1.8, 0.7, 0.9),
+			Color = Color3.fromRGB(255, 200, 60),
+			Material = Enum.Material.Foil,
+		},
+		CrownJewels = {
+			Size = Vector3.new(1.6, 1.6, 1.6),
+			Color = Color3.fromRGB(230, 60, 90),
+			Material = Enum.Material.Glass,
+		},
+	}
+	for _, id in Bands.VaultOrder do
+		local item = Bands.Vault[id]
+		local look = looks[id]
+		Config.Loot[id] = {
+			Name = item.Name,
+			Value = item.Value,
+			Size = look.Size,
+			Color = look.Color,
+			Material = look.Material,
+			Rarity = item.Rarity,
+			Class = "Vault",
+			License = Bands.Wreck.License,
+			Jackpot = if id == "CrownJewels" then true else nil,
+		}
+	end
+end
+
 -- Storm Cores of any kind (glow, contracts, delivery announcements).
 Config.CoreIds = { StormCore = true, GoldenCore = true }
 
@@ -392,7 +428,15 @@ Config.Upgrades.Harness = {
 	Values = Bands.Harness.Values,
 	License = Bands.Harness.License,
 }
-Config.UpgradeOrder = { "Backpack", "Boots", "Armor", "Press", "Harness" }
+-- V4 band 4 gear: the Thermal Cutter (Bands.Cutter; needs the Heavy licence).
+Config.Upgrades.Cutter = {
+	DisplayName = Bands.Cutter.DisplayName,
+	Description = Bands.Cutter.Description,
+	Costs = Bands.Cutter.Costs,
+	Values = Bands.Cutter.Values,
+	License = Bands.Cutter.License,
+}
+Config.UpgradeOrder = { "Backpack", "Boots", "Armor", "Press", "Harness", "Cutter" }
 
 -- V4 movement (Movement.client): run by default, sprint on Shift (keyboard), automatically after
 -- a moment of steady movement (touch and gamepad), with a short ramp so it doesn't snap. Speeds

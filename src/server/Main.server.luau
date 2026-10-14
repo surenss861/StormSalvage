@@ -24,6 +24,7 @@ local EventService = require(script.Parent.EventService)
 local DodgeService = require(script.Parent.DodgeService)
 local StatusService = require(script.Parent.StatusService)
 local StormEyeService = require(script.Parent.StormEyeService)
+local WreckService = require(script.Parent.WreckService)
 
 require(script.Parent.AssetPivotFix).apply() -- before anything places an asset
 
@@ -51,6 +52,7 @@ DetectorService.init()
 DodgeService.init()
 StatusService.init()
 StormEyeService.init()
+WreckService.init()
 StormService.init(map)
 DebugService.init()
 ServerPerf.init() -- staging and Studio only

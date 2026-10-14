@@ -142,8 +142,8 @@ local B = curveFrom("B faster", "licence 25K; band 2 items ~40x band 1", {
 -- C: the shipped bands 1-2 (src/shared/Bands.luau): an early fortune.
 local C = curveFrom(
 	"C early fortune (built)",
-	"Bands.luau: bands 2-3 built (Pro, Storm Hunter); 4-5 extrapolated",
-	{ Bands.simBand2(), Bands.simBand3() },
+	"Bands.luau: bands 2-4 built (Pro, Storm Hunter, Heavy Salvage); 5 extrapolated",
+	{ Bands.simBand2(), Bands.simBand3(), Bands.simBand4() },
 	15,
 	120,
 	{ 600, 1800, 4200 }

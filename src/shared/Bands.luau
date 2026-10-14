@@ -16,6 +16,12 @@
 --   Band 3 "Storm Hunter" (M4): storm artifacts that exist only mid-storm, out in the open, one
 --     kind per storm type; the Storm Harness (stay out in the weather longer); and the Storm's
 --     Eye, a drifting pocket of calm that carries a Storm Heart through the storm.
+--   Band 4 "Heavy Salvage" (M4): the Armored Wreck. After a storm an armored bank truck lies
+--     wrecked at an event site. Heavy licence holders cut its locks with a Thermal Cutter (stand
+--     at a lock and keep cutting; progress stays if you step away) while its security charges
+--     fire telegraphed shocks at the cutters. Each lock drops a strongbox; when every lock is cut
+--     the vault spills bullion for everyone. A new skill (working a spot under fire, together),
+--     not a bigger price on the old loop.
 -- Paying Robux never buys a licence or skips a requirement (and purchases stay off).
 
 -- Roblox resolves the sibling ModuleScript; Lune (unit tests) resolves the file path.
@@ -43,7 +49,7 @@ export type License = {
 	Earned: string, -- the line shown when it's bought
 }
 
-Bands.Names = { "Town", "Pro", "Storm Hunter" }
+Bands.Names = { "Town", "Pro", "Storm Hunter", "Heavy Salvage" }
 
 Bands.Licenses = {
 	Pro = {
@@ -82,8 +88,25 @@ Bands.Licenses = {
 			.. "open, and the Storm Heart the Eye carries. Unlocks the Storm Harness and Hunter-sized "
 			.. "event bonuses.",
 	},
+	Heavy = {
+		Id = "Heavy",
+		DisplayName = "Heavy Salvage License",
+		Band = 4,
+		Cost = 1000000000,
+		Requirements = {
+			{ Kind = "Rank", Value = 5, Text = "Reach the Wreck Diver rank" },
+			{ Kind = "Extractions", Value = 25, Text = "Extract 25 event cores" },
+			{ Kind = "Found", Class = "Artifact", Value = 3, Text = "Log all 3 storm artifacts" },
+			{ Kind = "Record", Field = "EyeHearts", Value = 1, Text = "Deliver a Storm Heart" },
+		},
+		Tag = "HEAVY",
+		Earned = "The Armored Wreck is yours to cut open.",
+		Description = "Licensed for heavy salvage: after a storm, cut open the Armored Wreck's locks "
+			.. "with a Thermal Cutter while its security charges fire, for strongboxes and vault "
+			.. "bullion. Unlocks Thermal Cutter upgrades and Heavy-sized event bonuses.",
+	},
 } :: { [string]: License }
-Bands.LicenseOrder = { "Pro", "Hunter" }
+Bands.LicenseOrder = { "Pro", "Hunter", "Heavy" }
 
 -- Storm artifacts (band 3): each storm type forms its own kind, out in the open, only while the
 -- storm rages (they melt away in the aftermath). Values before the Salvage Press.
@@ -109,6 +132,52 @@ Bands.Eye = {
 	Legs = 4, -- straight drifts between exposed points
 	MinBand = 3, -- appears when someone in the server holds the Storm Hunter licence
 }
+
+-- The Armored Wreck (band 4 signature event). Runs in the calm after a storm, alongside the
+-- ordinary event, when someone in the server holds the Heavy licence. Locks take CutSeconds of
+-- cutting at Thermal Cutter level 0 (several cutters on one lock add up); a security charge
+-- (telegraphed shock) fires at a cutter every ChargeEvery seconds. Stepping out of reach to dodge
+-- pauses your cut (it resumes when you're back); a hit stops it until you press the lock again.
+Bands.Wreck = {
+	License = "Heavy",
+	MinBand = 4,
+	StartAfterCalm = 10, -- seconds into the Calm phase
+	Seconds = 55, -- cut short so it always ends before the storm warning
+	Locks = 3,
+	CutSeconds = 7,
+	CutReach = 6, -- studs from a lock (the side hatch needs a climb: from the ground it is ~7)
+	Leash = 16, -- step further than this from your lock and you've stopped cutting it
+	ChargeEvery = 3.2,
+	ChargeWarn = 1.5,
+	ChargeRadius = 7,
+	ChargeDamage = 30,
+	BarsBase = 2, -- the vault spills BarsBase + one per cutter (capped)
+	BarsMax = 6,
+	JewelChance = 0.25, -- real odds, announced when it spills
+	ItemSeconds = 40, -- vault salvage left on the ground this long
+}
+-- Vault salvage (band 4). Heavy licence holders only.
+export type VaultItem = { Id: string, Name: string, Value: number, Rarity: string }
+Bands.Vault = {
+	Strongbox = { Id = "Strongbox", Name = "Strongbox", Value = 250000, Rarity = "Rare" },
+	BullionBar = { Id = "BullionBar", Name = "Bullion Bar", Value = 1200000, Rarity = "Epic" }, -- several per vault: no server-wide call-out each
+	CrownJewels = { Id = "CrownJewels", Name = "Crown Jewels", Value = 8000000, Rarity = "Legendary" },
+} :: { [string]: VaultItem }
+Bands.VaultOrder = { "Strongbox", "BullionBar", "CrownJewels" }
+
+-- The Thermal Cutter: band 4 gear. Cutting speed (factor at each level).
+Bands.Cutter = {
+	DisplayName = "Thermal Cutter",
+	Description = "Cuts the Armored Wreck's locks faster: more of the vault before the charges get you.",
+	License = "Heavy",
+	Costs = { 3000000000, 8000000000, 20000000000, 50000000000, 120000000000 },
+	Values = { 1, 1.3, 1.6, 2, 2.5, 3 }, -- cutting speed at level 0..5
+}
+
+-- Bars the vault spills for `cutters` players.
+function Bands.barsFor(cutters: number): number
+	return math.clamp(Bands.Wreck.BarsBase + math.max(0, cutters), Bands.Wreck.BarsBase, Bands.Wreck.BarsMax)
+end
 
 -- Industrial salvage (band 2). Spawns alongside ordinary loot (its own cap, so unlicensed players'
 -- ordinary salvage isn't diluted); unlicensed players see it but can't take it.
@@ -149,6 +218,7 @@ Bands.EventBonus = {
 	{ Pursuit = 150, Extraction = 120, GoldenFactor = 1 },
 	{ Pursuit = 6000, Extraction = 5000, GoldenFactor = 3 },
 	{ Pursuit = 90000, Extraction = 75000, GoldenFactor = 3 },
+	{ Pursuit = 1500000, Extraction = 1200000, GoldenFactor = 3 },
 }
 
 -- The band a profile is in: 1 plus every licence held, in order.
@@ -288,6 +358,31 @@ function Bands.simBand3(): any
 		AvgItem = 0.5 * Bands.avgIndustrial() + 0.5 * avgArtifact,
 		EventBonus = Bands.EventBonus[3].Pursuit,
 		PrizeValue = 0.5 * Bands.StormHeart.Value, -- the Heart on about half the storms
+		Gear = gear,
+	}
+end
+
+-- Band 4 in the simulation's shape: per cycle a solo Heavy salvager cuts the wreck (3 strongboxes,
+-- 3 bars, the jewels a quarter of the time) on about 40% of cycles (charges, a late start, a
+-- missed site), plus band 3 storm hunting; the Thermal Cutter is an income factor on the wreck
+-- share, all through the maxed Press (x8).
+function Bands.simBand4(): any
+	local W = Bands.Wreck
+	local wreck = W.Locks * Bands.Vault.Strongbox.Value
+		+ Bands.barsFor(1) * Bands.Vault.BullionBar.Value
+		+ W.JewelChance * Bands.Vault.CrownJewels.Value
+	local gear = {}
+	for i, cost in Bands.Cutter.Costs do
+		-- faster cutting finishes the wreck more often: income grows with the root of the speed
+		table.insert(gear, { Cost = cost, Factor = math.sqrt(Bands.Cutter.Values[i + 1]) })
+	end
+	return {
+		Name = "4 Heavy Salvage",
+		LicenseCost = Bands.Licenses.Heavy.Cost,
+		RequireMinutes = 720, -- Wreck Diver rank, 25 extractions, the artifacts, a Heart
+		AvgItem = 0.5 * Bands.avgIndustrial() + 0.5 * Bands.Artifacts[2].Value,
+		EventBonus = Bands.EventBonus[4].Pursuit,
+		PrizeValue = 0.4 * wreck + 0.5 * Bands.StormHeart.Value,
 		Gear = gear,
 	}
 end
