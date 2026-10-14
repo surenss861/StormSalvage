@@ -25,6 +25,8 @@ local DistrictMotel = require(script.Parent.DistrictMotel)
 local DistrictFuel = require(script.Parent.DistrictFuel)
 local DistrictSupermarket = require(script.Parent.DistrictSupermarket)
 local DistrictWarehouse = require(script.Parent.DistrictWarehouse)
+local DistrictRailYard = require(script.Parent.DistrictRailYard)
+local DistrictFloodWorks = require(script.Parent.DistrictFloodWorks)
 local WorldSlice = require(script.Parent.WorldSlice)
 
 local MapBuilder = {}
@@ -1928,6 +1930,25 @@ function MapBuilder.build()
 	DistrictFuel.build({ Map = map, Part = part, Prop = prop, SurfaceSign = surfaceSign })
 	DistrictWarehouse.build({ Map = map, Part = part, Prop = prop, SurfaceSign = surfaceSign })
 	DistrictMotel.build({ Map = map, Part = part, Prop = prop, SurfaceSign = surfaceSign })
+	-- V4 M5: the two districts beside the plateau (after WorldSlice: each opens a gap in the
+	-- plateau fence where its shortcut lands).
+	local north = { Map = map, Roofs = roofs, Part = part, Prop = prop, SurfaceSign = surfaceSign }
+	zones.RailYard = { Points = DistrictRailYard.build(north), Label = "Rail Yard" }
+	zones.FloodWorks = { Points = DistrictFloodWorks.build(north), Label = "Flood Control" }
+	footprint(
+		"RailYard",
+		"Rail Yard",
+		"RailYard",
+		DistrictRailYard.Min,
+		DistrictRailYard.Max + Vector3.new(0, 0, 4)
+	)
+	footprint(
+		"FloodWorks",
+		"Flood Control Works",
+		"FloodWorks",
+		DistrictFloodWorks.Min,
+		DistrictFloodWorks.Max + Vector3.new(0, 0, 4)
+	)
 
 	-- The look profile's palette applies once everything is built.
 	LookService.apply(LookService.active(), true)

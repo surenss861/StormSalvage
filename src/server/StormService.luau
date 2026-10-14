@@ -225,21 +225,24 @@ end
 ---------------------------------------------------------------------------- Flood
 
 local FLOOD_HALF = 205
+-- V4 M5: the flood also covers the north strip beside the plateau (Rail Yard, Flood Control
+-- Works), z -335..-205. Inside the solid plateau the water is hidden; on top of it (y 30) it
+-- never reaches.
+local FLOOD_NORTH = -335
+
+local function floodBox(height: number, pad: number): (CFrame, Vector3)
+	local zMin, zMax = FLOOD_NORTH - pad, FLOOD_HALF + pad
+	return CFrame.new(0, 0, (zMin + zMax) / 2), Vector3.new(FLOOD_HALF * 2 + pad * 2, height, zMax - zMin)
+end
 
 local function setWaterLayer(bottom: number, material: Enum.Material)
-	workspace.Terrain:FillBlock(
-		CFrame.new(0, bottom + 2, 0),
-		Vector3.new(FLOOD_HALF * 2, 4, FLOOD_HALF * 2),
-		material
-	)
+	local cf, size = floodBox(4, 0)
+	workspace.Terrain:FillBlock(cf + Vector3.new(0, bottom + 2, 0), size, material)
 end
 
 local function clearFlood()
-	workspace.Terrain:FillBlock(
-		CFrame.new(0, 10, 0),
-		Vector3.new(FLOOD_HALF * 2 + 8, 24, FLOOD_HALF * 2 + 8),
-		Enum.Material.Air
-	)
+	local cf, size = floodBox(24, 4)
+	workspace.Terrain:FillBlock(cf + Vector3.new(0, 10, 0), size, Enum.Material.Air)
 	floodLevel = 0
 end
 

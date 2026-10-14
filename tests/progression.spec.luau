@@ -41,8 +41,8 @@ return {
 		local c = P.make("Zone", 1, 1, function(n)
 			return n -- last district
 		end)
-		eq(c.Zone, "TownSquare", "zone")
-		eq(P.describe(c), "Salvage 4 items at Town Square", "text")
+		eq(c.Zone, "FloodWorks", "zone")
+		eq(P.describe(c), "Salvage 4 items at Flood Control", "text")
 	end,
 	["contract: three active jobs are different kinds"] = function()
 		local active = {}

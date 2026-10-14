@@ -69,7 +69,7 @@ Bands.Licenses = {
 		Tag = "PRO",
 		Earned = "Industrial salvage is yours to haul.",
 		Description = "Licensed to haul industrial salvage: machinery worth hundreds to thousands of coins, "
-			.. "found in the Warehouse, Fuel & Go and Supermarket yards. Unlocks the Salvage Press and "
+			.. "found in the Warehouse, Fuel & Go, Supermarket, Rail Yard and Flood Control. Unlocks the Press and "
 			.. "Pro-sized event bonuses.",
 	},
 	Hunter = {
@@ -262,7 +262,8 @@ Bands.Industrial = {
 	{ Id = "DieselGenerator", Name = "Diesel Generator", Value = 3000, Rarity = "Epic", Weight = 20 },
 	{ Id = "TurbineRotor", Name = "Turbine Rotor", Value = 9000, Rarity = "Legendary", Weight = 8 },
 } :: { Industrial }
-Bands.IndustrialZones = { Warehouse = true, GasStation = true, Supermarket = true }
+Bands.IndustrialZones =
+	{ Warehouse = true, GasStation = true, Supermarket = true, RailYard = true, FloodWorks = true }
 Bands.IndustrialPerZone = 3
 Bands.IndustrialLicense = "Pro"
 

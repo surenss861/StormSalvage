@@ -399,6 +399,20 @@ Config.ZonePools = {
 		{ Id = "Jukebox", Weight = 10 },
 		{ Id = "Safe", Weight = 8 },
 	},
+	RailYard = { -- V4 M5
+		{ Id = "Pipe", Weight = 25 },
+		{ Id = "Tire", Weight = 25 },
+		{ Id = "Battery", Weight = 20 },
+		{ Id = "Engine", Weight = 15 },
+		{ Id = "Safe", Weight = 5 },
+	},
+	FloodWorks = { -- V4 M5
+		{ Id = "Pipe", Weight = 35 },
+		{ Id = "Battery", Weight = 25 },
+		{ Id = "Tire", Weight = 15 },
+		{ Id = "Engine", Weight = 15 },
+		{ Id = "Safe", Weight = 4 },
+	},
 	TownSquare = {
 		{ Id = "Can", Weight = 50 },
 		{ Id = "Pipe", Weight = 30 },
@@ -519,6 +533,9 @@ Config.Events = {
 		{ Id = "Fuel", Name = "Fuel & Go", Spot = Vector3.new(-118, 0, -30), Difficulty = 1 },
 		{ Id = "Houses", Name = "the Houses", Spot = Vector3.new(-150, 0, 95), Difficulty = 2 },
 		{ Id = "Motel", Name = "Starlite Motel", Spot = Vector3.new(0, 0, 150), Difficulty = 3 },
+		-- V4 M5: beside the plateau, each with a shortcut up (the gantry ramp, the catwalk).
+		{ Id = "RailYard", Name = "the Rail Yard", Spot = Vector3.new(-147, 0, -288), Difficulty = 1 },
+		{ Id = "FloodWorks", Name = "Flood Control", Spot = Vector3.new(118, 0, -262), Difficulty = 1 },
 	},
 }
 
