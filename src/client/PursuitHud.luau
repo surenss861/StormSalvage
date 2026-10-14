@@ -29,6 +29,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
 local Notifications = require(script.Parent:WaitForChild("Notifications"))
+local SalvageFeedback = require(script.Parent:WaitForChild("SalvageFeedback"))
 local UI = require(script.Parent:WaitForChild("UI"))
 
 local PursuitHud = {}
@@ -388,8 +389,10 @@ end
 
 ---------------------------------------------------------------------------- Banner
 
-local function kindTitle(kind: string?): string
-	if kind == "Extraction" then
+local function kindTitle(kind: string?, golden: boolean?): string
+	if golden then
+		return "GOLDEN CACHE"
+	elseif kind == "Extraction" then
 		return "UNSTABLE CORE"
 	elseif kind == "Rush" then
 		return "SALVAGE RUSH"
@@ -415,7 +418,7 @@ local function step(dt: number)
 		title.TextColor3 = GOLD
 		sub.Text = ("%d valuable finds left. Grab what you can!"):format(state.Left or 0)
 	elseif state.Phase == "Race" then
-		title.Text = ("%s · %s · %s"):format(kindTitle(state.Kind), site, clock(left))
+		title.Text = ("%s · %s · %s"):format(kindTitle(state.Kind, state.Golden), site, clock(left))
 		title.TextColor3 = GOLD
 		sub.Text = if state.Kind == "Extraction"
 			then "Grab it and get it home before it blows"
@@ -436,6 +439,7 @@ local function step(dt: number)
 				local searching = server:GetAttribute("State") == "Searching"
 				sub.Text = if searching
 					then "TWISTER LOST YOUR TRAIL · keep going"
+					elseif d < 12 then ("TWISTER %dm · DODGE! (Q / B)"):format(math.floor(d + 0.5))
 					else ("TWISTER %dm BEHIND · %s"):format(
 						math.floor(d + 0.5),
 						if d < 25 then "SPRINT!" else "keep moving"
@@ -481,11 +485,21 @@ local function onState(msg: any)
 				elseif
 					msg.Kind == "Extraction"
 				then ("UNSTABLE CORE at %s! Get it home before it blows."):format(site)
+				elseif
+					msg.Golden
+				then ("GOLDEN CACHE at %s! A Golden Storm Core (600). First to grab it gets chased home."):format(
+					site
+				)
 				else ("RARE CACHE at %s! First to grab it gets chased home."):format(site)
 			Notifications.feed(line, GOLD, 5)
 		end
 		if msg.Target then
-			mark(msg.Target, kindTitle(msg.Kind), true, if msg.Kind == "Extraction" then SURGE else GOLD)
+			mark(
+				msg.Target,
+				kindTitle(msg.Kind, msg.Golden),
+				true,
+				if msg.Kind == "Extraction" then SURGE else GOLD
+			)
 		end
 	elseif msg.Phase == "Loose" then
 		Audio.play("WarnWind", 0.8)
@@ -503,31 +517,19 @@ local function onState(msg: any)
 		clearMarkers()
 		if msg.Result == "Extracted" then
 			Audio.play("CoreDelivered", 1)
-			local mine = msg.CarrierId == me.UserId
-			local extras = {}
-			if mine and msg.Best then
-				table.insert(extras, "NEW PERSONAL BEST")
-			end
-			if mine and (msg.Streak or 0) >= 2 then
-				table.insert(extras, ("%d IN A ROW"):format(msg.Streak))
-			end
-			if mine and msg.NewHardest then
-				table.insert(extras, "HARDEST SITE YET")
-			end
-			Notifications.feed(
-				if mine
-					then ("EXTRACTED in %.1fs! +%d bonus%s · sell the core on the hill"):format(
-						msg.Seconds or 0,
-						msg.Bonus or 0,
-						if #extras > 0 then " · " .. table.concat(extras, " · ") else ""
-					)
-					else ("%s extracted it in %.1fs!"):format(
+			if msg.CarrierId == me.UserId then
+				SalvageFeedback.extracted(msg)
+			else
+				Notifications.feed(
+					("%s extracted %s in %.1fs!"):format(
 						msg.CarrierName or "Someone",
+						if msg.Golden then "a GOLDEN core" else "it",
 						msg.Seconds or 0
 					),
-				GOLD,
-				6
-			)
+					GOLD,
+					5
+				)
+			end
 		elseif msg.Result == "RushOver" then
 			Notifications.feed(
 				("Rush over. Top salvager: %s with %d."):format(msg.TopName or "?", msg.TopCount or 0),

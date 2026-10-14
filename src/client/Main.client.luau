@@ -27,6 +27,7 @@ local Hud = require(script.Parent:WaitForChild("Hud"))
 local Jobs = require(script.Parent:WaitForChild("Jobs"))
 local DetectorHud = require(script.Parent:WaitForChild("DetectorHud"))
 local Movement = require(script.Parent:WaitForChild("Movement"))
+local Dodge = require(script.Parent:WaitForChild("Dodge"))
 local PursuitHud = require(script.Parent:WaitForChild("PursuitHud"))
 local Nameplates = require(script.Parent:WaitForChild("Nameplates"))
 local Notifications = require(script.Parent:WaitForChild("Notifications"))
@@ -95,6 +96,7 @@ Movement.init(function(text)
 	Notifications.feed(text, Color3.fromRGB(255, 226, 110), 5)
 end)
 PursuitHud.init(topStack)
+Dodge.init()
 Nameplates.init()
 for _, modal in { Shop.modal(), Settings.modal(), Jobs.modal() } do
 	modal.Changed.Event:Connect(function()
@@ -238,6 +240,19 @@ end)
 -- Contract completions and rank-ups (server-confirmed; the coins and XP are already in the state).
 Remotes.get("ProgressEvent").OnClientEvent:Connect(function(e)
 	if type(e) ~= "table" then
+		return
+	end
+	if e.Kind == "Discovery" then
+		-- Every kind is logged from the first pickup; early on, only Rare and better say so, so
+		-- a new player's first minute isn't a stream of "new" notices for cans and pipes.
+		local rare = e.Rarity == "Rare" or e.Rarity == "Epic" or e.Rarity == "Legendary"
+		if jobsUnlocked or rare then
+			Notifications.feed(
+				("NEW IN YOUR SALVAGE LOG: %s  (%d/%d)"):format(tostring(e.Name), e.Count or 0, e.Total or 0),
+				Color3.fromRGB(255, 226, 110),
+				4
+			)
+		end
 		return
 	end
 	if not jobsUnlocked then

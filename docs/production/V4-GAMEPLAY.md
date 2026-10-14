@@ -238,3 +238,59 @@ Captures: `docs/art/v4/pursuit/05` (the route-bound twister chasing), `06` (stun
 - **Cooperative Recovery** (the fourth event idea): deferred. Three solid kinds first, as directed.
 - **Evasive action (A3)** and **custom animations (A4)**: animations need uploaded assets (owner); the evasive action is next, with M2.
 - The pursuer still uses part-built visuals. A modelled creature or funnel asset belongs in Phase E art.
+
+---
+
+# Milestone M2 (in progress): rewards worth chasing, the dodge (2026-10-14)
+
+Developed on `v4-gameplay` while RC8 (place v142) is under private test. Not published.
+
+## Built
+
+- **The dodge (A3).** Q, gamepad B, or the DODGE touch button (placed above-left of jump).
+  - A 0.22 s burst at 58 studs/s in the move direction (facing direction if standing), with a 2.5 s cooldown.
+  - Ground only: not climbing, swimming, seated or mid-air.
+  - Dust and a whoosh for feedback. The camera stays Roblox's.
+  - Nothing changes on the server: no immunity, no reward.
+  - **Chosen over a slide:** it reads with effects alone (a slide needs a crouch animation, which needs an uploaded asset), and it works in wind, floods and on every surface.
+  - When the twister is within 12 studs, the carrier's banner says **"DODGE! (Q / B)"**.
+- **Fair hits under latency.** Studio showed a runner who was clearly outside a debris circle on their own screen still taking the hit: the server sees a sprinting player 3–6 studs late.
+  - Strikes and surges are now judged 0.15 s after landing, on a circle 1.5 studs smaller.
+  - The catch ring is 1.5 studs smaller too.
+- **Golden Storm Core (C1/C2).** A jackpot cache prize worth 600 (a Storm Core is 175).
+  - **Odds are real:** 15%, decided when the cache spawns, so the banner and announcement say **GOLDEN CACHE** only when it truly is one. No fake jackpots.
+  - It's the Storm Core model tinted gold, with the same rules: glow, contracts and delivery announcement count it as a core.
+  - Picking it up is a **"JACKPOT!"** moment: a GOLDEN stamp, the delivery sting and a big sparkle burst.
+- **The Salvage Log (C3, collectible progression).** The first find of each kind of salvage is recorded server-side (`Collection.Found`), with "NEW IN YOUR SALVAGE LOG: Safe (7/12)".
+  - Commons are logged quietly until the JOBS board unlocks, so a new player's first minute isn't a stream of notices.
+  - Rare and better always announce.
+- **The extraction receipt (C3).** A clipboard card:
+  - GOLDEN EXTRACTION or EXTRACTION RECEIPT
+  - the site
+  - the time, as the biggest thing on the card
+  - the bonus
+  - what the core sells for
+  - stamps: NEW BEST, N IN A ROW, HARDEST YET
+
+  A sparkle burst plays too (larger for golden). Other players get a one-line notice.
+
+## Evidence (Studio)
+
+| Test | Result |
+| --- | --- |
+| Dodge from standing | 13.3 studs |
+| Dodge again within the cooldown | 0 studs (blocked) |
+| Dodge while moving | 16.4 studs in 0.5 s (walking alone: about 10) |
+| Dodge mid-jump | Blocked |
+| **Dodge against real debris strikes** (alternating, runner sprinting the line the strike aims at) | **Dodged: server distance 27.2, miss. Not dodged: 4.7, hit.** The server's view now matches the player's (29.0 / 5.3). |
+| Golden Pursuit at the Motel (forced, Studio-only debug) | Banner and announcement "GOLDEN CACHE · STARLITE MOTEL"; gold-tinted core under the beam (`docs/art/v4/m2/01`) |
+| Golden extraction | 16.6 s; receipt card shown (`docs/art/v4/m2/02`); bag "SELLS FOR 600"; +150 bonus |
+
+Lint, types and 44 unit tests pass.
+
+## Next in M2
+
+- A Salvage Log view (where to see the collection).
+- Animation assets authored in Studio, with exact upload steps for the account owner: dodge, core-carry, extraction cheer.
+- A pass on rare-item silhouettes beyond tinting.
+- An M2 release candidate after that.

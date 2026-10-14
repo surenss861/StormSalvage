@@ -16,6 +16,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local PlayerService = require(script.Parent.PlayerService)
@@ -143,10 +144,43 @@ end
 
 -- A pickup the server just granted. `zone` is the district the item spawned in (nil for Storm
 -- Cores); `fromBag` is a recovery of a dropped bag, which doesn't count again.
-function ContractService.collected(player: Player, _lootId: string, zone: string?, fromBag: boolean)
+-- The Salvage Log: the first time a player finds each kind of salvage it's recorded in their
+-- profile (Collection.Found) and they're told, with their count. Server-side, once per kind.
+local function discover(player: Player, lootId: string)
+	local session = PlayerService.get(player)
+	if not session or not Config.Loot[lootId] then
+		return
+	end
+	local data = session.Data
+	if type(data.Collection) ~= "table" or type(data.Collection.Found) ~= "table" then
+		data.Collection = { Found = {} }
+	end
+	if data.Collection.Found[lootId] then
+		return
+	end
+	data.Collection.Found[lootId] = true
+	local count, total = 0, 0
+	for id in Config.Loot do
+		total += 1
+		if data.Collection.Found[id] then
+			count += 1
+		end
+	end
+	eventRemote:FireClient(player, {
+		Kind = "Discovery",
+		Id = lootId,
+		Name = Config.Loot[lootId].Name,
+		Rarity = Config.Loot[lootId].Rarity,
+		Count = count,
+		Total = total,
+	})
+end
+
+function ContractService.collected(player: Player, lootId: string, zone: string?, fromBag: boolean)
 	if fromBag then
 		return
 	end
+	discover(player, lootId)
 	apply(player, { Type = "Collected", Items = 1, Zone = zone })
 end
 

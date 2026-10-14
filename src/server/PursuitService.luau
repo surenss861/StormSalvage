@@ -24,6 +24,7 @@
 
 local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -46,6 +47,7 @@ export type Site = { Id: string, Name: string, Spot: Vector3, Difficulty: number
 type Event = {
 	Id: number,
 	Kind: string, -- "Pursuit" | "Extraction"
+	Prize: string, -- "StormCore", or "GoldenCore" (Config.Events.GoldenChance, decided at spawn)
 	Site: Site,
 	Phase: string, -- "Race" | "Chase" | "Loose" | "Done"
 	EndsAt: number, -- os.clock() deadline for the current window
@@ -124,6 +126,8 @@ local function message(e: Event): { [string]: any }
 		CarrierId = e.Carrier and e.Carrier.UserId or nil,
 		CarrierName = e.Carrier and e.Carrier.DisplayName or nil,
 		Target = if e.Cache and (e.Cache :: any).Parent then (e.Cache :: BasePart).Position else nil,
+		Prize = e.Prize,
+		Golden = e.Prize == "GoldenCore",
 	}
 end
 
@@ -233,7 +237,7 @@ local function takeCore(e: Event, player: Player)
 end
 
 spawnCache = function(e: Event, position: Vector3, lifetime: number)
-	local item = LootService.spawnSpecial(P.CacheLootId, position, lifetime, function(player)
+	local item = LootService.spawnSpecial(e.Prize, position, lifetime, function(player)
 		if current ~= e or e.Phase == "Done" then
 			return
 		end
@@ -257,9 +261,17 @@ local function dropLoose(e: Event, at: Vector3)
 	broadcast(e)
 end
 
+local qaHits: { string } = {} -- Studio QA: each strike's outcome as the server judged it
+
 local function damageZone(at: Pursuit.Vec2, radius: number, damage: number, y: number)
 	for _, player in Players:GetPlayers() do
 		local r = rootOf(player)
+		if r and RunService:IsStudio() then
+			table.insert(
+				qaHits,
+				("%s d=%.1f r=%.1f"):format(player.Name, Pursuit.distance(flat(r.Position), at), radius)
+			)
+		end
 		if
 			r
 			and not onPlateau(r.Position)
@@ -276,9 +288,9 @@ local function debrisStrike(e: Event, root: BasePart)
 	local aim = Pursuit.leadPoint(flat(root.Position), { X = v.X, Z = v.Z }, P.StrikeLead)
 	local y = root.Position.Y - 2.5
 	strikeRemote:FireAllClients("Debris", Vector3.new(aim.X, y, aim.Z), P.StrikeRadius, P.StrikeWarn)
-	task.delay(P.StrikeWarn, function()
+	task.delay(P.StrikeWarn + P.HitGrace, function()
 		if current == e then
-			damageZone(aim, P.StrikeRadius, P.StrikeDamage, y)
+			damageZone(aim, P.StrikeRadius - P.HitTolerance, P.StrikeDamage, y)
 		end
 	end)
 end
@@ -292,9 +304,9 @@ local function surge(e: Event, root: BasePart)
 	at = { X = at.X + (math.random() - 0.5) * 10, Z = at.Z + (math.random() - 0.5) * 10 }
 	local y = root.Position.Y - 2.5
 	strikeRemote:FireAllClients("Surge", Vector3.new(at.X, y, at.Z), X.SurgeRadius, X.SurgeWarn)
-	task.delay(X.SurgeWarn, function()
+	task.delay(X.SurgeWarn + P.HitGrace, function()
 		if current == e then
-			damageZone(at, X.SurgeRadius, X.SurgeDamage, y)
+			damageZone(at, X.SurgeRadius - P.HitTolerance, X.SurgeDamage, y)
 		end
 	end)
 end
@@ -394,7 +406,7 @@ local function tick(e: Event, dt: number)
 			finish(e, "Unclaimed")
 		else
 			if e.Carrier then
-				PlayerService.removeCarried(e.Carrier, P.CacheLootId)
+				PlayerService.removeCarried(e.Carrier, e.Prize)
 				local records = recordsOf(e.Carrier)
 				if records then
 					Pursuit.breakStreak(records)
@@ -453,9 +465,12 @@ local function tick(e: Event, dt: number)
 		setTwisterState(e, if now >= e.NextStrike - P.StrikeWindUp then "WindUp" else "Chasing")
 	end
 	local dy = math.abs(root.Position.Y - (twister.Position.Y + 3))
-	if dy <= P.CatchHeight and Pursuit.caught(flat(twister.Position), flat(root.Position), P.CatchRadius) then
+	if
+		dy <= P.CatchHeight
+		and Pursuit.caught(flat(twister.Position), flat(root.Position), P.CatchRadius - P.HitTolerance)
+	then
 		local carrier = e.Carrier :: Player
-		if PlayerService.removeCarried(carrier, P.CacheLootId) then
+		if PlayerService.removeCarried(carrier, e.Prize) then
 			e.Caught[carrier] = true
 			PlayerService.damage(carrier, P.CatchDamage)
 			PlayerService.notify(
@@ -504,7 +519,7 @@ end
 
 -- Starts a cache event of `kind` ("Pursuit" or "Extraction") at `site`, whose spot has already
 -- been checked by EventService. Returns false if an event is already running.
-function PursuitService.start(kind: string, site: Site): boolean
+function PursuitService.start(kind: string, site: Site, prize: string?): boolean
 	if current then
 		return false
 	end
@@ -512,6 +527,7 @@ function PursuitService.start(kind: string, site: Site): boolean
 	local e: Event = {
 		Id = nextId,
 		Kind = kind,
+		Prize = prize or (if math.random() < Config.Events.GoldenChance then "GoldenCore" else "StormCore"),
 		Site = site,
 		Phase = "Race",
 		EndsAt = math.min(os.clock() + P.ClaimSeconds, stormAt - 1),
@@ -546,6 +562,13 @@ function PursuitService.start(kind: string, site: Site): boolean
 		task.spawn(planPaths, e)
 	end
 	return true
+end
+
+-- Studio QA: strike outcomes since the last call.
+function PursuitService.takeQaHits(): { string }
+	local out = qaHits
+	qaHits = {}
+	return out
 end
 
 function PursuitService.running(): boolean
@@ -584,7 +607,7 @@ function PursuitService.init(mapInfo)
 		local e = current
 		if e and e.Phase == "Chase" and e.Carrier == player then
 			local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
-			if PlayerService.removeCarried(player, P.CacheLootId) then
+			if PlayerService.removeCarried(player, e.Prize) then
 				dropLoose(e, if root then root.Position else e.LastPos)
 			end
 		end

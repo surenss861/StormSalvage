@@ -41,7 +41,7 @@ do
 	salvageModels = assets and assets:FindFirstChild("salvage")
 end
 
-local function attachModel(item: Part, model: Model, height: number)
+local function attachModel(item: Part, model: Model, height: number, tint: Color3?)
 	local pivot = model:GetPivot()
 	local base = item.CFrame * CFrame.new(0, -height / 2, 0)
 	for _, piece in model:GetChildren() do
@@ -53,6 +53,9 @@ local function attachModel(item: Part, model: Model, height: number)
 			clone.CanQuery = false
 			clone.CanTouch = false
 			clone.Massless = true
+			if tint then
+				clone.Color = clone.Color:Lerp(tint, 0.8)
+			end
 			local weld = Instance.new("WeldConstraint")
 			weld.Part0 = item
 			weld.Part1 = clone
@@ -110,7 +113,7 @@ local function createLoot(
 	item.CanCollide = false
 	item.CanTouch = false
 	local yaw = CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
-	local model = salvageModels and salvageModels:FindFirstChild(lootId)
+	local model = salvageModels and salvageModels:FindFirstChild(def.ModelFrom or lootId)
 	local height
 	if model and model:IsA("Model") then
 		local size = model:GetExtentsSize()
@@ -118,7 +121,7 @@ local function createLoot(
 		item.Size = size
 		item.Transparency = 1
 		item.CFrame = CFrame.new(floorPosition + Vector3.new(0, height / 2, 0)) * yaw
-		attachModel(item, model, height)
+		attachModel(item, model, height, def.Tint)
 	else
 		-- Primitive fallback if the asset library is missing.
 		if def.Shape then

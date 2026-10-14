@@ -206,7 +206,24 @@ Config.Loot = {
 		Rarity = "Legendary",
 		Shape = Enum.PartType.Ball,
 	},
+	-- V4 jackpot: a rare Storm Core variant that can be the prize of a post-storm cache event
+	-- (Config.Events.GoldenChance, announced truthfully when it spawns). Same rules as a Storm Core.
+	GoldenCore = {
+		Name = "Golden Storm Core",
+		Value = 600,
+		Size = Vector3.new(1.8, 1.8, 1.8),
+		Color = Color3.fromRGB(255, 200, 60),
+		Material = Enum.Material.Neon,
+		Rarity = "Legendary",
+		Shape = Enum.PartType.Ball,
+		ModelFrom = "StormCore", -- the Storm Core model, tinted gold
+		Tint = Color3.fromRGB(255, 196, 48),
+		Jackpot = true,
+	},
 } :: { [string]: LootDef }
+
+-- Storm Cores of any kind (glow, contracts, delivery announcements).
+Config.CoreIds = { StormCore = true, GoldenCore = true }
 
 Config.RarityColors = {
 	Common = Color3.fromRGB(200, 200, 200),
@@ -296,6 +313,14 @@ Config.Movement = {
 	SprintFov = 76, -- camera field of view while sprinting (70 normally); off in Reduced Effects
 }
 
+-- V4 evasive action (Dodge.client): Q / gamepad B / the DODGE touch button. A short burst in the
+-- move direction (about 13 studs: clears a debris circle or the catch ring), ground only.
+Config.Dodge = {
+	Speed = 58, -- studs/s during the burst
+	Seconds = 0.22,
+	Cooldown = 2.5,
+}
+
 -- V4 events (EventService): one opportunity after each storm passes, rotating through three
 -- kinds and five sites so the same thing never repeats back to back.
 --   Pursuit     a rare cache; whoever grabs it is chased home by a rogue twister.
@@ -305,6 +330,9 @@ Config.Events = {
 	Enabled = true,
 	StartAfterCalm = 6, -- seconds into the Calm phase
 	Kinds = { "Pursuit", "Extraction", "Rush" },
+	-- Chance that a cache event's prize is a Golden Storm Core instead of a Storm Core. Real odds:
+	-- decided when the cache spawns and announced as a GOLDEN CACHE, never a fake jackpot.
+	GoldenChance = 0.15,
 	-- Sites: spots are checked at runtime (open sky, solid ground, a walkable route home) and
 	-- nudged to the nearest good spot if a prop is in the way. Difficulty is the run home.
 	Sites = {
@@ -321,7 +349,7 @@ Config.Pursuit = {
 	ClaimSeconds = 25, -- the race: the cache disappears if nobody takes it
 	ExtractSeconds = 45, -- after the first grab; then the core destabilises (removed).
 	-- Both windows are cut short so the event always ends before the next storm hits.
-	CacheLootId = "StormCore", -- the prize is a real Storm Core (normal sale value) ...
+	-- The prize is a real Storm Core (or, rarely, a Golden one), sold for its normal value ...
 	ExtractCoins = 150, -- ... plus this extraction bonus at the plateau, once per event
 	ExtractXP = 40,
 	-- The twister. It is route-bound: it paths along streets like a player (PathfindingService
@@ -348,6 +376,12 @@ Config.Pursuit = {
 	StrikeDamage = 20,
 	SafeLine = 80, -- studs short of the plateau edge where it stops: the foot of the climb (z ≈ -142)
 	StepSeconds = 0.1, -- server simulation step
+	-- Fairness under latency: the server sees a running player ~0.1-0.2 s late (3-6 studs at a
+	-- sprint), so hits are judged a little after landing and on a slightly smaller circle, and
+	-- catches on a slightly smaller ring. Measured in Studio: without this, a player clearly
+	-- outside a circle on their own screen still took the hit.
+	HitGrace = 0.15,
+	HitTolerance = 1.5,
 }
 
 -- Extraction: no twister. The core is unstable: surges erupt ahead on the straight line home,

@@ -187,13 +187,19 @@ function SalvageFeedback.onPickup(info: { Id: string, Position: Vector3 }, carri
 	if rank >= 2 then
 		Audio.play(FIND_SOUND[def.Rarity])
 		sparkleBurst(info.Position + Vector3.new(0, 1.5, 0), color, 8 + rank * 8)
-		local isCore = info.Id == "StormCore"
+		local isCore = Config.CoreIds[info.Id] == true
+		local jackpot = def.Jackpot == true
+		if jackpot then
+			-- The jackpot moment: the delivery sting on top of the find chime, and a big burst.
+			Audio.play("CoreDelivered", 1)
+			sparkleBurst(info.Position + Vector3.new(0, 1.5, 0), color, 48)
+		end
 		Notifications.card({
 			Priority = rank,
 			Accent = color,
 			Height = if isCore then 132 else 112,
 			Width = 270,
-			Seconds = 2.2 + rank * 0.5,
+			Seconds = 2.2 + rank * 0.5 + (if jackpot then 1.5 else 0),
 			Surface = "Tag",
 			Build = function(card)
 				local grade = line(card, 8, 26, {
@@ -202,7 +208,7 @@ function SalvageFeedback.onPickup(info: { Id: string, Position: Vector3 }, carri
 					Position = UDim2.fromOffset(24, 8),
 					Size = UDim2.new(1, -34, 0, 26),
 					Rotation = -1,
-					Text = if isCore then "STORM CORE!" else TAG[def.Rarity],
+					Text = if jackpot then "JACKPOT!" elseif isCore then "STORM CORE!" else TAG[def.Rarity],
 					TextColor3 = if rank >= 4 then M.Marker else Color3.new(1, 1, 1),
 					ZIndex = 7,
 				})
@@ -246,6 +252,15 @@ function SalvageFeedback.onPickup(info: { Id: string, Position: Vector3 }, carri
 						Vector2.new(78, 32),
 						-12
 					)
+				elseif jackpot then
+					stamp(
+						card,
+						"GOLDEN",
+						color:Lerp(M.Marker, 0.25),
+						UDim2.new(1, -46, 0, 84),
+						Vector2.new(92, 32),
+						-12
+					)
 				elseif rank >= 4 then
 					local star = UI.new("Frame", {
 						Parent = card,
@@ -273,6 +288,87 @@ function SalvageFeedback.onPickup(info: { Id: string, Position: Vector3 }, carri
 	if carried >= capacity then
 		bagFullCard() -- waits behind a find card, if one just showed
 	end
+end
+
+---------------------------------------------------------------------------- Extraction receipt
+
+-- The post-storm event's payoff, on a clipboard like the sale receipt: where from, the time (the
+-- biggest thing on the card), the bonus, what the core is worth at the Scrap Buyer, and stamps
+-- for a personal best, a streak and the hardest site yet. Every number is the server's.
+function SalvageFeedback.extracted(msg: any)
+	local prize = Config.Loot[msg.Prize or "StormCore"] or Config.Loot.StormCore
+	local golden = msg.Golden == true
+	local accent = if golden then prize.Color else Config.RarityColors.Legendary
+	local root = Players.LocalPlayer.Character
+		and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+	if root then
+		sparkleBurst((root :: BasePart).Position + Vector3.new(0, 2, 0), accent, if golden then 60 else 32)
+	end
+	Notifications.card({
+		Priority = 7,
+		Accent = accent,
+		Height = 214,
+		Width = 300,
+		Seconds = 6,
+		Surface = "Clipboard",
+		Build = function(card)
+			line(card, 6, 22, {
+				Font = UI.Font.Mono,
+				TextSize = 15,
+				Text = if golden then "GOLDEN EXTRACTION" else "EXTRACTION RECEIPT",
+				TextColor3 = M.Marker,
+				ZIndex = 7,
+			})
+			line(card, 28, 18, {
+				Font = UI.Font.Label,
+				TextSize = 13,
+				Text = string.upper(tostring(msg.Site or "Gale Hollow")),
+				TextColor3 = M.Pencil,
+				ZIndex = 7,
+			})
+			line(card, 50, 46, {
+				Font = UI.Font.Mono,
+				TextSize = 40,
+				Text = ("%.1fs"):format(msg.Seconds or 0),
+				TextColor3 = M.Marker,
+				ZIndex = 7,
+			})
+			line(card, 100, 22, {
+				Font = UI.Font.Mono,
+				TextSize = 18,
+				Text = ("+%d BONUS"):format(msg.Bonus or 0),
+				TextColor3 = Color3.fromRGB(34, 130, 56),
+				ZIndex = 7,
+			})
+			line(card, 124, 18, {
+				Font = UI.Font.Label,
+				TextSize = 13,
+				Text = ("Now sell it at the Scrap Buyer: %d"):format(prize.Value),
+				TextColor3 = M.RedPen,
+				ZIndex = 7,
+			})
+			local stamps = {}
+			if msg.Best then
+				table.insert(stamps, { "NEW BEST", Color3.fromRGB(34, 130, 56) })
+			end
+			if (msg.Streak or 0) >= 2 then
+				table.insert(stamps, { ("%d IN A ROW"):format(msg.Streak), Color3.fromRGB(80, 120, 200) })
+			end
+			if msg.NewHardest then
+				table.insert(stamps, { "HARDEST YET", M.RedPen })
+			end
+			for i, st in stamps do
+				stamp(
+					card,
+					st[1],
+					st[2],
+					UDim2.new(0, 40 + (i - 1) * 92, 0, 160),
+					Vector2.new(86, 26),
+					if i % 2 == 0 then 8 else -8
+				)
+			end
+		end,
+	})
 end
 
 ---------------------------------------------------------------------------- Sale receipt

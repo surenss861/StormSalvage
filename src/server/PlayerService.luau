@@ -102,7 +102,13 @@ local function refreshCoreGlow(player: Player, session: Session)
 	if not root then
 		return
 	end
-	local carrying = table.find(session.Carried, "StormCore") ~= nil
+	local carrying = false
+	for _, id in session.Carried do
+		if Config.CoreIds[id] then
+			carrying = true
+			break
+		end
+	end
 	local glow = root:FindFirstChild("CoreGlow")
 	if carrying and not glow then
 		local color = Config.RarityColors.Legendary
@@ -148,6 +154,7 @@ function PlayerService.pushState(player: Player)
 		Cosmetics = session.Data.Cosmetics,
 		Tools = session.Data.Tools,
 		Records = session.Data.Records,
+		Collection = session.Data.Collection,
 	})
 	local leaderstats = player:FindFirstChild("leaderstats")
 	local coins = leaderstats and leaderstats:FindFirstChild("Coins")
@@ -284,7 +291,8 @@ function PlayerService.sell(player: Player)
 		table.insert(factors, bonus.Factor)
 	end
 	local base, earned = Economy.sellTotal(values, factors)
-	local hadCore = counts.StormCore ~= nil
+	local cores = (counts.StormCore or 0) + (counts.GoldenCore or 0)
+	local hadCore = cores > 0
 	local itemsSold = #session.Carried
 	session.Data.Stats.ItemsSold += #session.Carried
 	session.Carried = {}
@@ -292,7 +300,7 @@ function PlayerService.sell(player: Player)
 	refreshCoreGlow(player, session)
 	PlayerService.addCoins(player, earned)
 	for _, cb in soldCallbacks do
-		cb(player, itemsSold, earned, counts.StormCore or 0)
+		cb(player, itemsSold, earned, cores)
 	end
 	StormStats.sold(player, earned)
 	SessionStats.sold(player, earned)
@@ -306,14 +314,17 @@ function PlayerService.sell(player: Player)
 		HadCore = hadCore,
 	})
 	if hadCore then
-		local coreCoins =
-			math.floor(counts.StormCore * Config.Loot.StormCore.Value * PlayerService.sellMultiplier(session))
+		local coreValue = (counts.StormCore or 0) * Config.Loot.StormCore.Value
+			+ (counts.GoldenCore or 0) * Config.Loot.GoldenCore.Value
+		local coreCoins = math.floor(coreValue * PlayerService.sellMultiplier(session))
+		local what = if (counts.GoldenCore or 0) > 0
+			then (if counts.GoldenCore > 1
+				then counts.GoldenCore .. " GOLDEN Storm Cores"
+				else "a GOLDEN Storm Core")
+			elseif cores > 1 then cores .. " Storm Cores"
+			else "a Storm Core"
 		PlayerService.notifyAll(
-			("%s delivered %s! +%d"):format(
-				player.DisplayName,
-				counts.StormCore > 1 and (counts.StormCore .. " Storm Cores") or "a Storm Core",
-				coreCoins
-			),
+			("%s delivered %s! +%d"):format(player.DisplayName, what, coreCoins),
 			Config.RarityColors.Legendary
 		)
 	end

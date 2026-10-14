@@ -219,7 +219,7 @@ local function startRush(site: any): boolean
 end
 
 -- Starts `kind` at `siteId` now (also used by the Studio debug commands). Returns the reason on failure.
-function EventService.start(kind: string, siteId: string): (boolean, string?)
+function EventService.start(kind: string, siteId: string, prize: string?): (boolean, string?)
 	local site = siteById(siteId)
 	if not site then
 		return false, "unknown site " .. tostring(siteId)
@@ -235,7 +235,7 @@ function EventService.start(kind: string, siteId: string): (boolean, string?)
 	if kind == "Rush" then
 		ok = startRush(resolved)
 	else
-		ok = PursuitService.start(kind, resolved)
+		ok = PursuitService.start(kind, resolved, prize)
 	end
 	if ok then
 		lastKind, lastSite = kind, site.Id

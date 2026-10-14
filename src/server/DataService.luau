@@ -52,6 +52,8 @@ export type Data = {
 	Tools: { Owned: { [string]: boolean } },
 	-- V4 Storm Pursuit records.
 	Records: { Extractions: number, BestExtract: number },
+	-- V4 Salvage Log: kinds of salvage found at least once.
+	Collection: { Found: { [string]: boolean } },
 	Lock: { Session: string, Time: number }?,
 }
 
@@ -68,6 +70,7 @@ function DataService.default(): Data
 		Cosmetics = { Owned = { Cardboard = true }, Plate = "Cardboard" },
 		Tools = { Owned = {} },
 		Records = { Extractions = 0, BestExtract = 0 },
+		Collection = { Found = {} },
 	}
 end
 

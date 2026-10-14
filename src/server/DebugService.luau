@@ -105,8 +105,8 @@ local commands: { [string]: (...any) -> any } = {
 		return amount
 	end,
 	-- V4 events: start one now. event("Pursuit" | "Extraction" | "Rush", siteId) or eventnext().
-	event = function(kind: string, siteId: string)
-		return EventService.start(kind, siteId)
+	event = function(kind: string, siteId: string, prize: string?)
+		return EventService.start(kind, siteId, prize) -- prize "GoldenCore" forces the jackpot (Studio QA)
 	end,
 	eventnext = function()
 		return EventService.startNext()
@@ -117,6 +117,9 @@ local commands: { [string]: (...any) -> any } = {
 	end,
 	pursuitstate = function()
 		return PursuitService.state()
+	end,
+	strikehits = function()
+		return PursuitService.takeQaHits()
 	end,
 	-- Clear a player's tool ownership (repeatable Tools-tab purchase tests).
 	cleartools = function(playerName: string)
