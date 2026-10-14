@@ -175,4 +175,15 @@ tags: [storm-salvage, data, v4]
 
 ## 5. RC12
 
-RC12 = RC11 + the Stage A changes (§2). It is cut by CI from the commit that records this document and inspected like every RC (`RC12-CANDIDATE.md`).
+RC12 = RC11 + the Stage A changes (§2).
+
+- **Build:** `rc-20261014-12` at `2b75ef4`.
+- **File:** `StormSalvage-rc-20261014-12-2b75ef4.rbxl` (`.tools/rc/` and the owner's Desktop).
+- **SHA-256:** `622fcfc1627f76350d053f55f49e9280a7ec5972ac5d95c5ecef52ad7478f55f`. The CI, download and Desktop copies match.
+
+**Inspected inside the file:**
+- `LiveTestMode = true`, `PurchasesEnabled = false`, `ProductionPlaceIds = { 99653875913460 }`.
+- **69 scripts:** RC11's 67 plus `RestorePlan` and `ProfileRestore`. No QA scripts.
+- BigMoney (303 digits), Wallet schema 2; no script uses the old `Money`.
+- **Present:** the pre-migration backup write, the place-version log line, and the Studio-gated test hook.
+- All 151 asset pivots match.
