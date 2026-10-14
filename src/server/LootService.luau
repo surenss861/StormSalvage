@@ -9,6 +9,7 @@ local Players = game:GetService("Players")
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Bands = require(ReplicatedStorage.Shared.Bands)
@@ -532,6 +533,7 @@ function LootService.spawnFor(
 end
 
 function LootService.spawnForTest(lootId: string, position: Vector3): Instance
+	assert(RunService:IsStudio(), "Studio only")
 	assert(Config.Loot[lootId], "unknown loot " .. lootId)
 	return createLoot(lootId, position)
 end
