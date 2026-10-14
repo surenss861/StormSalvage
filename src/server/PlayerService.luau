@@ -8,7 +8,10 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Bands = require(ReplicatedStorage.Shared.Bands)
 local Economy = require(ReplicatedStorage.Shared.Economy)
+local Money = require(ReplicatedStorage.Shared.Money)
+local Progression = require(ReplicatedStorage.Shared.Progression)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
@@ -32,6 +35,9 @@ local diedCallbacks: { (Player, Model) -> () } = {}
 -- Called synchronously after each sale with (player, items sold, coins paid, Storm Cores sold).
 -- Callbacks must not yield, so a sale and its contract progress land in the same frame.
 local soldCallbacks: { (Player, number, number, number) -> () } = {}
+-- Run just before each player state push (StatusService grants newly earned titles here, so
+-- every change that reaches the client has been checked).
+local beforePushCallbacks: { (Player, any) -> () } = {}
 
 function PlayerService.onSold(callback: (Player, number, number, number) -> ())
 	table.insert(soldCallbacks, callback)
@@ -80,8 +86,31 @@ function PlayerService.boostRemaining(session: Session): number
 end
 
 -- Every active sell bonus, for the sale receipt. Multipliers stack by multiplying.
+-- V4 M3: licences held, and the band they put the player in.
+function PlayerService.hasLicense(session: Session, id: string): boolean
+	local held = session.Data.Licenses
+	return type(held) == "table" and held[id] == true
+end
+
+function PlayerService.licensed(player: Player, id: string): boolean
+	local session = sessions[player]
+	return session ~= nil and PlayerService.hasLicense(session, id)
+end
+
+function PlayerService.bandOf(player: Player): number
+	local session = sessions[player]
+	return if session then Bands.bandOf(session.Data.Licenses) else 1
+end
+
 function PlayerService.sellMultipliers(session: Session): { { Name: string, Factor: number } }
 	local list = {}
+	local press = session.Data.Upgrades.Press or 0
+	if press > 0 and PlayerService.hasLicense(session, "Pro") then
+		local factor = Config.Upgrades.Press.Values[press + 1]
+		if factor and factor > 1 then
+			table.insert(list, { Name = "Salvage Press", Factor = factor })
+		end
+	end
 	if PlayerService.boostRemaining(session) > 0 then
 		table.insert(list, { Name = "2x Salvage", Factor = 2 })
 	end
@@ -141,10 +170,21 @@ local function carriedValue(session: Session): number
 	return total
 end
 
+function PlayerService.beforePush(callback: (Player, any) -> ())
+	table.insert(beforePushCallbacks, callback)
+end
+
 function PlayerService.pushState(player: Player)
 	local session = sessions[player]
 	if not session then
 		return
+	end
+	for _, cb in beforePushCallbacks do
+		cb(player, session)
+	end
+	local band = Bands.bandOf(session.Data.Licenses)
+	if player:GetAttribute("Band") ~= band then
+		player:SetAttribute("Band", band)
 	end
 	playerStateRemote:FireClient(player, {
 		Coins = session.Data.Coins,
@@ -162,6 +202,9 @@ function PlayerService.pushState(player: Player)
 		Tools = session.Data.Tools,
 		Records = session.Data.Records,
 		Collection = session.Data.Collection,
+		Licenses = session.Data.Licenses,
+		Band = band,
+		Titles = session.Data.Titles,
 	})
 	local leaderstats = player:FindFirstChild("leaderstats")
 	local coins = leaderstats and leaderstats:FindFirstChild("Coins")
@@ -212,14 +255,18 @@ function PlayerService.damage(player: Player, amount: number)
 	end
 end
 
-function PlayerService.addCoins(player: Player, amount: number)
+-- Returns how many coins were actually added (less than `amount` only at Money.MAX).
+function PlayerService.addCoins(player: Player, amount: number): number
 	local session = sessions[player]
 	if not session then
-		return
+		return 0
 	end
-	session.Data.Coins += amount
-	session.Data.Stats.TotalEarned += amount
+	-- Whole coins only, never past Money.MAX (1 Qa), never NaN: see Money.luau.
+	local added
+	session.Data.Coins, added = Money.grant(session.Data.Coins, amount)
+	session.Data.Stats.TotalEarned = Money.grant(session.Data.Stats.TotalEarned, added)
 	PlayerService.pushState(player)
+	return added
 end
 
 -- Returns true if the item fit in the bag.
@@ -305,7 +352,10 @@ function PlayerService.sell(player: Player)
 	session.Carried = {}
 	session.Sales += 1
 	refreshCoreGlow(player, session)
-	PlayerService.addCoins(player, earned)
+	-- The receipt shows what was really paid: only at the 1 Qa coin cap is that less than earned.
+	local paid = PlayerService.addCoins(player, earned)
+	local capLoss = earned - paid
+	earned = paid
 	for _, cb in soldCallbacks do
 		cb(player, itemsSold, earned, cores)
 	end
@@ -317,6 +367,7 @@ function PlayerService.sell(player: Player)
 		Base = base,
 		Multipliers = multipliers,
 		Total = earned,
+		CapLoss = if capLoss > 0 then capLoss else nil,
 		Balance = session.Data.Coins,
 		HadCore = hadCore,
 	})
@@ -360,6 +411,14 @@ local function buyUpgrade(player: Player, upgradeId: unknown)
 	if not def then
 		return
 	end
+	if def.License and not PlayerService.hasLicense(session, def.License) then
+		PlayerService.notify(
+			player,
+			("%s needs the %s."):format(def.DisplayName, Bands.Licenses[def.License].DisplayName),
+			Color3.fromRGB(255, 120, 90)
+		)
+		return
+	end
 	local level = session.Data.Upgrades[upgradeId] or 0
 	local check = Economy.checkUpgrade(def.Costs, level, session.Data.Coins)
 	if check.Reason == "maxed" then
@@ -376,7 +435,11 @@ local function buyUpgrade(player: Player, upgradeId: unknown)
 		return
 	end
 	local cost = check.Cost :: number
-	session.Data.Coins -= cost
+	local paid, after = Money.spend(session.Data.Coins, cost)
+	if not paid then
+		return
+	end
+	session.Data.Coins = after
 	session.Data.Upgrades[upgradeId] = level + 1
 	SessionStats.upgraded(player, upgradeId, level + 1)
 	PlayerService.applyCharacterStats(player)
@@ -432,11 +495,81 @@ local function buyTool(player: Player, toolId: unknown)
 	elseif not check.Ok then
 		return
 	end
-	session.Data.Coins -= check.Cost :: number
+	local paid, after = Money.spend(session.Data.Coins, check.Cost)
+	if not paid then
+		return
+	end
+	session.Data.Coins = after
 	session.Data.Tools.Owned[toolId] = true
 	SessionStats.toolBought(player, toolId)
 	PlayerService.pushState(player)
 	PlayerService.notify(player, ("%s unlocked!"):format(def.DisplayName), Color3.fromRGB(140, 200, 255))
+end
+
+-- V4 M3: buying a licence (Gear Shop Tools tab). Needs every requirement (rank, extractions:
+-- things you did, which coins can't buy) AND the coins. Same request budget as upgrades.
+local function buyLicense(player: Player, licenseId: unknown)
+	local session = sessions[player]
+	if not session or type(licenseId) ~= "string" or #licenseId > 32 then
+		return
+	end
+	local now = os.clock()
+	local window = buyWindows[player]
+	if not window or now - window.Start > BUY_WINDOW then
+		window = { Start = now, Count = 0 }
+		buyWindows[player] = window
+	end
+	window.Count += 1
+	if window.Count > BUY_LIMIT then
+		return
+	end
+	local def = Bands.Licenses[licenseId]
+	if not def then
+		return
+	end
+	if type(session.Data.Licenses) ~= "table" then
+		session.Data.Licenses = {}
+	end
+	local records = session.Data.Records :: any
+	local check = Bands.checkLicense(licenseId, {
+		Rank = Progression.rankFor(session.Data.Rep.XP).Index,
+		Extractions = records and records.Extractions or 0,
+		Coins = session.Data.Coins,
+		Owned = session.Data.Licenses[licenseId] == true,
+	})
+	if check.Reason == "owned" then
+		PlayerService.notify(player, "You already hold the " .. def.DisplayName .. ".")
+		return
+	elseif check.Reason == "requirements" then
+		PlayerService.notify(
+			player,
+			"Not yet: " .. table.concat(check.Missing, "; ") .. ".",
+			Color3.fromRGB(255, 120, 90)
+		)
+		return
+	elseif check.Reason == "short" then
+		PlayerService.notify(
+			player,
+			("Need %s more coins."):format(Money.full(def.Cost - session.Data.Coins)),
+			Color3.fromRGB(255, 120, 90)
+		)
+		return
+	elseif not check.Ok then
+		return
+	end
+	local paid, after = Money.spend(session.Data.Coins, def.Cost)
+	if not paid then
+		return
+	end
+	session.Data.Coins = after
+	session.Data.Licenses[licenseId] = true
+	SessionStats.event(player, "License_" .. licenseId, 1)
+	PlayerService.pushState(player)
+	PlayerService.notify(
+		player,
+		("%s earned! Industrial salvage is yours to haul."):format(def.DisplayName),
+		Color3.fromRGB(255, 200, 60)
+	)
 end
 
 local function onPlayerAdded(player: Player)
@@ -549,6 +682,7 @@ function PlayerService.init()
 
 	buyUpgradeRemote.OnServerEvent:Connect(buyUpgrade)
 	Remotes.get("BuyTool").OnServerEvent:Connect(buyTool)
+	Remotes.get("BuyLicense").OnServerEvent:Connect(buyLicense)
 
 	task.spawn(function()
 		while true do

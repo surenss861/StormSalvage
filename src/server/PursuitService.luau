@@ -29,6 +29,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pursuit = require(ReplicatedStorage.Shared.Pursuit)
+local Bands = require(ReplicatedStorage.Shared.Bands)
 local DodgeService = require(script.Parent.DodgeService)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local ContractService = require(script.Parent.ContractService)
@@ -342,7 +343,14 @@ local function extracted(e: Event, player: Player)
 	if records then
 		result = Pursuit.record(records, seconds, e.Site.Difficulty, not e.Caught[player])
 	end
-	local coins = if e.Kind == "Extraction" then X.ExtractCoins else P.ExtractCoins
+	-- V4 M3: the bonus is sized to the carrier's band (Bands.eventBonus): band 1 keeps 150 / 120;
+	-- band 2 pays a Pro-sized bonus, tripled for a Golden Storm Core.
+	local golden = e.Prize == "GoldenCore"
+	local coins = Bands.eventBonus(PlayerService.bandOf(player), e.Kind, golden)
+	if records and golden then
+		local r = records :: any
+		r.GoldenExtractions = (r.GoldenExtractions or 0) + 1
+	end
 	local xp = if e.Kind == "Extraction" then X.ExtractXP else P.ExtractXP
 	-- The single transition to Done happens first, so nothing can grant twice.
 	finish(e, "Extracted", {

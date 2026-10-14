@@ -16,6 +16,7 @@ local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local SupplyCounter = require(script.Parent:WaitForChild("SupplyCounter"))
 local Tools = require(script.Parent:WaitForChild("Tools"))
 local UI = require(script.Parent:WaitForChild("UI"))
+local Money = require(ReplicatedStorage.Shared:WaitForChild("Money"))
 
 local Shop = {}
 local M = UI.Mat
@@ -63,6 +64,8 @@ local function formatValue(id: string, value: any): string
 		-- V4: run speed; sprint shown alongside.
 		local level = table.find(Config.Upgrades.Boots.Values, value) or 1
 		return ("RUN %d / SPRINT %s"):format(value, tostring(Config.Upgrades.Boots.SprintValues[level]))
+	elseif id == "Press" then
+		return if value <= 1 then "NO PRESS" else ("x%s ON SALES"):format(tostring(value))
 	elseif value == 0 then
 		return "NO ARMOR"
 	end
@@ -71,7 +74,17 @@ end
 
 ---------------------------------------------------------------------------- Pegboard tags
 
-local TILTS = { -1.5, 1.2, -0.8 }
+local TILTS = { -1.5, 1.2, -0.8, 1 }
+
+-- Licence-gated gear (the Salvage Press): locked until the server says the licence is held.
+local function locked(def: any): boolean
+	return def.License ~= nil and not (state and state.Licenses and state.Licenses[def.License] == true)
+end
+
+-- Price stickers are small: full digits up to 99,999, compact above ("150K", "2.50M").
+local function sticker(n: number): string
+	return if n < 100000 then UI.comma(n) else Money.compact(n)
+end
 
 local function makeTile(rack: Instance, id: string, order: number): Tile
 	local def = Config.Upgrades[id]
@@ -347,8 +360,11 @@ function Shop.refresh()
 			hole.BackgroundColor3 = if i <= level then M.Marker else M.Manila
 		end
 		local cost = def.Costs[level + 1]
-		if cost then
-			tile.PriceText.Text = UI.comma(cost)
+		if locked(def) then
+			tile.PriceText.Text = "PRO"
+			tile.Price.BackgroundColor3 = Color3.fromRGB(120, 110, 96)
+		elseif cost then
+			tile.PriceText.Text = sticker(cost)
 			tile.Price.BackgroundColor3 = if state.Coins >= cost
 				then M.Orange
 				else Color3.fromRGB(176, 166, 148)
@@ -416,7 +432,10 @@ function Shop.refresh()
 		sheetArrow.Visible = true
 		sheetNext.Visible = true
 		local short = cost - state.Coins
-		if short > 0 then
+		if locked(def) then
+			buy.Text = "NEEDS THE PRO LICENSE (TOOLS TAB)"
+			buy:SetAttribute("Disabled", true)
+		elseif short > 0 then
 			buy.Text = ("NEED %s MORE"):format(UI.comma(short))
 			buy:SetAttribute("Disabled", true)
 		else

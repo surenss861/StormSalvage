@@ -21,6 +21,7 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local UI = require(script.Parent:WaitForChild("UI"))
+local Money = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Money"))
 
 local Hud = {}
 local M = UI.Mat
@@ -795,22 +796,23 @@ local function showCoins(coins: number)
 	local previous = shownCoins
 	shownCoins = coins
 	if previous == nil or coins == previous then
-		cashLabel.Text = UI.comma(coins)
+		cashLabel.Text = Money.tag(coins)
 		return
 	end
 	if coins > previous then
 		local from = previous
-		cancelCount = UI.countUp(cashLabel, from, coins, if UI.reduced() then 0.01 else UI.Time.Count, "%d")
+		cancelCount =
+			UI.countUp(cashLabel, from, coins, if UI.reduced() then 0.01 else UI.Time.Count, Money.tag)
 		task.delay(UI.Time.Count + 0.05, function()
 			if shownCoins == coins then
-				cashLabel.Text = UI.comma(coins)
+				cashLabel.Text = Money.tag(coins)
 			end
 		end)
 		UI.pop(cashScale, 1.1, 0.35)
-		task.spawn(floatDelta, "+" .. UI.comma(coins - from), Color3.fromRGB(255, 214, 80))
+		task.spawn(floatDelta, "+" .. Money.tag(coins - from), Color3.fromRGB(255, 214, 80))
 	else
-		cashLabel.Text = UI.comma(coins)
-		task.spawn(floatDelta, "-" .. UI.comma(previous - coins), UI.Color.TextDim)
+		cashLabel.Text = Money.tag(coins)
+		task.spawn(floatDelta, "-" .. Money.tag(previous - coins), UI.Color.TextDim)
 	end
 end
 
@@ -824,7 +826,9 @@ function Hud.setPlayer(s: any)
 		else ("%d/%d"):format(carried, s.Capacity)
 	crateCount.TextColor3 = if full then M.RedPen else M.Marker
 	crateLabel.BackgroundColor3 = if full then Color3.fromRGB(255, 214, 200) else M.Tape
-	crateWorth.Text = if carried > 0 then ("SELLS FOR %s"):format(UI.comma(s.CarriedValue)) else "EMPTY CRATE"
+	crateWorth.Text = if carried > 0
+		then ("SELLS FOR %s"):format(Money.tag(s.CarriedValue))
+		else "EMPTY CRATE"
 
 	local key = table.concat(s.Carried, ",") .. "/" .. s.Capacity .. (if compact then "c" else "d")
 	if key == slotKey then

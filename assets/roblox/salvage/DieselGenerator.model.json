@@ -1,0 +1,969 @@
+{
+ "className": "Model",
+ "properties": {
+  "WorldPivotData": {
+   "OptionalCFrame": {
+    "position": [
+     0,
+     0,
+     0
+    ],
+    "orientation": [
+     [
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      1
+     ]
+    ]
+   }
+  }
+ },
+ "children": [
+  {
+   "name": "FuelTank",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     3.0,
+     0.4,
+     2.0
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.2,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.3059,
+     0.3216,
+     0.3529
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Housing",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     2.6,
+     1.5,
+     1.8
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.15,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.8706,
+     0.6667,
+     0.1569
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Roof",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     2.7,
+     0.12,
+     1.9
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.96,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.8706,
+     0.6667,
+     0.1569
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Louvre",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     1.2,
+     0.08,
+     0.06
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.5,
+       0.75,
+       -0.92
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1176,
+     0.1176,
+     0.1333
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Louvre",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     1.2,
+     0.08,
+     0.06
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.5,
+       0.95,
+       -0.92
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1176,
+     0.1176,
+     0.1333
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Louvre",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     1.2,
+     0.08,
+     0.06
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.5,
+       1.15,
+       -0.92
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1176,
+     0.1176,
+     0.1333
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Louvre",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     1.2,
+     0.08,
+     0.06
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.5,
+       1.35,
+       -0.92
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1176,
+     0.1176,
+     0.1333
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Louvre",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     1.2,
+     0.08,
+     0.06
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.5,
+       1.55,
+       -0.92
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1176,
+     0.1176,
+     0.1333
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Panel",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.7,
+     0.6,
+     0.06
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.75,
+       1.2,
+       -0.92
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1176,
+     0.1176,
+     0.1333
+    ],
+    "Material": "SmoothPlastic",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Status",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.12,
+     0.12,
+     0.12
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.6,
+       1.32,
+       -0.96
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.3137,
+     0.8627,
+     0.4314
+    ],
+    "Material": "Neon",
+    "Shape": "Ball",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Dial",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.04,
+     0.2,
+     0.2
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.88,
+       1.12,
+       -0.96
+      ],
+      "orientation": [
+       [
+        0.0,
+        0,
+        1.0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        -1.0,
+        0,
+        0.0
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.9255,
+     0.9255,
+     0.902
+    ],
+    "Material": "SmoothPlastic",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Exhaust",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.7,
+     0.2,
+     0.2
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       1.0,
+       2.37,
+       0.5
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.6667,
+     0.698,
+     0.7294
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "ExhaustCap",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.06,
+     0.32,
+     0.32
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       1.0,
+       2.74,
+       0.5
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.3059,
+     0.3216,
+     0.3529
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "LiftEye",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.1,
+     0.36,
+     0.36
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.6,
+       2.12,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        0,
+        1.0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        -1.0,
+        0,
+        0.0
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.6667,
+     0.698,
+     0.7294
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Stripe",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.18,
+     0.42,
+     0.05
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -1.2,
+       0.2,
+       -1.01
+      ],
+      "orientation": [
+       [
+        0.8253,
+        -0.5646,
+        0
+       ],
+       [
+        0.5646,
+        0.8253,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1176,
+     0.1176,
+     0.1333
+    ],
+    "Material": "SmoothPlastic",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Stripe",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.18,
+     0.42,
+     0.05
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.84,
+       0.2,
+       -1.01
+      ],
+      "orientation": [
+       [
+        0.8253,
+        -0.5646,
+        0
+       ],
+       [
+        0.5646,
+        0.8253,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1176,
+     0.1176,
+     0.1333
+    ],
+    "Material": "SmoothPlastic",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Stripe",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.18,
+     0.42,
+     0.05
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.48,
+       0.2,
+       -1.01
+      ],
+      "orientation": [
+       [
+        0.8253,
+        -0.5646,
+        0
+       ],
+       [
+        0.5646,
+        0.8253,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1176,
+     0.1176,
+     0.1333
+    ],
+    "Material": "SmoothPlastic",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Stripe",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.18,
+     0.42,
+     0.05
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.12,
+       0.2,
+       -1.01
+      ],
+      "orientation": [
+       [
+        0.8253,
+        -0.5646,
+        0
+       ],
+       [
+        0.5646,
+        0.8253,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1176,
+     0.1176,
+     0.1333
+    ],
+    "Material": "SmoothPlastic",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  }
+ ]
+}

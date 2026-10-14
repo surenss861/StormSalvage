@@ -18,6 +18,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local SalvageLog = require(ReplicatedStorage.Shared.SalvageLog)
+local Money = require(ReplicatedStorage.Shared.Money)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local PlayerService = require(script.Parent.PlayerService)
@@ -105,8 +106,9 @@ local function apply(player: Player, event: Progression.Event)
 			job.Progress = math.min(job.Target, job.Progress + step)
 			if job.Progress >= job.Target then
 				-- Complete: reward, then a fresh job in the same slot, all before anything yields.
-				data.Coins += job.Coins
-				data.Stats.TotalEarned += job.Coins
+				local added
+				data.Coins, added = Money.grant(data.Coins, job.Coins)
+				data.Stats.TotalEarned = Money.grant(data.Stats.TotalEarned, added)
 				c.Done += 1
 				local text = Progression.describe(job)
 				local replacement = Progression.make(
@@ -276,7 +278,11 @@ local function onAction(player: Player, action: unknown, arg: unknown)
 			return
 		end
 		local f = Progression.finish(arg) :: Progression.Finish
-		data.Coins -= f.Cost
+		local paid, after = Money.spend(data.Coins, f.Cost)
+		if not paid then
+			return
+		end
+		data.Coins = after
 		data.Cosmetics.Owned[f.Id] = true
 		data.Cosmetics.Plate = f.Id
 		publish(player, data)

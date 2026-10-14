@@ -25,6 +25,9 @@ local EVENTS = {
 	"PursuitStrike", -- server -> client: style ("Debris" | "Surge"), position, radius, warning seconds
 	"Dodge", -- client -> server: direction x, z (a dodge request; the server decides if it counts)
 	"DodgeFx", -- server -> other clients: player, position, direction of an honoured dodge
+	"BuyLicense", -- client -> server: licenseId (V4 M3; requirements and coins checked on the server)
+	"Inspect", -- client -> server: userId of a player to inspect (rate-limited)
+	"InspectCard", -- server -> client: that player's public summary
 }
 
 local folder: Folder

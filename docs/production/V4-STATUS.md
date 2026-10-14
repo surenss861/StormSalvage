@@ -10,7 +10,11 @@ status: draft
 tags: [storm-salvage, progression, v4]
 ---
 
-# V4 Status and prestige (design for review, nothing built)
+# V4 Status and prestige (design; first slice built)
+
+> **2026-10-14 update (M3):** nine earned titles (not three), the nameplate title and the player
+> card are built. See [`V4-M3.md`](V4-M3.md). The card opens by tapping or clicking a character
+> (a raycast), not the billboard, because billboards on characters can't take input.
 
 **The goal:** players feel successful, wealthy and recognisable, and other players can see it, without cluttering the screen. This builds on what exists:
 - the 7 Salvager ranks (Scrap Rookie → Storm Legend)

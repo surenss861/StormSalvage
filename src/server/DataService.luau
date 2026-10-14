@@ -13,6 +13,8 @@ local RunService = game:GetService("RunService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local SalvageLog = require(game:GetService("ReplicatedStorage").Shared.SalvageLog)
+local Money = require(game:GetService("ReplicatedStorage").Shared.Money)
+local Titles = require(game:GetService("ReplicatedStorage").Shared.Titles)
 
 local DataService = {}
 
@@ -55,6 +57,9 @@ export type Data = {
 	Records: { Extractions: number, BestExtract: number },
 	-- V4 Salvage Log: kinds of salvage found at least once.
 	Collection: { Found: { [string]: boolean }, Counts: { [string]: number } },
+	-- V4 M3 (economy and status): licences held (the band follows from them) and earned titles.
+	Licenses: { [string]: boolean },
+	Titles: { Owned: { [string]: boolean }, Shown: string? },
 	Lock: { Session: string, Time: number }?,
 }
 
@@ -62,7 +67,7 @@ function DataService.default(): Data
 	return {
 		Version = 1,
 		Coins = Config.StartingCoins,
-		Upgrades = { Backpack = 0, Boots = 0, Armor = 0 },
+		Upgrades = { Backpack = 0, Boots = 0, Armor = 0, Press = 0 },
 		Stats = { TotalEarned = 0, ItemsSold = 0, StormsSurvived = 0 },
 		ProcessedReceipts = {},
 		BoostUntil = 0,
@@ -72,6 +77,8 @@ function DataService.default(): Data
 		Tools = { Owned = {} },
 		Records = { Extractions = 0, BestExtract = 0 },
 		Collection = { Found = {}, Counts = {} },
+		Licenses = {},
+		Titles = { Owned = {} },
 	}
 end
 
@@ -91,6 +98,18 @@ local function reconcile(data: any): Data
 	end
 	-- Salvage Log counts arrived in V4: kinds already found count as found once. Additive only.
 	data.Collection = SalvageLog.reconcile(data.Collection)
+	-- V4 M3: titles must be real and owned; coins must be a whole number in range (a valid
+	-- balance is left exactly as it is; only a corrupt one is repaired).
+	data.Titles = Titles.reconcile(data.Titles)
+	if not Money.valid(data.Coins) then
+		data.Coins = Money.clamp(data.Coins)
+	end
+	if not Money.valid(data.Stats.TotalEarned) then
+		data.Stats.TotalEarned = Money.clamp(data.Stats.TotalEarned)
+	end
+	if type(data.Licenses) ~= "table" then
+		data.Licenses = {}
+	end
 	return data
 end
 

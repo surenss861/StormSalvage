@@ -8,10 +8,16 @@
 -- left, a spec sheet on the right with what it does, the price sticker and one BUY button.
 -- Buying asks the server (BuyTool); the sheet only shows OWNED once the server's player state
 -- says so.
+-- V4 M3: salvage licences hang here too (ids "License:<id>"). A licence's sheet is a checklist of
+-- its requirements with live progress (rank, extractions) and its price; buying asks the server
+-- (BuyLicense), which checks everything again.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Bands = require(ReplicatedStorage.Shared:WaitForChild("Bands"))
+local Money = require(ReplicatedStorage.Shared:WaitForChild("Money"))
+local Progression = require(ReplicatedStorage.Shared:WaitForChild("Progression"))
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local UI = require(script.Parent:WaitForChild("UI"))
 
@@ -29,6 +35,53 @@ local wallet: TextLabel
 local buy: TextButton
 local stamp: Frame
 local stampScale: UIScale
+local stampText: TextLabel
+local iconPlate: Frame
+local shownIcon: string? = nil
+
+local ENTRIES = table.clone(Config.ToolOrder)
+for _, id in Bands.LicenseOrder do
+	table.insert(ENTRIES, "License:" .. id)
+end
+
+local function licenseOf(id: string): Bands.License?
+	local key = id:match("^License:(.+)$")
+	return if key then Bands.Licenses[key] else nil
+end
+
+-- A licence card: a little ID badge with the band on it.
+local function licenseIcon(parent: Instance, size: number): Frame
+	local card = UI.new("Frame", {
+		Name = "LicenseIcon",
+		Parent = parent,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(size, size * 0.72),
+		BackgroundColor3 = Color3.fromRGB(240, 196, 70),
+		BorderSizePixel = 0,
+	}, { UI.corner(4), UI.stroke(M.Marker, 2.5) })
+	UI.new("Frame", {
+		Parent = card,
+		Position = UDim2.fromScale(0.1, 0.18),
+		Size = UDim2.fromScale(0.28, 0.5),
+		BackgroundColor3 = M.TinDark,
+		BorderSizePixel = 0,
+	}, { UI.corner(2) })
+	UI.text({
+		Parent = card,
+		Font = UI.Font.Mono,
+		TextScaled = true,
+		Position = UDim2.fromScale(0.44, 0.18),
+		Size = UDim2.fromScale(0.5, 0.5),
+		TextColor3 = M.Marker,
+		Text = "PRO",
+	})
+	return card
+end
+
+local function iconFor(id: string, parent: Instance, size: number): Frame
+	return if licenseOf(id) then licenseIcon(parent, size) else Tools.detectorIcon(parent, size)
+end
 
 -- A dial with a needle and two blips: reads as "detector" without an image asset.
 function Tools.detectorIcon(parent: Instance, size: number): Frame
@@ -64,8 +117,37 @@ function Tools.detectorIcon(parent: Instance, size: number): Frame
 end
 
 local function owned(id: string): boolean
+	local license = licenseOf(id)
+	if license then
+		local held = state and state.Licenses
+		return type(held) == "table" and held[license.Id] == true
+	end
 	local tools = state and state.Tools
 	return tools ~= nil and type(tools.Owned) == "table" and tools.Owned[id] == true
+end
+
+local function costOf(id: string): number
+	local license = licenseOf(id)
+	return if license then license.Cost else Config.Tools[id].Cost
+end
+
+-- One line per requirement: done or progress, from the server's own numbers.
+local function checklist(license: Bands.License): (string, boolean)
+	local lines, all = {}, true
+	for _, r in license.Requirements do
+		local have, show
+		if r.Kind == "Rank" then
+			local rank = Progression.rankFor(state.Rep and state.Rep.XP or 0)
+			have, show = rank.Index, rank.Title
+		else
+			have = state.Records and state.Records.Extractions or 0
+			show = ("%d / %d"):format(math.min(have, r.Value), r.Value)
+		end
+		local done = have >= r.Value
+		all = all and done
+		table.insert(lines, ("%s  %s  (%s)"):format(if done then "DONE" else "TODO", r.Text, show))
+	end
+	return table.concat(lines, "\n"), all
 end
 
 function Tools.refresh()
@@ -73,31 +155,76 @@ function Tools.refresh()
 		return
 	end
 	for id, tag in tags do
-		local def = Config.Tools[id]
+		local cost = costOf(id)
 		local have = owned(id)
-		tag.PriceText.Text = if have then "OWNED" else UI.comma(def.Cost)
+		tag.PriceText.Text = if have then "OWNED" else UI.comma(cost)
 		tag.Price.BackgroundColor3 = if have
 			then Color3.fromRGB(80, 170, 90)
-			elseif state.Coins >= def.Cost then M.Orange
+			elseif state.Coins >= cost then M.Orange
 			else Color3.fromRGB(176, 166, 148)
 		local active = id == selected
 		tag.Stroke.Color = if active then M.Orange else M.KraftEdge
 		tag.Stroke.Thickness = if active then 4 else 2
 	end
-	local def = Config.Tools[selected]
-	title.Text = def.DisplayName
-	desc.Text = def.Description
-	facts.Text = ("RANGE %d STUDS  ·  NEAREST %d  ·  PERMANENT"):format(def.Range, def.MaxBlips)
-	wallet.Text = ("YOU HAVE %s COINS"):format(UI.comma(state.Coins))
+	if shownIcon ~= selected then
+		shownIcon = selected
+		for _, child in iconPlate:GetChildren() do
+			if child:IsA("GuiObject") then
+				child:Destroy()
+			end
+		end
+		local icon = iconFor(selected, iconPlate, 56)
+		for _, d in icon:GetDescendants() do
+			if d:IsA("GuiObject") then
+				d.ZIndex = 24
+			end
+		end
+		icon.ZIndex = 23
+	end
+	local license = licenseOf(selected)
+	local cost = costOf(selected)
+	local ready = true
+	if license then
+		title.Text = license.DisplayName
+		desc.Text = license.Description
+		local text, all = checklist(license)
+		facts.Text = text
+		-- A licence has a longer description and a two-line checklist: give both room, and keep
+		-- the LICENSED stamp clear of them.
+		desc.Size = UDim2.new(1, -112, 0, 100)
+		facts.Position = UDim2.fromOffset(14, 158)
+		facts.Size = UDim2.new(1, -28, 0, 40)
+		stamp.Position = UDim2.new(0.5, 0, 0, 236)
+		facts.TextColor3 = if all then Color3.fromRGB(34, 130, 56) else M.RedPen
+		ready = all
+		stampText.Text = "LICENSED"
+	else
+		local def = Config.Tools[selected]
+		title.Text = def.DisplayName
+		desc.Text = def.Description
+		facts.Text = ("RANGE %d STUDS  ·  NEAREST %d  ·  PERMANENT"):format(def.Range, def.MaxBlips)
+		desc.Size = UDim2.new(1, -112, 0, 58)
+		facts.Position = UDim2.fromOffset(14, 116)
+		facts.Size = UDim2.new(1, -28, 0, 18)
+		stamp.Position = UDim2.new(0.5, 0, 0, 168)
+		facts.TextColor3 = Color3.fromRGB(34, 130, 56)
+		stampText.Text = "OWNED"
+	end
+	wallet.Text = ("YOU HAVE %s COINS"):format(Money.full(state.Coins))
 	stamp.Visible = owned(selected)
 	if owned(selected) then
-		buy.Text = "OWNED  ·  ACTIVE ON YOUR HUD"
+		buy.Text = if license
+			then "LICENSED  ·  INDUSTRIAL SALVAGE OPEN"
+			else "OWNED  ·  ACTIVE ON YOUR HUD"
 		buy:SetAttribute("Disabled", true)
-	elseif state.Coins < def.Cost then
-		buy.Text = ("NEED %s MORE"):format(UI.comma(def.Cost - state.Coins))
+	elseif not ready then
+		buy.Text = "FINISH THE CHECKLIST FIRST"
+		buy:SetAttribute("Disabled", true)
+	elseif state.Coins < cost then
+		buy.Text = ("NEED %s MORE"):format(Money.full(cost - state.Coins))
 		buy:SetAttribute("Disabled", true)
 	else
-		buy.Text = ("BUY  ·  %s COINS"):format(UI.comma(def.Cost))
+		buy.Text = ("BUY  ·  %s COINS"):format(Money.full(cost))
 		buy:SetAttribute("Disabled", false)
 	end
 end
@@ -119,7 +246,8 @@ function Tools.setState(s: any)
 end
 
 local function makeTag(rack: Instance, id: string, order: number)
-	local def = Config.Tools[id]
+	local license = licenseOf(id)
+	local def = if license then license else Config.Tools[id]
 	local holder = UI.new("Frame", {
 		Name = id,
 		Parent = rack,
@@ -144,7 +272,7 @@ local function makeTag(rack: Instance, id: string, order: number)
 	local stroke = UI.stroke(M.KraftEdge, 2)
 	stroke.Parent = frame
 	UI.punchHole(frame, UDim2.fromOffset(14, 14), 11, 23)
-	local icon = Tools.detectorIcon(frame, 44)
+	local icon = iconFor(id, frame, 44)
 	icon.Position = UDim2.fromOffset(40, 42)
 	for _, d in icon:GetDescendants() do
 		if d:IsA("GuiObject") then
@@ -173,7 +301,7 @@ local function makeTag(rack: Instance, id: string, order: number)
 		Size = UDim2.new(1, -150, 0, 16),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = M.Pencil,
-		Text = "PERMANENT TOOL",
+		Text = if license then "SALVAGE LICENSE" else "PERMANENT TOOL",
 		ZIndex = 23,
 	})
 	local price = UI.new("Frame", {
@@ -223,7 +351,7 @@ function Tools.build(parent: Instance): Frame
 		CanvasSize = UDim2.new(),
 		ZIndex = 21,
 	}, { UI.new("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }) })
-	for i, id in Config.ToolOrder do
+	for i, id in ENTRIES do
 		makeTag(rack, id, i)
 	end
 
@@ -238,7 +366,7 @@ function Tools.build(parent: Instance): Frame
 		ZIndex = 21,
 	}, { UI.corner(3), UI.stroke(M.KraftEdge, 2) })
 	UI.tape(sheet, UDim2.new(0.5, 0, 0, 0), Vector2.new(90, 20), 2, nil, 26)
-	local iconPlate = UI.new("Frame", {
+	iconPlate = UI.new("Frame", {
 		Name = "Icon",
 		Parent = sheet,
 		Position = UDim2.fromOffset(14, 18),
@@ -247,13 +375,6 @@ function Tools.build(parent: Instance): Frame
 		BorderSizePixel = 0,
 		ZIndex = 22,
 	}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), UI.stroke(M.KraftEdge, 2) })
-	local icon = Tools.detectorIcon(iconPlate, 56)
-	for _, d in icon:GetDescendants() do
-		if d:IsA("GuiObject") then
-			d.ZIndex = 24
-		end
-	end
-	icon.ZIndex = 23
 	title = UI.text({
 		Name = "Title",
 		Parent = sheet,
@@ -322,7 +443,12 @@ function Tools.build(parent: Instance): Frame
 			return
 		end
 		-- Unaffordable presses still go to the server, which explains what's missing.
-		Remotes.get("BuyTool"):FireServer(selected)
+		local license = licenseOf(selected)
+		if license then
+			Remotes.get("BuyLicense"):FireServer(license.Id)
+		else
+			Remotes.get("BuyTool"):FireServer(selected)
+		end
 	end)
 	stamp = UI.new("Frame", {
 		Name = "Owned",
@@ -335,7 +461,7 @@ function Tools.build(parent: Instance): Frame
 		Visible = false,
 		ZIndex = 30,
 	}, { UI.corner(6), UI.stroke(Color3.fromRGB(34, 130, 56), 4) })
-	UI.text({
+	stampText = UI.text({
 		Parent = stamp,
 		Font = UI.Font.Mono,
 		TextSize = 24,

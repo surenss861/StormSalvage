@@ -30,6 +30,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Money = require(ReplicatedStorage.Shared.Money)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local PlayerService = require(script.Parent.PlayerService)
@@ -89,7 +90,7 @@ local function coinPack(key: string, coins: number): Product
 		Key = key,
 		Coins = coins,
 		apply = function(data)
-			data.Coins += coins
+			data.Coins = Money.grant(data.Coins, coins)
 		end,
 		message = ("+%s coins delivered. Thanks for the support!"):format(tostring(coins)),
 	}

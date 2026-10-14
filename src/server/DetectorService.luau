@@ -45,7 +45,8 @@ local function candidates(): { Detector.Candidate }
 	for _, item in folder:GetChildren() do
 		local lootId = item:GetAttribute("LootId")
 		local def = type(lootId) == "string" and Config.Loot[lootId]
-		if def and item:IsA("BasePart") then
+		-- Ordinary salvage only: industrial (licensed) salvage is never pinged.
+		if def and not def.Class and item:IsA("BasePart") then
 			local p = item.Position
 			table.insert(list, {
 				Id = idOf(item),

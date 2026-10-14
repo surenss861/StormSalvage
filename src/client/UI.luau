@@ -257,18 +257,28 @@ end
 
 -- Counts a label up from `from` to `to` over `seconds`, formatting each value with `format`.
 -- Returns a cancel function. Purely visual: the true number is always shown at the end.
-function UI.countUp(label: TextLabel, from: number, to: number, seconds: number, format: string): () -> ()
+-- `format` is a string.format pattern ("%d") or a function (e.g. Money.tag).
+function UI.countUp(
+	label: TextLabel,
+	from: number,
+	to: number,
+	seconds: number,
+	format: string | (number) -> string
+): () -> ()
 	local cancelled = false
+	local function show(n: number): string
+		return if type(format) == "function" then format(n) else (format :: string):format(n)
+	end
 	task.spawn(function()
 		local t0 = os.clock()
 		while not cancelled and label.Parent and os.clock() - t0 < seconds do
 			local f = (os.clock() - t0) / seconds
 			f = 1 - (1 - f) * (1 - f) -- ease out
-			label.Text = format:format(math.floor(from + (to - from) * f))
+			label.Text = show(math.floor(from + (to - from) * f))
 			task.wait()
 		end
 		if not cancelled then
-			label.Text = format:format(to)
+			label.Text = show(to)
 		end
 	end)
 	return function()
@@ -369,6 +379,11 @@ export type Modal = {
 }
 
 local openModal: Modal? = nil
+
+-- Whether any modal is open (taps on the world are ignored while one is).
+function UI.modalOpen(): boolean
+	return openModal ~= nil
+end
 
 -- A centred panel over a dimmed backdrop. Tapping the backdrop or X closes it, and only one
 -- modal is open at a time.
@@ -711,8 +726,34 @@ function UI.armorIcon(parent: Instance, size: number, color: Color3?): Frame
 end
 
 -- The icon for an upgrade id.
+-- A press: a heavy plate over a block on a base. Reads as "Salvage Press" without an image asset.
+function UI.pressIcon(parent: Instance, size: number): Frame
+	local holder = UI.new("Frame", {
+		Name = "PressIcon",
+		Parent = parent,
+		Size = UDim2.fromOffset(size, size),
+		BackgroundTransparency = 1,
+	})
+	local function bar(x: number, y: number, w: number, h: number, color: Color3)
+		UI.new("Frame", {
+			Parent = holder,
+			Position = UDim2.fromScale(x, y),
+			Size = UDim2.fromScale(w, h),
+			BackgroundColor3 = color,
+			BorderSizePixel = 0,
+		}, { UI.corner(2), UI.stroke(UI.Mat.Marker, 2) })
+	end
+	bar(0.1, 0.78, 0.8, 0.14, UI.Mat.TinDark) -- base
+	bar(0.28, 0.5, 0.44, 0.26, Color3.fromRGB(200, 116, 60)) -- the block being pressed
+	bar(0.15, 0.3, 0.7, 0.16, UI.Mat.Orange) -- the plate
+	bar(0.44, 0.06, 0.12, 0.24, UI.Mat.Tin) -- the ram
+	return holder
+end
+
 function UI.upgradeIcon(id: string, parent: Instance, size: number): Frame
-	if id == "Boots" then
+	if id == "Press" then
+		return UI.pressIcon(parent, size)
+	elseif id == "Boots" then
 		return UI.bootIcon(parent, size)
 	elseif id == "Armor" then
 		return UI.armorIcon(parent, size)

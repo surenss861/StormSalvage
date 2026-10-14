@@ -29,6 +29,7 @@ local DetectorHud = require(script.Parent:WaitForChild("DetectorHud"))
 local Movement = require(script.Parent:WaitForChild("Movement"))
 local Dodge = require(script.Parent:WaitForChild("Dodge"))
 local CharacterAnims = require(script.Parent:WaitForChild("CharacterAnims"))
+local PlayerCard = require(script.Parent:WaitForChild("PlayerCard"))
 local PursuitHud = require(script.Parent:WaitForChild("PursuitHud"))
 local Nameplates = require(script.Parent:WaitForChild("Nameplates"))
 local Notifications = require(script.Parent:WaitForChild("Notifications"))
@@ -92,6 +93,7 @@ Settings.init(root, {
 	SetReduced = StormEffects.setReduced,
 })
 Jobs.init(root)
+PlayerCard.init(root)
 DetectorHud.init(root, Hud.onLayout)
 Movement.init(function(text)
 	Notifications.feed(text, Color3.fromRGB(255, 226, 110), 5)
@@ -100,9 +102,12 @@ PursuitHud.init(topStack)
 CharacterAnims.init()
 Dodge.init()
 Nameplates.init()
-for _, modal in { Shop.modal(), Settings.modal(), Jobs.modal() } do
+for _, modal in { Shop.modal(), Settings.modal(), Jobs.modal(), PlayerCard.modal() } do
 	modal.Changed.Event:Connect(function()
-		local open = Shop.modal().IsOpen() or Settings.modal().IsOpen() or Jobs.modal().IsOpen()
+		local open = Shop.modal().IsOpen()
+			or Settings.modal().IsOpen()
+			or Jobs.modal().IsOpen()
+			or PlayerCard.modal().IsOpen()
 		Notifications.setModalOpen(open)
 		Hud.setModalOpen(open)
 	end)
@@ -201,7 +206,10 @@ local function stageDiscovery(s: any)
 	jobsUnlocked = unlocked
 	local jobsButton = Hud.JobsButton :: TextButton
 	jobsButton.Visible = unlocked
-	Shop.setSupplyVisible(levels > 0)
+	-- The Tools tab (Detector, and the Pro licence) appears after the first upgrade, or once the
+	-- player has extracted a core: the licence's requirements start there.
+	local extracted = type(s.Records) == "table" and (s.Records.Extractions or 0) > 0
+	Shop.setSupplyVisible(levels > 0 or extracted)
 end
 
 local lastCarried = 0
@@ -249,6 +257,52 @@ end)
 -- Contract completions and rank-ups (server-confirmed; the coins and XP are already in the state).
 Remotes.get("ProgressEvent").OnClientEvent:Connect(function(e)
 	if type(e) ~= "table" then
+		return
+	end
+	if e.Kind == "Title" then
+		-- An earned title (server-granted): its own card, always shown.
+		Notifications.card({
+			Priority = 7,
+			Accent = Color3.fromRGB(255, 196, 48),
+			Height = 96,
+			Width = 290,
+			Seconds = 5,
+			Surface = "Tag",
+			Build = function(card)
+				UI.text({
+					Parent = card,
+					Font = UI.Font.Mono,
+					TextSize = 13,
+					Position = UDim2.fromOffset(16, 10),
+					Size = UDim2.new(1, -32, 0, 16),
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextColor3 = Color3.fromRGB(150, 100, 20),
+					Text = "TITLE EARNED",
+				})
+				UI.text({
+					Parent = card,
+					Font = UI.Font.Title,
+					TextSize = 24,
+					Position = UDim2.fromOffset(16, 28),
+					Size = UDim2.new(1, -32, 0, 30),
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextColor3 = UI.Mat.Marker,
+					Text = tostring(e.Name),
+				})
+				UI.text({
+					Parent = card,
+					Font = UI.Font.Label,
+					TextSize = 12,
+					Position = UDim2.fromOffset(16, 62),
+					Size = UDim2.new(1, -32, 0, 26),
+					TextWrapped = true,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextColor3 = UI.Mat.Pencil,
+					Text = tostring(e.How) .. "  ·  Show it from Jobs > Titles",
+				})
+			end,
+		})
+		Audio.play("CoreDelivered", 0.5)
 		return
 	end
 	if e.Kind == "Discovery" then

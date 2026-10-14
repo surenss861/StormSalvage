@@ -2,8 +2,9 @@
 -- @domain progression
 -- @status stable
 -- @see [[PlateStyle.luau]]
--- Overhead nameplates for other players: display name, Salvager rank title, and the nameplate
--- finish they've equipped (bought with coins at the Jobs board). Drawn from the attributes the
+-- Overhead nameplates for other players: display name, Salvager rank title (or, V4, the earned
+-- title they chose to show), and the nameplate finish they've equipped (bought with coins at the
+-- Jobs board). Drawn from the attributes the
 -- server sets on each Player (RankTitle, Plate), so nothing here is trusted for gameplay. Replaces
 -- Roblox's default overhead name, which the server hides.
 
@@ -63,15 +64,25 @@ local function attach(player: Player, character: Model)
 	local function refresh()
 		local textColor = PlateStyle.apply(plate, player:GetAttribute("Plate"), 2)
 		name.TextColor3 = textColor
-		title.TextColor3 = textColor
-		title.Text = tostring(player:GetAttribute("RankTitle") or "")
+		-- V4: an earned title, if the player shows one (StatusService sets "Title"), in place of
+		-- the rank, in a warm gold so it reads as earned; otherwise the rank title.
+		local earned = player:GetAttribute("Title")
+		if type(earned) == "string" and earned ~= "" then
+			title.Text = string.upper(earned)
+			title.TextColor3 = textColor:Lerp(Color3.fromRGB(255, 196, 48), 0.6)
+		else
+			title.TextColor3 = textColor
+			title.Text = tostring(player:GetAttribute("RankTitle") or "")
+		end
 	end
 	refresh()
 	local c1 = player:GetAttributeChangedSignal("Plate"):Connect(refresh)
 	local c2 = player:GetAttributeChangedSignal("RankTitle"):Connect(refresh)
+	local c3 = player:GetAttributeChangedSignal("Title"):Connect(refresh)
 	gui.Destroying:Connect(function()
 		c1:Disconnect()
 		c2:Disconnect()
+		c3:Disconnect()
 	end)
 end
 

@@ -123,6 +123,45 @@ local commands: { [string]: (...any) -> any } = {
 	strikehits = function()
 		return PursuitService.takeQaHits()
 	end,
+	-- V4 M3 tests (Studio only, the _STUDIO store): clear licences and Press, or set progress.
+	clearlicense = function(playerName: string)
+		local player = Players:FindFirstChild(playerName)
+		local session = player and player:IsA("Player") and PlayerService.get(player)
+		assert(session, "no session")
+		session.Data.Licenses = {}
+		session.Data.Upgrades.Press = 0
+		PlayerService.pushState(player :: Player)
+		return true
+	end,
+	progress = function(playerName: string, xp: number?, extractions: number?)
+		local player = Players:FindFirstChild(playerName)
+		local session = player and player:IsA("Player") and PlayerService.get(player)
+		assert(session, "no session")
+		if xp then
+			session.Data.Rep.XP = xp
+		end
+		if extractions then
+			(session.Data.Records :: any).Extractions = extractions
+		end
+		PlayerService.pushState(player :: Player)
+		return { XP = session.Data.Rep.XP, Extractions = (session.Data.Records :: any).Extractions }
+	end,
+	profile = function(playerName: string)
+		local player = Players:FindFirstChild(playerName)
+		local session = player and player:IsA("Player") and PlayerService.get(player)
+		assert(session, "no session")
+		local d = session.Data
+		return {
+			Coins = d.Coins,
+			TotalEarned = d.Stats.TotalEarned,
+			XP = d.Rep.XP,
+			Records = d.Records,
+			Licenses = d.Licenses,
+			Press = d.Upgrades.Press,
+			Titles = d.Titles,
+			Band = PlayerService.bandOf(player :: Player),
+		}
+	end,
 	-- A harmless debris strike on a player (0 damage); its verdict lands in strikehits.
 	strikeat = function(playerName: string)
 		local player = Players:FindFirstChild(playerName)

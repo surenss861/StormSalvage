@@ -20,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
 local CharacterAnims = require(script.Parent:WaitForChild("CharacterAnims"))
+local Money = require(ReplicatedStorage.Shared:WaitForChild("Money"))
 local Notifications = require(script.Parent:WaitForChild("Notifications"))
 local UI = require(script.Parent:WaitForChild("UI"))
 
@@ -180,7 +181,7 @@ function SalvageFeedback.onPickup(info: { Id: string, Position: Vector3 }, carri
 	end
 	local rank = RANK[def.Rarity] or 0
 	local color = Config.RarityColors[def.Rarity]
-	worldPop(info.Position, ("%s · %d"):format(def.Name, def.Value), color, rank >= 1)
+	worldPop(info.Position, ("%s · %s"):format(def.Name, Money.full(def.Value)), color, rank >= 1)
 	Audio.play("Pickup", 1, 1 + rank * 0.05)
 	if rank == 1 then
 		sparkleBurst(info.Position + Vector3.new(0, 1.5, 0), color, 6)
@@ -224,7 +225,7 @@ function SalvageFeedback.onPickup(info: { Id: string, Position: Vector3 }, carri
 				line(card, 74, 18, {
 					Font = UI.Font.Mono,
 					TextSize = 16,
-					Text = ("WORTH %d"):format(def.Value),
+					Text = ("WORTH %s"):format(Money.full(def.Value)),
 					TextColor3 = color:Lerp(M.Marker, 0.45),
 					ZIndex = 7,
 				})
@@ -338,14 +339,14 @@ function SalvageFeedback.extracted(msg: any)
 			line(card, 100, 22, {
 				Font = UI.Font.Mono,
 				TextSize = 18,
-				Text = ("+%d BONUS"):format(msg.Bonus or 0),
+				Text = ("+%s BONUS"):format(Money.full(msg.Bonus or 0)),
 				TextColor3 = Color3.fromRGB(34, 130, 56),
 				ZIndex = 7,
 			})
 			line(card, 124, 18, {
 				Font = UI.Font.Label,
 				TextSize = 13,
-				Text = ("Now sell it at the Scrap Buyer: %d"):format(prize.Value),
+				Text = ("Now sell it at the Scrap Buyer: %s"):format(Money.full(prize.Value)),
 				TextColor3 = M.RedPen,
 				ZIndex = 7,
 			})
@@ -451,17 +452,20 @@ function SalvageFeedback.onSale(receipt: any)
 				local entry = receipt.Lines[i]
 				local def = Config.Loot[entry.Id]
 				local name = if entry.Count > 1 then ("%s ×%d"):format(def.Name, entry.Count) else def.Name
-				row(name, tostring(entry.Value * entry.Count), nil, Config.RarityColors[def.Rarity])
+				row(name, Money.full(entry.Value * entry.Count), nil, Config.RarityColors[def.Rarity])
 			end
 			if extra > 0 then
 				local rest = 0
 				for i = shown + 1, #receipt.Lines do
 					rest += receipt.Lines[i].Value * receipt.Lines[i].Count
 				end
-				row(("+ %d more"):format(extra), tostring(rest))
+				row(("+ %d more"):format(extra), Money.full(rest))
 			end
 			for _, bonus in receipt.Multipliers do
 				row(bonus.Name, ("×%s"):format(tostring(bonus.Factor)), M.RedPen)
+			end
+			if type(receipt.CapLoss) == "number" and receipt.CapLoss > 0 then
+				row("Coin cap reached (1 Qa)", "-" .. Money.full(receipt.CapLoss), M.RedPen)
 			end
 			-- The payout: biggest number on the card, circled in red pen.
 			local ring = UI.new("Frame", {
@@ -480,8 +484,10 @@ function SalvageFeedback.onSale(receipt: any)
 				Size = UDim2.fromScale(1, 1),
 				TextColor3 = M.Marker,
 				Text = "+0",
+				TextScaled = true, -- big payouts ("+1,234,567") shrink to fit the ring
 				ZIndex = 8,
 			})
+			UI.new("UITextSizeConstraint", { Parent = total, MaxTextSize = 34 })
 			stamp(card, "PAID", M.RedPen, UDim2.new(1, -24, 0, y + 44), Vector2.new(62, 26), -14)
 			line(card, y + 66, 16, {
 				Font = UI.Font.Label,
@@ -491,7 +497,9 @@ function SalvageFeedback.onSale(receipt: any)
 				ZIndex = 7,
 			})
 			-- Count up to the exact server total (visual only; the coins were already paid).
-			UI.countUp(total, 0, receipt.Total, if UI.reduced() then 0.01 else UI.Time.Count, "+%d")
+			UI.countUp(total, 0, receipt.Total, if UI.reduced() then 0.01 else UI.Time.Count, function(n)
+				return "+" .. Money.full(n)
+			end)
 		end,
 	})
 

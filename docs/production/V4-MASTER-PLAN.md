@@ -37,8 +37,8 @@ Core experience → gameplay systems → world and content → reliability → p
 | C | High-value salvage and reward moments (rarity ladder, opportunities, feedback, fairness) | B (events carry the big rewards) | **M2 done (Studio):** Golden Storm Core (own model, 600, 15%), Salvage Log screen with lifetime counts, extraction receipt. Evidence in `V4-GAMEPLAY.md` M2 part 2. |
 | D | World and traversal (audit Gale Hollow, district hooks, routes, then new districts) | B, C (routes serve events) | Planned |
 | E | Weather, VFX, GFX and sound (storm identities, pursuit effects, audio hierarchy, quality tiers) | B, D | Planned |
-| F | Large-scale economy (bands, safe integers, formatter, sinks, migration plan) | C | Design done (`V4-ECONOMY.md`). Build after C. Namespace decision is an **owner gate**. |
-| G | Status and social (titles, inspect card, leaderboards, prestige cosmetics) | B (records), F (wealth) | Design done (`V4-STATUS.md`) |
+| F | Large-scale economy (bands, safe integers, formatter, sinks, migration plan) | C | **First slice built (Studio), M3:** safe integers capped at 1 Qa, compact formatter, three modelled curves (built: first 1M at about 2.2 h vs 10.9 h), band 2 (Pro licence, industrial salvage, Salvage Press, band-sized bonuses). Bands 3–5 designed only. Namespace decision is an **owner gate**. Report: `V4-M3.md`. |
+| G | Status and social (titles, inspect card, leaderboards, prestige cosmetics) | B (records), F (wealth) | **First slice built (Studio), M3:** 9 server-granted titles (skill, discovery, career, wealth), title on the nameplate, inspectable player card. Leaderboards and prestige cosmetics later. |
 | H | Equipment and monetization (tools, Robux catalog review, premium cosmetics) | F, G | Planned. **Activation is an owner gate.** |
 | I | UI/UX, onboarding, full polish | All gameplay phases | Ongoing per feature, final pass planned |
 | J | Multiplayer, performance, release (real servers, devices, security, observability) | Every milestone | Ongoing. Device and real-server runs need the owner's hands. |
@@ -47,9 +47,9 @@ Core experience → gameplay systems → world and content → reliability → p
 
 1. **M1: Controls and the pursuit system.** A fixes, B1–B5, B7. **Done (Studio), 2026-10-14**; B6 needs real clients.
 2. **M2: Rewards worth chasing.** C, plus the A3 evasive action. **Done in Studio, 2026-10-14**; candidate RC9 (`rc-20261014-9`), not deployed. Owner items: animation uploads, device and controller checks.
-3. **M3: Gale Hollow alive.** D1, D2, D5, plus E for pursuits and storms. (Per the M2 review: the economy and status milestones (F, G) come next, before M3.)
-4. **M4: The long chase.** F bands 1–2, plus G slice (titles and inspect card).
-5. **M5: Shop and polish.** H review, I pass, and E quality tiers.
+3. **M3: Large-scale economy and status** (re-ordered by the M2 and RC9 reviews). F and G first slices. **Built in Studio, 2026-10-14**; candidate RC10, not deployed (`V4-M3.md`).
+4. **M4: Gale Hollow alive.** D1, D2, D5, plus E for pursuits and storms; more bands (3+) with their own content and sinks.
+5. **M5: Shop and polish.** H review (the Robux catalogue against the new bands: an owner gate), I pass, and E quality tiers.
 6. **M6: Release readiness.** J on real servers and devices.
 
 ## Blockers needing the owner (tracked, not worked around)

@@ -9,7 +9,9 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
+local Bands = require(ReplicatedStorage.Shared.Bands)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Money = require(ReplicatedStorage.Shared.Money)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Shelter = require(ReplicatedStorage.Shared.Shelter)
 local PlayerService = require(script.Parent.PlayerService)
@@ -182,7 +184,13 @@ local function createLoot(
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Grab"
-	prompt.ObjectText = ("%s  (%d)"):format(def.Name, def.Value)
+	prompt.ObjectText = ("%s  (%s)"):format(def.Name, Money.full(def.Value))
+	if def.License then
+		-- Band 2 salvage: everyone sees it, only licence holders can take it.
+		item:SetAttribute("Class", def.Class)
+		item:SetAttribute("License", def.License)
+		prompt.ObjectText ..= "  ·  PRO"
+	end
 	prompt.HoldDuration = math.clamp(def.Value / 150, 0.2, 1.2)
 	-- Storm Cores and dropped bags can sit under a flood, so reach them from the water's surface.
 	prompt.MaxActivationDistance = if def.Rarity == "Legendary" or owner then 16 else 10
@@ -202,6 +210,14 @@ local function createLoot(
 
 	prompt.Triggered:Connect(function(player)
 		if taken or not PlayerService.isNear(player, prompt) then
+			return
+		end
+		if def.License and not PlayerService.licensed(player, def.License) then
+			PlayerService.notify(
+				player,
+				"Needs the Pro Salvage License (Gear Shop).",
+				Color3.fromRGB(255, 200, 120)
+			)
 			return
 		end
 		if owner and player ~= owner and owner.Parent and os.clock() < (ownerOnlyUntil or 0) then
@@ -269,12 +285,48 @@ local function spawnInZone(zoneName: string)
 	end, nil, nil, nil, zoneName)
 end
 
-local function zoneCount(zone: Zone): number
+-- Items in a zone of one class: ordinary town salvage (class nil) or "Industrial". Each class has
+-- its own cap, so industrial salvage never crowds out the ordinary kind.
+local function zoneCount(zone: Zone, class: string?): number
 	local n = 0
-	for _ in zone.Occupied do
-		n += 1
+	for _, item in zone.Occupied do
+		if item:GetAttribute("Class") == class then
+			n += 1
+		end
 	end
 	return n
+end
+
+local function spawnIndustrial(zoneName: string)
+	local zone = zones[zoneName]
+	local free = {}
+	for i in zone.Points do
+		if not zone.Occupied[i] then
+			table.insert(free, i)
+		end
+	end
+	if #free == 0 then
+		return
+	end
+	local index = free[rng:NextInteger(1, #free)]
+	local floor = zone.Points[index] - Vector3.new(0, 1.5, 0)
+	zone.Occupied[index] = createLoot(pickWeighted(Bands.Industrial :: any), floor, function()
+		zone.Occupied[index] = nil
+	end, nil, nil, nil, zoneName)
+end
+
+local function refillZone(name: string, all: boolean)
+	local zone = zones[name]
+	repeat
+		local before = zoneCount(zone) + zoneCount(zone, "Industrial")
+		if zoneCount(zone) < Config.MaxLootPerZone then
+			spawnInZone(name)
+		end
+		if Bands.IndustrialZones[name] and zoneCount(zone, "Industrial") < Bands.IndustrialPerZone then
+			spawnIndustrial(name)
+		end
+		local after = zoneCount(zone) + zoneCount(zone, "Industrial")
+	until not all or after == before
 end
 
 -- A random spot on open ground in town (roads, grass, plaza): never indoors or under a roof.
@@ -335,10 +387,8 @@ end
 
 -- Refill every zone instantly (used after a storm so the town feels "fresh").
 function LootService.refillAll()
-	for name, zone in zones do
-		while zoneCount(zone) < Config.MaxLootPerZone and zoneCount(zone) < #zone.Points do
-			spawnInZone(name)
-		end
+	for name in zones do
+		refillZone(name, true)
 	end
 end
 
@@ -388,10 +438,8 @@ function LootService.init(map)
 	task.spawn(function()
 		while true do
 			task.wait(Config.LootRespawnSeconds)
-			for name, zone in zones do
-				if zoneCount(zone) < Config.MaxLootPerZone then
-					spawnInZone(name)
-				end
+			for name in zones do
+				refillZone(name, false)
 			end
 		end
 	end)

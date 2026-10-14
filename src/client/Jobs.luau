@@ -15,6 +15,8 @@ local Players = game:GetService("Players")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Progression = require(ReplicatedStorage.Shared:WaitForChild("Progression"))
 local SalvageLog = require(ReplicatedStorage.Shared:WaitForChild("SalvageLog"))
+local Titles = require(ReplicatedStorage.Shared:WaitForChild("Titles"))
+local PlayerCard = require(script.Parent:WaitForChild("PlayerCard"))
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local PlateStyle = require(script.Parent:WaitForChild("PlateStyle"))
 local UI = require(script.Parent:WaitForChild("UI"))
@@ -61,6 +63,11 @@ type LogTile = {
 	Shown: boolean?,
 }
 local logTiles: { LogTile } = {}
+
+type TitleRow = { Id: string, Frame: Frame, Button: TextButton, State: TextLabel }
+local titleRows: { TitleRow } = {}
+local showingLabel: TextLabel
+local rankButton: TextButton
 local logCount: TextLabel
 local logFill: Frame
 local logTotal: TextLabel
@@ -360,7 +367,9 @@ end
 
 -- Where a kind turns up, shown only once it has been found (never for undiscovered kinds).
 local function whereFound(id: string): string
-	if id == "StormCore" then
+	if Config.Loot[id] and Config.Loot[id].Class == "Industrial" then
+		return "Industrial yards · Pro license"
+	elseif id == "StormCore" then
 		return "Mid-storm, anywhere in town"
 	elseif id == "GoldenCore" then
 		return "The rare prize of a cache event"
@@ -658,6 +667,197 @@ local function refreshLog()
 	end
 end
 
+---------------------------------------------------------------------------- Titles tab
+
+local CATEGORY_COLORS = {
+	Pursuit = Color3.fromRGB(240, 128, 36),
+	Discovery = Color3.fromRGB(90, 170, 220),
+	Career = Color3.fromRGB(150, 120, 210),
+	Wealth = Color3.fromRGB(240, 196, 70),
+}
+
+local function buildTitles(parent: Instance): Frame
+	local view = UI.new("Frame", {
+		Name = "TitlesView",
+		Parent = parent,
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 21,
+	})
+	local strip = UI.new("Frame", {
+		Name = "Showing",
+		Parent = view,
+		Size = UDim2.new(1, 0, 0, 40),
+		BackgroundColor3 = M.Manila,
+		BorderSizePixel = 0,
+		ZIndex = 22,
+	}, { UI.corner(6), UI.stroke(M.KraftEdge, 1.5) })
+	showingLabel = UI.text({
+		Parent = strip,
+		Font = UI.Font.Mono,
+		TextSize = 14,
+		Position = UDim2.fromOffset(12, 0),
+		Size = UDim2.new(1, -250, 1, 0),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextColor3 = M.Marker,
+		Text = "",
+		ZIndex = 23,
+	})
+	rankButton = UI.button({
+		Name = "ShowRank",
+		Parent = strip,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -118, 0.5, 0),
+		Size = UDim2.fromOffset(110, 30),
+		TextSize = 11,
+		Color = UI.Color.Slate,
+		Text = "SHOW RANK",
+		ZIndex = 23,
+	})
+	rankButton.Font = UI.Font.Mono
+	rankButton.Activated:Connect(function()
+		action:FireServer("showTitle", nil)
+	end)
+	local myCard = UI.button({
+		Name = "MyCard",
+		Parent = strip,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -6, 0.5, 0),
+		Size = UDim2.fromOffset(106, 30),
+		TextSize = 11,
+		Color = M.Orange,
+		Text = "MY CARD",
+		ZIndex = 23,
+	})
+	myCard.Font = UI.Font.Mono
+	myCard.Activated:Connect(function()
+		PlayerCard.request(Players.LocalPlayer.UserId)
+	end)
+	local grid = UI.new("ScrollingFrame", {
+		Name = "List",
+		Parent = view,
+		Position = UDim2.fromOffset(0, 48),
+		Size = UDim2.new(1, 0, 1, -48),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 5,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		ZIndex = 21,
+	}, {
+		UI.new("UIGridLayout", {
+			CellSize = UDim2.new(1 / 3, -6, 0, 92),
+			CellPadding = UDim2.fromOffset(8, 8),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+		UI.padding(0, 6, 4, 0),
+	})
+	for i, def in Titles.List do
+		local frame = UI.new("Frame", {
+			Name = def.Id,
+			Parent = grid,
+			LayoutOrder = i,
+			BackgroundColor3 = M.Paper,
+			BorderSizePixel = 0,
+			ZIndex = 22,
+		}, { UI.corner(5), UI.stroke(M.KraftEdge, 1.5) })
+		UI.new("Frame", {
+			Parent = frame,
+			Size = UDim2.new(0, 5, 1, 0),
+			BackgroundColor3 = CATEGORY_COLORS[def.Category] or M.Pencil,
+			BorderSizePixel = 0,
+			ZIndex = 23,
+		}, { UI.corner(3) })
+		UI.text({
+			Parent = frame,
+			Font = UI.Font.Title,
+			TextSize = 15,
+			Position = UDim2.fromOffset(12, 5),
+			Size = UDim2.new(1, -18, 0, 20),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			TextColor3 = M.Marker,
+			Text = def.Name,
+			ZIndex = 23,
+		})
+		UI.text({
+			Parent = frame,
+			Font = UI.Font.Label,
+			TextSize = 11,
+			Position = UDim2.fromOffset(12, 26),
+			Size = UDim2.new(1, -18, 0, 28),
+			TextWrapped = true,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			TextColor3 = M.Pencil,
+			Text = def.How,
+			ZIndex = 23,
+		})
+		local stateLabel = UI.text({
+			Parent = frame,
+			Font = UI.Font.Mono,
+			TextSize = 10,
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, 12, 1, -8),
+			Size = UDim2.new(0.45, -12, 0, 22),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = CATEGORY_COLORS[def.Category] or M.Pencil,
+			Text = string.upper(def.Category),
+			ZIndex = 23,
+		})
+		local b = UI.button({
+			Name = "Show",
+			Parent = frame,
+			AnchorPoint = Vector2.new(1, 1),
+			Position = UDim2.new(1, -6, 1, -6),
+			Size = UDim2.new(0.55, -6, 0, 26),
+			TextSize = 11,
+			Color = M.Orange,
+			ZIndex = 23,
+		})
+		b.Font = UI.Font.Mono
+		b.Activated:Connect(function()
+			action:FireServer("showTitle", def.Id)
+		end)
+		table.insert(titleRows, { Id = def.Id, Frame = frame, Button = b, State = stateLabel })
+	end
+	return view
+end
+
+local function refreshTitles()
+	local t = state and state.Titles
+	local owned = if t and type(t.Owned) == "table" then t.Owned else {}
+	local shown = t and t.Shown
+	local count = 0
+	for _, row in titleRows do
+		local have = owned[row.Id] == true
+		if have then
+			count += 1
+		end
+		row.Frame.BackgroundColor3 = if have then M.Paper else M.Kraft
+		if shown == row.Id then
+			row.Button.Text = "SHOWING"
+			UI.setButtonColor(row.Button, Color3.fromRGB(58, 150, 72))
+			row.Button:SetAttribute("Disabled", true)
+		elseif have then
+			row.Button.Text = "SHOW"
+			UI.setButtonColor(row.Button, M.Orange)
+			row.Button:SetAttribute("Disabled", false)
+		else
+			row.Button.Text = "NOT YET"
+			UI.setButtonColor(row.Button, UI.Color.Disabled)
+			row.Button:SetAttribute("Disabled", true)
+		end
+	end
+	local def = shown and Titles.ById[shown]
+	showingLabel.Text = if def
+		then ("OVER YOUR NAME: %s   ·   %d / %d EARNED"):format(string.upper(def.Name), count, #Titles.List)
+		else ("OVER YOUR NAME: YOUR RANK   ·   %d / %d EARNED"):format(count, #Titles.List)
+	rankButton.Visible = def ~= nil
+end
+
 ---------------------------------------------------------------------------- Refresh
 
 function Jobs.refresh()
@@ -715,6 +915,7 @@ function Jobs.refresh()
 		row.Note.Text = note
 	end
 	refreshLog()
+	refreshTitles()
 end
 
 function Jobs.setState(s: any)
@@ -802,17 +1003,24 @@ function Jobs.init(root: Frame)
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
-	for i, entry in { { "Jobs", "CONTRACTS" }, { "Locker", "NAMEPLATE" }, { "Log", "SALVAGE LOG" } } do
+	for i, entry in
+		{
+			{ "Jobs", "CONTRACTS" },
+			{ "Locker", "NAMEPLATE" },
+			{ "Log", "SALVAGE LOG" },
+			{ "Titles", "TITLES" },
+		}
+	do
 		local b = UI.new("TextButton", {
 			Name = entry[1],
 			Parent = tabs,
 			LayoutOrder = i,
-			Size = UDim2.new(1 / 3, -4, 1, 0),
+			Size = UDim2.new(1 / 4, -5, 1, 0),
 			BackgroundColor3 = M.Manila,
 			AutoButtonColor = false,
 			BorderSizePixel = 0,
 			Font = UI.Font.Mono,
-			TextSize = 13,
+			TextSize = 11,
 			TextColor3 = M.Marker,
 			Text = entry[2],
 			ZIndex = 24,
@@ -825,6 +1033,7 @@ function Jobs.init(root: Frame)
 	views.Jobs = buildJobs(modal.Content)
 	views.Locker = buildLocker(modal.Content)
 	views.Log = buildLog(modal.Content)
+	views.Titles = buildTitles(modal.Content)
 	Jobs.showTab("Jobs")
 end
 

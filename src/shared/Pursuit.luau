@@ -62,10 +62,19 @@ export type Records = {
 	BestStreak: number,
 	Hardest: number, -- highest site difficulty extracted from
 	RushFinds: number,
+	GoldenExtractions: number, -- V4 M3: Golden Storm Cores extracted
 }
 
 function Pursuit.newRecords(): Records
-	return { Extractions = 0, BestExtract = 0, Streak = 0, BestStreak = 0, Hardest = 0, RushFinds = 0 }
+	return {
+		Extractions = 0,
+		BestExtract = 0,
+		Streak = 0,
+		BestStreak = 0,
+		Hardest = 0,
+		RushFinds = 0,
+		GoldenExtractions = 0,
+	}
 end
 
 -- Fills fields missing from older profiles (the first V4 build saved only two of them).

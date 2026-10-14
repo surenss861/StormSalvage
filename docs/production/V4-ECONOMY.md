@@ -11,7 +11,12 @@ status: draft
 tags: [storm-salvage, salvage-economy, v4]
 ---
 
-# V4 Economy: aspirational progression (design for review, nothing built)
+# V4 Economy: aspirational progression (design; bands 1–2 now built)
+
+> **2026-10-14 update (M3):** the safe-integer helper, the formatter and bands 1–2 are built, on a
+> faster curve than the one below (first 1M at about 2.2 h instead of about 10 h). The owner asked
+> for impressive wealth much earlier. What was built, the simulations and the Studio evidence:
+> [`V4-M3.md`](V4-M3.md). Sections 2–9 below are the original draft, kept for reference.
 
 The owner wants a ladder from coins to millions, billions and trillions, where bigger numbers come from **bigger accomplishments**, not from multiplying every price. This document is the required pre-implementation deliverable:
 - the audit

@@ -1,0 +1,449 @@
+{
+ "className": "Model",
+ "properties": {
+  "WorldPivotData": {
+   "OptionalCFrame": {
+    "position": [
+     0,
+     0,
+     0
+    ],
+    "orientation": [
+     [
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      1
+     ]
+    ]
+   }
+  }
+ },
+ "children": [
+  {
+   "name": "Flange",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.16,
+     1.7,
+     1.7
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.08,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.5882,
+     0.4078,
+     0.2431
+    ],
+    "Material": "WoodPlanks",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Wire",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     1.1,
+     1.36,
+     1.36
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.71,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.7843,
+     0.4549,
+     0.2353
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Winding",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.06,
+     1.38,
+     1.38
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.35,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.5882,
+     0.3216,
+     0.1569
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Winding",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.06,
+     1.38,
+     1.38
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.71,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.5882,
+     0.3216,
+     0.1569
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Winding",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.06,
+     1.38,
+     1.38
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.07,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.5882,
+     0.3216,
+     0.1569
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Flange",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.16,
+     1.7,
+     1.7
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.34,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.5882,
+     0.4078,
+     0.2431
+    ],
+    "Material": "WoodPlanks",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Hub",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.2,
+     0.42,
+     0.42
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.5,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.6667,
+     0.698,
+     0.7294
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Tail",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.9,
+     0.08,
+     0.08
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.62,
+       0.9,
+       0.55
+      ],
+      "orientation": [
+       [
+        0.7648,
+        0,
+        -0.6442
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0.6442,
+        0,
+        0.7648
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.7843,
+     0.4549,
+     0.2353
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  }
+ ]
+}

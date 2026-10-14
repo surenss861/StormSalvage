@@ -1,0 +1,917 @@
+{
+ "className": "Model",
+ "properties": {
+  "WorldPivotData": {
+   "OptionalCFrame": {
+    "position": [
+     0,
+     0,
+     0
+    ],
+    "orientation": [
+     [
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      1
+     ]
+    ]
+   }
+  }
+ },
+ "children": [
+  {
+   "name": "Cradle",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     2.0,
+     0.24,
+     1.4
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.12,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.3059,
+     0.3216,
+     0.3529
+    ],
+    "Material": "DiamondPlate",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Post",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.22,
+     1.4,
+     0.3
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.75,
+       0.94,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.3059,
+     0.3216,
+     0.3529
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Post",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.22,
+     1.4,
+     0.3
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.75,
+       0.94,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.3059,
+     0.3216,
+     0.3529
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Shaft",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     1.9,
+     0.22,
+     0.22
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.65,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.6667,
+     0.698,
+     0.7294
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Hub",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.5,
+     0.7,
+     0.7
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.65,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.6667,
+     0.698,
+     0.7294
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "HubCap",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.12,
+     0.4,
+     0.4
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.3,
+       1.65,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.4706,
+     0.8627,
+     1.0
+    ],
+    "Material": "Neon",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Blade",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     1.05,
+     0.34
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       2.5,
+       0.0
+      ],
+      "orientation": [
+       [
+        0.9394,
+        0,
+        0.3429
+       ],
+       [
+        0.0,
+        1.0,
+        0.0
+       ],
+       [
+        -0.3429,
+        0.0,
+        0.9394
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.6667,
+     0.698,
+     0.7294
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Blade",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     1.05,
+     0.34
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       2.3377,
+       0.4996
+      ],
+      "orientation": [
+       [
+        0.9394,
+        0,
+        0.3429
+       ],
+       [
+        -0.2016,
+        0.809,
+        0.5521
+       ],
+       [
+        -0.2774,
+        -0.5878,
+        0.76
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.6667,
+     0.698,
+     0.7294
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Blade",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     1.05,
+     0.34
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.9127,
+       0.8084
+      ],
+      "orientation": [
+       [
+        0.9394,
+        0,
+        0.3429
+       ],
+       [
+        -0.3261,
+        0.309,
+        0.8934
+       ],
+       [
+        -0.106,
+        -0.9511,
+        0.2903
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.6667,
+     0.698,
+     0.7294
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Blade",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     1.05,
+     0.34
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.3873,
+       0.8084
+      ],
+      "orientation": [
+       [
+        0.9394,
+        0,
+        0.3429
+       ],
+       [
+        -0.3261,
+        -0.309,
+        0.8934
+       ],
+       [
+        0.106,
+        -0.9511,
+        -0.2903
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.6667,
+     0.698,
+     0.7294
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Blade",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     1.05,
+     0.34
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.9623,
+       0.4996
+      ],
+      "orientation": [
+       [
+        0.9394,
+        0,
+        0.3429
+       ],
+       [
+        -0.2016,
+        -0.809,
+        0.5521
+       ],
+       [
+        0.2774,
+        -0.5878,
+        -0.76
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.6667,
+     0.698,
+     0.7294
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Blade",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     1.05,
+     0.34
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.8,
+       0.0
+      ],
+      "orientation": [
+       [
+        0.9394,
+        0,
+        0.3429
+       ],
+       [
+        -0.0,
+        -1.0,
+        0.0
+       ],
+       [
+        0.3429,
+        -0.0,
+        -0.9394
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.6667,
+     0.698,
+     0.7294
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Blade",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     1.05,
+     0.34
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.9623,
+       -0.4996
+      ],
+      "orientation": [
+       [
+        0.9394,
+        0,
+        0.3429
+       ],
+       [
+        0.2016,
+        -0.809,
+        -0.5521
+       ],
+       [
+        0.2774,
+        0.5878,
+        -0.76
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.6667,
+     0.698,
+     0.7294
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Blade",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     1.05,
+     0.34
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.3873,
+       -0.8084
+      ],
+      "orientation": [
+       [
+        0.9394,
+        0,
+        0.3429
+       ],
+       [
+        0.3261,
+        -0.309,
+        -0.8934
+       ],
+       [
+        0.106,
+        0.9511,
+        -0.2903
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.6667,
+     0.698,
+     0.7294
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Blade",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     1.05,
+     0.34
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.9127,
+       -0.8084
+      ],
+      "orientation": [
+       [
+        0.9394,
+        0,
+        0.3429
+       ],
+       [
+        0.3261,
+        0.309,
+        -0.8934
+       ],
+       [
+        -0.106,
+        0.9511,
+        0.2903
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.6667,
+     0.698,
+     0.7294
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Blade",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     1.05,
+     0.34
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       2.3377,
+       -0.4996
+      ],
+      "orientation": [
+       [
+        0.9394,
+        0,
+        0.3429
+       ],
+       [
+        0.2016,
+        0.809,
+        -0.5521
+       ],
+       [
+        -0.2774,
+        0.5878,
+        0.76
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.6667,
+     0.698,
+     0.7294
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Shroud",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     2.9,
+     2.9
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.3,
+       1.65,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.4706,
+     0.8627,
+     1.0
+    ],
+    "Material": "Neon",
+    "Shape": "Cylinder",
+    "Transparency": 0.55,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  }
+ ]
+}

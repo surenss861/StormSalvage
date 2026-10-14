@@ -1,0 +1,12 @@
+Lifetime-earned milestones (engaged play, greedy income spending; estimates)
+curve                          1K    10K   100K     1M    10M   100M     1B    10B     1T    band entries (2 3 4 5)
+A original                     6m    57m   7.6h  10.9h  14.3h  26.0h  39.9h  52.8h      -    7.3h 10.6h 25.0h 50.0h
+B faster                       6m    57m   3.0h   5.6h  10.6h  15.2h  30.8h  41.0h  82.6h    2.7h 10.0h 30.0h 70.0h
+C early fortune (built)        6m    51m   1.1h   2.2h   7.3h  10.6h  14.4h  30.2h  66.0h    51m 10.0h 30.0h 70.0h
+
+A original: licence 75K at 100K lifetime; band 2 items ~10x band 1
+B faster: licence 25K; band 2 items ~40x band 1
+C early fortune (built): Bands.luau: Pro licence after rank + extractions; industrial salvage
+
+Built band 2: income at entry (bag 20, no press) 5270/min; with full press 33587/min
+Built band 1: income bag 3 153/min, bag 20 181/min

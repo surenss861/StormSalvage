@@ -22,6 +22,7 @@ local DetectorService = require(script.Parent.DetectorService)
 local PursuitService = require(script.Parent.PursuitService)
 local EventService = require(script.Parent.EventService)
 local DodgeService = require(script.Parent.DodgeService)
+local StatusService = require(script.Parent.StatusService)
 
 require(script.Parent.AssetPivotFix).apply() -- before anything places an asset
 
@@ -47,6 +48,7 @@ EventService.init(map) -- before StormService: it schedules off the storm phases
 LootService.init(map)
 DetectorService.init()
 DodgeService.init()
+StatusService.init()
 StormService.init(map)
 DebugService.init()
 ServerPerf.init() -- staging and Studio only

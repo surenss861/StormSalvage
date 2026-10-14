@@ -5,6 +5,8 @@
 -- @see [[V3-RELEASE-CHECKLIST]]
 -- Central tuning for Storm Salvage. Everything balance-related lives here.
 
+local Bands = require(script.Parent.Bands)
+
 local Config = {}
 
 -- Data environments, explicit and fail-safe (src/shared/Environment.luau, unit-tested):
@@ -108,6 +110,9 @@ export type LootDef = {
 	Rarity: string,
 	Shape: Enum.PartType?,
 	Upright: boolean?, -- stand a cylinder on its end
+	Jackpot: boolean?,
+	Class: string?, -- "Industrial": band 2 salvage (Bands.luau)
+	License: string?, -- licence needed to pick it up
 }
 
 Config.Loot = {
@@ -220,6 +225,41 @@ Config.Loot = {
 	},
 } :: { [string]: LootDef }
 
+-- V4 band 2: industrial salvage (values, rarities and spawn weights live in Bands.luau, so the
+-- economy simulation reads the same numbers). Only Pro licence holders can pick it up.
+do
+	local looks = {
+		CopperSpool = {
+			Size = Vector3.new(1.6, 1.6, 1.6),
+			Color = Color3.fromRGB(200, 116, 60),
+			Shape = Enum.PartType.Cylinder,
+			Upright = true,
+		},
+		HydraulicPump = { Size = Vector3.new(2.2, 1.6, 1.4), Color = Color3.fromRGB(56, 104, 170) },
+		DieselGenerator = { Size = Vector3.new(3, 2.2, 2), Color = Color3.fromRGB(222, 170, 40) },
+		TurbineRotor = {
+			Size = Vector3.new(0.8, 3, 3),
+			Color = Color3.fromRGB(178, 188, 198),
+			Shape = Enum.PartType.Cylinder,
+		},
+	}
+	for _, item in Bands.Industrial do
+		local look = looks[item.Id]
+		Config.Loot[item.Id] = {
+			Name = item.Name,
+			Value = item.Value,
+			Size = look.Size,
+			Color = look.Color,
+			Material = Enum.Material.Metal,
+			Rarity = item.Rarity,
+			Shape = look.Shape,
+			Upright = look.Upright,
+			Class = "Industrial",
+			License = Bands.IndustrialLicense,
+		}
+	end
+end
+
 -- Storm Cores of any kind (glow, contracts, delivery announcements).
 Config.CoreIds = { StormCore = true, GoldenCore = true }
 
@@ -300,7 +340,15 @@ Config.Upgrades = {
 		Values = { 0, 0.15, 0.3, 0.45, 0.6 }, -- damage reduction at level 0..4
 	},
 }
-Config.UpgradeOrder = { "Backpack", "Boots", "Armor" }
+-- V4 band 2 gear: the Salvage Press, a sale multiplier (Bands.Press; needs the Pro licence).
+Config.Upgrades.Press = {
+	DisplayName = Bands.Press.DisplayName,
+	Description = Bands.Press.Description,
+	Costs = Bands.Press.Costs,
+	Values = Bands.Press.Values,
+	License = Bands.Press.License,
+}
+Config.UpgradeOrder = { "Backpack", "Boots", "Armor", "Press" }
 
 -- V4 movement (Movement.client): run by default, sprint on Shift (keyboard), automatically after
 -- a moment of steady movement (touch and gamepad), with a short ramp so it doesn't snap. Speeds
@@ -359,8 +407,8 @@ Config.Pursuit = {
 	ClaimSeconds = 25, -- the race: the cache disappears if nobody takes it
 	ExtractSeconds = 45, -- after the first grab; then the core destabilises (removed).
 	-- Both windows are cut short so the event always ends before the next storm hits.
-	-- The prize is a real Storm Core (or, rarely, a Golden one), sold for its normal value ...
-	ExtractCoins = 150, -- ... plus this extraction bonus at the plateau, once per event
+	-- The prize is a real Storm Core (or, rarely, a Golden one), sold for its normal value, plus
+	-- an extraction bonus at the plateau, once per event, sized to the band (Bands.EventBonus).
 	ExtractXP = 40,
 	-- The twister. It is route-bound: it paths along streets like a player (PathfindingService
 	-- with a wide agent), so narrow alleys and fenced yards are real escapes; on roofs it waits.
@@ -399,8 +447,7 @@ Config.Pursuit = {
 -- Extraction: no twister. The core is unstable: surges erupt ahead on the straight line home,
 -- telegraphed, so the obvious route is the dangerous one. Shorter window, smaller bonus.
 Config.Extraction = {
-	ExtractSeconds = 35,
-	ExtractCoins = 120,
+	ExtractSeconds = 35, -- bonus: Bands.EventBonus
 	ExtractXP = 35,
 	SurgeEvery = 2.2,
 	SurgeWarn = 1.6,

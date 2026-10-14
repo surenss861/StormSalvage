@@ -406,7 +406,8 @@ local function step(dt: number)
 		banner.Visible = false
 		return
 	end
-	banner.Visible = true
+	-- A modal (shop, Jobs, a player card) sits where the banner does: hide it meanwhile.
+	banner.Visible = not UI.modalOpen()
 	local left = (state.EndsAt or 0) - workspace:GetServerTimeNow()
 	local me = Players.LocalPlayer
 	local root = me.Character and me.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
