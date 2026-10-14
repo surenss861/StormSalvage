@@ -1,21 +1,28 @@
--- @file Storm Pursuit event (server): the rare cache, the twister chase, extraction
+-- @file Cache events (server): Storm Pursuit and Dangerous Extraction
 -- @domain world
 -- @status wip
 -- @see [[Pursuit.luau]]
--- @see [[PursuitHud.luau]]
+-- @see [[EventService.luau]]
 -- @see [[V4-GAMEPLAY]]
--- V4 vertical slice. After a storm passes, a rare cache (a real Storm Core) drops in one district
--- and everyone is told. Whoever grabs it is chased by a rogue twister: a server-moved hazard that
--- is faster than running and slower than sprinting, passes through buildings, and throws
--- telegraphed debris strikes ahead of the carrier. Reaching the Scrapyard plateau extracts it:
--- an extraction bonus (once per event) and a personal record; the core itself still sells at the
--- Scrap Buyer for its normal value. Caught: the core drops at your feet for anyone to grab and
--- the twister stalls for a moment. Out of time: the core destabilises and is gone.
+-- The two cache events EventService schedules after a storm passes. A rare cache (a real Storm
+-- Core) drops at a site and everyone is told; whoever grabs it has to get it to the Scrapyard
+-- plateau before time runs out.
+--   Pursuit     a rogue twister forms and chases the carrier. It is route-bound: it paths along
+--               the streets with a wide agent (PathfindingService), so gaps narrower than about
+--               ten studs (alleys, fenced yards) are escapes, and a roof is out of its reach.
+--               Its speed builds; every few seconds it winds up and throws a telegraphed debris
+--               strike where the carrier is heading. Caught: the core is flung sideways for
+--               anyone to grab and the twister stalls.
+--   Extraction  no pursuer; the core is unstable and telegraphed surges erupt ahead on the
+--               straight line home, so the obvious route is the dangerous one.
+-- Extracting pays a bonus once per event and updates the carrier's records (time, streak,
+-- hardest site); the core then sells at the Scrap Buyer for its normal value.
 --
--- Authority: every step runs here. The pickup is the normal server-checked prompt
--- (LootService.spawnSpecial); the bag is changed only through PlayerService; the bonus is granted
+-- Authority: every rule runs here. The pickup is the normal server-checked prompt
+-- (LootService.spawnSpecial); the bag changes only through PlayerService; the bonus is granted
 -- only by the state machine's single transition to Done. Clients get PursuitState and draw.
 
+local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -26,31 +33,40 @@ local ContractService = require(script.Parent.ContractService)
 local LootService = require(script.Parent.LootService)
 local PlayerService = require(script.Parent.PlayerService)
 local SessionStats = require(script.Parent.SessionStats)
-local StormService = require(script.Parent.StormService)
 
 local PursuitService = {}
 
 local P = Config.Pursuit
+local X = Config.Extraction
 local stateRemote = Remotes.get("PursuitState")
-local strikeRemote = Remotes.get("LightningWarning")
+local strikeRemote = Remotes.get("PursuitStrike")
+
+export type Site = { Id: string, Name: string, Spot: Vector3, Difficulty: number }
 
 type Event = {
 	Id: number,
+	Kind: string, -- "Pursuit" | "Extraction"
+	Site: Site,
 	Phase: string, -- "Race" | "Chase" | "Loose" | "Done"
 	EndsAt: number, -- os.clock() deadline for the current window
 	Cache: Instance?, -- the item in the world (race, or loose after a catch)
 	Carrier: Player?,
 	StartedAt: number?, -- first grab (extraction time is measured from here)
+	Caught: { [Player]: boolean }, -- who was caught this event (streaks)
 	Twister: BasePart?,
+	Waypoints: { Vector3 },
+	WaypointIndex: number,
 	StunnedUntil: number,
 	NextStrike: number,
+	NextSurge: number,
 	LastPos: Vector3,
 }
 
 local map: any
 local current: Event? = nil
-local stormAt = math.huge -- os.clock() when the next storm hits (from the Calm phase)
 local nextId = 0
+local stormAt = math.huge -- os.clock() when the next storm hits
+local onFinished: ((string, string) -> ())? = nil
 
 local function serverTime(clockDeadline: number): number
 	return workspace:GetServerTimeNow() + (clockDeadline - os.clock())
@@ -73,22 +89,38 @@ local function flat(v: Vector3): Pursuit.Vec2
 	return { X = v.X, Z = v.Z }
 end
 
-local function broadcast(e: Event, extra: { [string]: any }?)
-	local msg: { [string]: any } = {
+local function message(e: Event): { [string]: any }
+	return {
 		Id = e.Id,
+		Kind = e.Kind,
 		Phase = e.Phase,
-		District = P.District,
+		Site = e.Site.Name,
+		District = e.Site.Name,
+		Difficulty = e.Site.Difficulty,
 		EndsAt = serverTime(e.EndsAt),
 		CarrierId = e.Carrier and e.Carrier.UserId or nil,
 		CarrierName = e.Carrier and e.Carrier.DisplayName or nil,
 		Target = if e.Cache and (e.Cache :: any).Parent then (e.Cache :: BasePart).Position else nil,
 	}
+end
+
+local function broadcast(e: Event, extra: { [string]: any }?)
+	local msg = message(e)
 	if extra then
 		for k, v in extra do
 			msg[k] = v
 		end
 	end
 	stateRemote:FireAllClients(msg)
+end
+
+local function recordsOf(player: Player): Pursuit.Records?
+	local session = PlayerService.get(player)
+	if not session then
+		return nil
+	end
+	session.Data.Records = Pursuit.reconcile(session.Data.Records)
+	return session.Data.Records
 end
 
 local function finish(e: Event, result: string, extra: { [string]: any }?)
@@ -104,7 +136,7 @@ local function finish(e: Event, result: string, extra: { [string]: any }?)
 		e.Twister:Destroy()
 		e.Twister = nil
 	end
-	local payload = { Result = result }
+	local payload: { [string]: any } = { Result = result }
 	if extra then
 		for k, v in extra do
 			payload[k] = v
@@ -112,6 +144,15 @@ local function finish(e: Event, result: string, extra: { [string]: any }?)
 	end
 	broadcast(e, payload)
 	current = nil
+	if onFinished then
+		onFinished(e.Kind, result)
+	end
+end
+
+local function setTwisterState(e: Event, state: string)
+	if e.Twister and e.Twister:GetAttribute("State") ~= state then
+		e.Twister:SetAttribute("State", state)
+	end
 end
 
 local spawnCache: (e: Event, position: Vector3, lifetime: number) -> ()
@@ -121,29 +162,36 @@ local function takeCore(e: Event, player: Player)
 	e.Carrier = player
 	if not e.StartedAt then
 		e.StartedAt = os.clock()
-		e.EndsAt = math.min(os.clock() + P.ExtractSeconds, stormAt - 1)
-		local root = rootOf(player)
-		local from = if root then root.Position else P.Spot
-		local spawn = Pursuit.spawnPoint(flat(from), flat(P.Spot), P.SpawnBehind)
-		local twister = Instance.new("Part")
-		twister.Name = "PursuitTwister"
-		twister.Anchored = true
-		twister.CanCollide = false
-		twister.CanQuery = false
-		twister.CanTouch = false
-		twister.Transparency = 1
-		twister.Size = Vector3.new(1, 1, 1)
-		twister.Position = Vector3.new(spawn.X, 0, spawn.Z)
-		twister.Parent = workspace
-		e.Twister = twister
-		e.StunnedUntil = os.clock() + P.FormSeconds
-		e.NextStrike = os.clock() + P.FormSeconds + 2.5
+		local window = if e.Kind == "Extraction" then X.ExtractSeconds else P.ExtractSeconds
+		e.EndsAt = math.min(os.clock() + window, stormAt - 1)
+		e.NextSurge = os.clock() + 1.5
+		if e.Kind == "Pursuit" then
+			local root = rootOf(player)
+			local from = if root then root.Position else e.Site.Spot
+			local spawn = Pursuit.spawnPoint(flat(from), flat(e.Site.Spot), P.SpawnBehind)
+			local twister = Instance.new("Part")
+			twister.Name = "PursuitTwister"
+			twister.Anchored = true
+			twister.CanCollide = false
+			twister.CanQuery = false
+			twister.CanTouch = false
+			twister.Transparency = 1
+			twister.Size = Vector3.new(1, 1, 1)
+			twister.Position = Vector3.new(spawn.X, from.Y - 3, spawn.Z)
+			twister:SetAttribute("State", "Forming")
+			twister:SetAttribute("FormSeconds", P.FormSeconds)
+			twister.Parent = workspace
+			e.Twister = twister
+			e.StunnedUntil = os.clock() + P.FormSeconds
+			e.NextStrike = os.clock() + P.FormSeconds + 2.5
+		end
 	else
 		-- A re-grab after a catch: a short grace so the scramble isn't an instant re-catch.
 		e.StunnedUntil = math.max(e.StunnedUntil, os.clock() + P.RegrabGrace)
 	end
 	e.Phase = "Chase"
-	SessionStats.event(player, "PursuitGrab")
+	e.Waypoints = {}
+	SessionStats.event(player, "EventGrab_" .. e.Kind)
 	broadcast(e)
 end
 
@@ -166,49 +214,138 @@ end
 local function dropLoose(e: Event, at: Vector3)
 	e.Carrier = nil
 	e.Phase = "Loose"
+	e.Waypoints = {}
 	local left = math.max(1, e.EndsAt - os.clock())
 	spawnCache(e, at, left)
 	broadcast(e)
 end
 
-local function strike(root: BasePart)
+local function damageZone(at: Pursuit.Vec2, radius: number, damage: number, y: number)
+	for _, player in Players:GetPlayers() do
+		local r = rootOf(player)
+		if
+			r
+			and not onPlateau(r.Position)
+			and math.abs(r.Position.Y - y) < 12
+			and Pursuit.distance(flat(r.Position), at) <= radius
+		then
+			PlayerService.damage(player, damage)
+		end
+	end
+end
+
+local function debrisStrike(e: Event, root: BasePart)
 	local v = root.AssemblyLinearVelocity
 	local aim = Pursuit.leadPoint(flat(root.Position), { X = v.X, Z = v.Z }, P.StrikeLead)
-	local pos = Vector3.new(aim.X, root.Position.Y - 2.5, aim.Z)
-	strikeRemote:FireAllClients(pos, P.StrikeRadius, P.StrikeWarn)
+	local y = root.Position.Y - 2.5
+	strikeRemote:FireAllClients("Debris", Vector3.new(aim.X, y, aim.Z), P.StrikeRadius, P.StrikeWarn)
 	task.delay(P.StrikeWarn, function()
-		for _, player in Players:GetPlayers() do
-			local r = rootOf(player)
-			if
-				r
-				and not onPlateau(r.Position)
-				and Pursuit.distance(flat(r.Position), aim) <= P.StrikeRadius
-			then
-				PlayerService.damage(player, P.StrikeDamage)
-			end
+		if current == e then
+			damageZone(aim, P.StrikeRadius, P.StrikeDamage, y)
+		end
+	end)
+end
+
+local function surge(e: Event, root: BasePart)
+	local goal = { X = 0, Z = map.SafeZoneZ }
+	local lo, hi = X.SurgeAhead[1], X.SurgeAhead[2]
+	local ahead = lo + math.random() * (hi - lo)
+	local at = Pursuit.surgePoint(flat(root.Position), goal, ahead)
+	-- A little sideways jitter so the line home is dangerous, not a single predictable spot.
+	at = { X = at.X + (math.random() - 0.5) * 10, Z = at.Z + (math.random() - 0.5) * 10 }
+	local y = root.Position.Y - 2.5
+	strikeRemote:FireAllClients("Surge", Vector3.new(at.X, y, at.Z), X.SurgeRadius, X.SurgeWarn)
+	task.delay(X.SurgeWarn, function()
+		if current == e then
+			damageZone(at, X.SurgeRadius, X.SurgeDamage, y)
 		end
 	end)
 end
 
 local function extracted(e: Event, player: Player)
 	local seconds = os.clock() - (e.StartedAt :: number)
-	local session = PlayerService.get(player)
-	local best = false
-	if session then
-		if type(session.Data.Records) ~= "table" then
-			session.Data.Records = { Extractions = 0, BestExtract = 0 }
-		end
-		best = Pursuit.record(session.Data.Records, seconds)
+	local records = recordsOf(player)
+	local result: Pursuit.RecordResult? = nil
+	if records then
+		result = Pursuit.record(records, seconds, e.Site.Difficulty, not e.Caught[player])
 	end
+	local coins = if e.Kind == "Extraction" then X.ExtractCoins else P.ExtractCoins
+	local xp = if e.Kind == "Extraction" then X.ExtractXP else P.ExtractXP
 	-- The single transition to Done happens first, so nothing can grant twice.
-	finish(
-		e,
-		"Extracted",
-		{ Seconds = math.floor(seconds * 10 + 0.5) / 10, Best = best, CarrierName = player.DisplayName }
-	)
-	PlayerService.addCoins(player, P.ExtractCoins)
-	ContractService.awardXP(player, P.ExtractXP)
-	SessionStats.event(player, "PursuitExtracted", seconds)
+	finish(e, "Extracted", {
+		Seconds = math.floor(seconds * 10 + 0.5) / 10,
+		Best = result and result.Best or false,
+		Streak = result and result.Streak or 0,
+		NewHardest = result and result.NewHardest or false,
+		Bonus = coins,
+		CarrierName = player.DisplayName,
+		CarrierId = player.UserId,
+	})
+	PlayerService.addCoins(player, coins)
+	ContractService.awardXP(player, xp)
+	SessionStats.event(player, "EventExtracted_" .. e.Kind, seconds)
+end
+
+-- Background path planner for the twister: keeps e.Waypoints toward the carrier (or the loose
+-- core). With no path (the carrier is somewhere too narrow or high for it) the list empties and
+-- the twister holds and searches.
+local function planPaths(e: Event)
+	local path = PathfindingService:CreatePath({
+		AgentRadius = P.AgentRadius,
+		AgentHeight = 12,
+		AgentCanJump = false,
+		AgentCanClimb = false,
+	})
+	while current == e and e.Phase ~= "Done" do
+		local twister = e.Twister
+		local target: Vector3? = nil
+		if e.Phase == "Chase" then
+			local root = rootOf(e.Carrier)
+			target = root and root.Position
+		end
+		if twister and target and os.clock() >= e.StunnedUntil then
+			local ok = pcall(function()
+				path:ComputeAsync(twister.Position + Vector3.new(0, 3, 0), target :: Vector3)
+			end)
+			if current ~= e then
+				break
+			end
+			if ok and path.Status == Enum.PathStatus.Success then
+				local list = {}
+				for i, wp in path:GetWaypoints() do
+					if i > 1 then
+						table.insert(list, wp.Position)
+					end
+				end
+				e.Waypoints = list
+				e.WaypointIndex = 1
+			else
+				e.Waypoints = {}
+			end
+		end
+		task.wait(P.RepathSeconds)
+	end
+end
+
+local function moveTwister(e: Event, twister: BasePart, speed: number, dt: number)
+	local budget = speed * dt
+	local pos = twister.Position
+	while budget > 0 and e.WaypointIndex <= #e.Waypoints do
+		local wp = e.Waypoints[e.WaypointIndex]
+		local to = Vector3.new(wp.X, wp.Y, wp.Z)
+		local d = (to - pos).Magnitude
+		if d <= budget then
+			pos = to
+			budget -= d
+			e.WaypointIndex += 1
+		else
+			pos += (to - pos).Unit * budget
+			budget = 0
+		end
+	end
+	-- It stops at the foot of the climb up to the Scrapyard: reaching the climb is the safe line.
+	local z = math.max(pos.Z, map.SafeZoneZ + P.SafeLine)
+	twister.Position = Vector3.new(pos.X, pos.Y, z)
 end
 
 local function tick(e: Event, dt: number)
@@ -219,6 +356,10 @@ local function tick(e: Event, dt: number)
 		else
 			if e.Carrier then
 				PlayerService.removeCarried(e.Carrier, P.CacheLootId)
+				local records = recordsOf(e.Carrier)
+				if records then
+					Pursuit.breakStreak(records)
+				end
 			end
 			finish(e, "Expired")
 		end
@@ -227,13 +368,6 @@ local function tick(e: Event, dt: number)
 	if e.Phase ~= "Chase" and e.Phase ~= "Loose" then
 		return
 	end
-	local twister = e.Twister
-	if not twister then
-		return
-	end
-	-- Chase the carrier. With the core loose the twister holds where it is: it never guards the
-	-- core, so recovering it is always possible.
-	local target: Vector3? = nil
 	local root = rootOf(e.Carrier)
 	if e.Phase == "Chase" then
 		if not root then
@@ -244,98 +378,113 @@ local function tick(e: Event, dt: number)
 			extracted(e, e.Carrier :: Player)
 			return
 		end
-		target = root.Position
 	end
-	if target and now >= e.StunnedUntil then
-		local chased = now - (e.StartedAt or now)
-		local speed = Pursuit.speedAt(chased, P.SpeedStart, P.SpeedRamp, P.SpeedMax)
-		local pos = Pursuit.step(flat(twister.Position), flat(target), speed, dt)
-		-- It stops at the foot of the climb up to the Scrapyard: reaching the climb is the safe
-		-- line. (Catches on the incline, where everyone slows down, read as unfair in testing.)
-		local z = math.max(pos.Z, map.SafeZoneZ + P.SafeLine)
-		twister.Position = Vector3.new(pos.X, 0, z)
+	if e.Kind == "Extraction" then
+		if e.Phase == "Chase" and root and now >= e.NextSurge then
+			e.NextSurge = now + X.SurgeEvery
+			surge(e, root)
+		end
+		return
 	end
-	if e.Phase == "Chase" and root then
-		if
-			now >= e.StunnedUntil
-			and Pursuit.caught(flat(twister.Position), flat(root.Position), P.CatchRadius)
-		then
-			local carrier = e.Carrier :: Player
-			if PlayerService.removeCarried(carrier, P.CacheLootId) then
-				PlayerService.damage(carrier, P.CatchDamage)
-				PlayerService.notify(
-					carrier,
-					"CAUGHT! The core dropped. Grab it back!",
-					Color3.fromRGB(255, 90, 70)
-				)
-				SessionStats.event(carrier, "PursuitCaught")
-				e.StunnedUntil = now + P.StunSeconds
-				-- Flung sideways (not forward, not back into the twister): recovering costs time.
-				local away = (root.Position - twister.Position) * Vector3.new(1, 0, 1)
-				local side = if away.Magnitude > 0.1
-					then Vector3.new(-away.Z, 0, away.X).Unit
-					else Vector3.xAxis
-				if e.Id % 2 == 0 then
-					side = -side
-				end
-				-- Only onto open ground: a wall or building on that side flips it, and if both
-				-- sides are blocked the core drops at the carrier's feet.
-				local params = RaycastParams.new()
-				local exclude: { Instance } = { twister }
-				for _, pl in Players:GetPlayers() do
-					if pl.Character then
-						table.insert(exclude, pl.Character)
-					end
-				end
-				local loot = LootService.folder()
-				if loot then
-					table.insert(exclude, loot)
-				end
-				params.FilterDescendantsInstances = exclude
-				local function clear(dir: Vector3): boolean
-					return workspace:Raycast(root.Position, dir * (P.DropFling + 2), params) == nil
-				end
-				if not clear(side) then
-					side = if clear(-side) then -side else Vector3.zero
-				end
-				local drop = root.Position + side * P.DropFling
-				dropLoose(e, drop)
-			else
-				-- Somehow not carrying it any more (sold? impossible off the plateau): end cleanly.
-				finish(e, "Lost")
+	local twister = e.Twister
+	if not twister then
+		return
+	end
+	if now < e.StunnedUntil then
+		setTwisterState(e, if e.StartedAt and now - e.StartedAt < P.FormSeconds then "Forming" else "Stunned")
+		return
+	end
+	if e.Phase ~= "Chase" or not root then
+		setTwisterState(e, "Searching") -- the core is loose: it holds and never guards it
+		return
+	end
+	local speed = Pursuit.speedAt(now - (e.StartedAt :: number), P.SpeedStart, P.SpeedRamp, P.SpeedMax)
+	if #e.Waypoints == 0 or e.WaypointIndex > #e.Waypoints then
+		setTwisterState(e, "Searching")
+	else
+		moveTwister(e, twister, speed, dt)
+		setTwisterState(e, if now >= e.NextStrike - P.StrikeWindUp then "WindUp" else "Chasing")
+	end
+	local dy = math.abs(root.Position.Y - (twister.Position.Y + 3))
+	if dy <= P.CatchHeight and Pursuit.caught(flat(twister.Position), flat(root.Position), P.CatchRadius) then
+		local carrier = e.Carrier :: Player
+		if PlayerService.removeCarried(carrier, P.CacheLootId) then
+			e.Caught[carrier] = true
+			PlayerService.damage(carrier, P.CatchDamage)
+			PlayerService.notify(
+				carrier,
+				"CAUGHT! The core dropped. Grab it back!",
+				Color3.fromRGB(255, 90, 70)
+			)
+			SessionStats.event(carrier, "PursuitCaught")
+			e.StunnedUntil = now + P.StunSeconds
+			twister:SetAttribute("CaughtAt", workspace:GetServerTimeNow())
+			-- Flung sideways (not forward, not back into the twister) onto open ground.
+			local away = (root.Position - twister.Position) * Vector3.new(1, 0, 1)
+			local side = if away.Magnitude > 0.1 then Vector3.new(-away.Z, 0, away.X).Unit else Vector3.xAxis
+			if e.Id % 2 == 0 then
+				side = -side
 			end
-			return
+			local params = RaycastParams.new()
+			local exclude: { Instance } = { twister }
+			for _, pl in Players:GetPlayers() do
+				if pl.Character then
+					table.insert(exclude, pl.Character)
+				end
+			end
+			local loot = LootService.folder()
+			if loot then
+				table.insert(exclude, loot)
+			end
+			params.FilterDescendantsInstances = exclude
+			local function clear(dir: Vector3): boolean
+				return workspace:Raycast(root.Position, dir * (P.DropFling + 2), params) == nil
+			end
+			if not clear(side) then
+				side = if clear(-side) then -side else Vector3.zero
+			end
+			dropLoose(e, root.Position + side * P.DropFling)
+		else
+			finish(e, "Lost")
 		end
-		if now >= e.NextStrike and now >= e.StunnedUntil then
-			e.NextStrike = now + P.StrikeEvery
-			strike(root)
-		end
+		return
+	end
+	if now >= e.NextStrike then
+		e.NextStrike = now + P.StrikeEvery
+		debrisStrike(e, root)
 	end
 end
 
-function PursuitService.start(): boolean
-	if current or not P.Enabled then
+-- Starts a cache event of `kind` ("Pursuit" or "Extraction") at `site`, whose spot has already
+-- been checked by EventService. Returns false if an event is already running.
+function PursuitService.start(kind: string, site: Site): boolean
+	if current then
 		return false
 	end
 	nextId += 1
 	local e: Event = {
 		Id = nextId,
+		Kind = kind,
+		Site = site,
 		Phase = "Race",
 		EndsAt = math.min(os.clock() + P.ClaimSeconds, stormAt - 1),
 		Carrier = nil,
+		Caught = {},
+		Waypoints = {},
+		WaypointIndex = 1,
 		StunnedUntil = 0,
 		NextStrike = 0,
-		LastPos = P.Spot,
+		NextSurge = 0,
+		LastPos = site.Spot,
 	}
 	current = e
-	spawnCache(e, P.Spot + Vector3.new(0, 5, 0), P.ClaimSeconds)
+	spawnCache(e, site.Spot + Vector3.new(0, 5, 0), math.max(1, e.EndsAt - os.clock()))
 	broadcast(e)
 	task.spawn(function()
 		local last = os.clock()
 		while current == e do
 			local now = os.clock()
-			-- Real elapsed time: server steps run a little over StepSeconds, and moving by the
-			-- nominal step made the twister ~15% slower than its configured speed.
+			-- Real elapsed time: server steps run a little over StepSeconds.
 			local dt = math.min(now - last, 0.5)
 			last = now
 			local ok, err = pcall(tick, e, dt)
@@ -345,22 +494,42 @@ function PursuitService.start(): boolean
 			task.wait(P.StepSeconds)
 		end
 	end)
+	if kind == "Pursuit" then
+		task.spawn(planPaths, e)
+	end
 	return true
+end
+
+function PursuitService.running(): boolean
+	return current ~= nil
 end
 
 function PursuitService.state(): any
 	local e = current
 	return e
 			and {
+				Kind = e.Kind,
+				Site = e.Site.Id,
 				Phase = e.Phase,
 				Carrier = e.Carrier and e.Carrier.Name,
 				Twister = e.Twister and e.Twister.Position,
+				TwisterState = e.Twister and e.Twister:GetAttribute("State"),
+				Waypoints = #e.Waypoints,
 			}
 		or nil
 end
 
--- Must be initialised before LootService.init: its death hook runs first, so the pursuit core
--- comes out of the bag before the rest of the bag is dropped.
+-- EventService tells us when storms hit (events must end before) and wants to hear results.
+function PursuitService.setStormAt(clock: number)
+	stormAt = clock
+end
+
+function PursuitService.onFinished(callback: (string, string) -> ())
+	onFinished = callback
+end
+
+-- Must be initialised before LootService.init: its death hook runs first, so the cache core comes
+-- out of the bag before the rest of the bag is dropped.
 function PursuitService.init(mapInfo)
 	map = mapInfo
 	PlayerService.onDied(function(player, character)
@@ -379,32 +548,12 @@ function PursuitService.init(mapInfo)
 		end
 	end)
 	Players.PlayerAdded:Connect(function(player)
-		local e = current
-		if e then
-			task.defer(function()
-				if current == e then
-					stateRemote:FireClient(player, {
-						Id = e.Id,
-						Phase = e.Phase,
-						District = P.District,
-						EndsAt = serverTime(e.EndsAt),
-						CarrierId = e.Carrier and e.Carrier.UserId or nil,
-						CarrierName = e.Carrier and e.Carrier.DisplayName or nil,
-					})
-				end
-			end)
-		end
-	end)
-	StormService.onPhase(function(phase, duration)
-		if phase == "Calm" then
-			stormAt = os.clock() + duration + Config.Cycle.Warning
-		elseif phase == "Storm" then
-			stormAt = math.huge
-		end
-		if phase == "Calm" and P.Enabled then
-			task.wait(P.StartAfterCalm)
-			PursuitService.start()
-		end
+		task.defer(function()
+			local e = current
+			if e then
+				stateRemote:FireClient(player, message(e))
+			end
+		end)
 	end)
 end
 

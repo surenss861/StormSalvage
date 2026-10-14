@@ -31,6 +31,7 @@ local LookService = require(script.Parent.LookService)
 local LootService = require(script.Parent.LootService)
 local MonetizationService = require(script.Parent.MonetizationService)
 local PlayerService = require(script.Parent.PlayerService)
+local EventService = require(script.Parent.EventService)
 local PursuitService = require(script.Parent.PursuitService)
 local StormService = require(script.Parent.StormService)
 local SessionStats = require(script.Parent.SessionStats)
@@ -103,9 +104,16 @@ local commands: { [string]: (...any) -> any } = {
 		PlayerService.pushState(player :: Player)
 		return amount
 	end,
-	-- Start a Storm Pursuit event now (V4 testing).
+	-- V4 events: start one now. event("Pursuit" | "Extraction" | "Rush", siteId) or eventnext().
+	event = function(kind: string, siteId: string)
+		return EventService.start(kind, siteId)
+	end,
+	eventnext = function()
+		return EventService.startNext()
+	end,
+	-- Back-compat for the QA runner: a Storm Pursuit at Warehouse 7.
 	pursuit = function()
-		return PursuitService.start()
+		return (EventService.start("Pursuit", "Warehouse"))
 	end,
 	pursuitstate = function()
 		return PursuitService.state()

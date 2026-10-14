@@ -50,14 +50,60 @@ return {
 		local same = Pursuit.spawnPoint({ X = 5, Z = 5 }, { X = 5, Z = 5 }, 34)
 		near(same.Z, 39, "degenerate case picks a direction")
 	end,
-	["pursuit: records count and keep the best time"] = function()
-		local r = { Extractions = 0, BestExtract = 0 }
-		eq(Pursuit.record(r, 31.27), true, "first is best")
+	["pursuit: records count, best time, streaks and hardest site"] = function()
+		local r = Pursuit.newRecords()
+		local a = Pursuit.record(r, 31.27, 2, true)
+		eq(a.Best, true, "first is best")
 		eq(r.BestExtract, 31.3, "rounded")
-		eq(Pursuit.record(r, 40), false, "slower")
-		eq(Pursuit.record(r, 22.04), true, "faster")
+		eq(a.Streak, 1, "streak 1")
+		eq(a.NewHardest, true, "first hardest")
+		local b = Pursuit.record(r, 40, 1, true)
+		eq(b.Best, false, "slower")
+		eq(b.Streak, 2, "streak 2")
+		eq(b.NewHardest, false, "easier site")
+		local c = Pursuit.record(r, 22.04, 3, false)
+		eq(c.Best, true, "faster")
+		eq(c.Streak, 0, "caught this time: streak resets")
+		eq(r.BestStreak, 2, "best streak kept")
+		eq(r.Hardest, 3, "hardest")
 		eq(r.Extractions, 3, "count")
-		eq(r.BestExtract, 22, "best")
+		Pursuit.breakStreak(r)
+		eq(r.Streak, 0, "broken")
+	end,
+	["pursuit: old records are reconciled"] = function()
+		local r = Pursuit.reconcile({ Extractions = 4, BestExtract = 12.5 })
+		eq(r.Extractions, 4, "kept")
+		eq(r.BestExtract, 12.5, "kept best")
+		eq(r.Streak, 0, "filled")
+		eq(r.RushFinds, 0, "filled")
+		eq(Pursuit.reconcile(nil).Hardest, 0, "nil profile field")
+		eq(Pursuit.reconcile({ Streak = 0 / 0 }).Streak, 0, "NaN repaired")
+	end,
+	["events: never the same kind or site twice in a row"] = function()
+		local kinds = { "Pursuit", "Extraction", "Rush" }
+		local sites = { "A", "B", "C" }
+		local lastK, lastS = nil, nil
+		local seed = 7
+		local function random(n: number): number
+			seed = (seed * 1103515245 + 12345) % 2147483648
+			return seed % n + 1
+		end
+		for _ = 1, 200 do
+			local k, s = Pursuit.pickNext(lastK, lastS, kinds, sites, random)
+			if lastK then
+				eq(k ~= lastK, true, "kind repeated")
+				eq(s ~= lastS, true, "site repeated")
+			end
+			lastK, lastS = k, s
+		end
+		local onlyK = Pursuit.pickNext("X", "Y", { "X" }, { "Y" }, random)
+		eq(onlyK, "X", "single choice still works")
+	end,
+	["events: surges land on the line home"] = function()
+		local p = Pursuit.surgePoint({ X = 0, Z = 0 }, { X = 0, Z = -100 }, 30)
+		near(p.Z, -30, "ahead")
+		local capped = Pursuit.surgePoint({ X = 0, Z = 0 }, { X = 0, Z = -10 }, 30)
+		near(capped.Z, -10, "never past home")
 	end,
 	["pursuit: twister speed builds and caps"] = function()
 		eq(Pursuit.speedAt(0, 25, 0.4, 31), 25, "start")

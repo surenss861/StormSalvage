@@ -296,27 +296,44 @@ Config.Movement = {
 	SprintFov = 76, -- camera field of view while sprinting (70 normally); off in Reduced Effects
 }
 
--- V4 Storm Pursuit (PursuitService): after a storm passes, a rare cache drops in one district.
--- Whoever grabs it is chased by a rogue twister and must extract it to the Scrapyard plateau.
-Config.Pursuit = {
+-- V4 events (EventService): one opportunity after each storm passes, rotating through three
+-- kinds and five sites so the same thing never repeats back to back.
+--   Pursuit     a rare cache; whoever grabs it is chased home by a rogue twister.
+--   Extraction  an unstable core; no pursuer, but surges erupt on the obvious route home.
+--   Rush        a burst of valuable salvage; grab what you can before it's gone.
+Config.Events = {
 	Enabled = true,
 	StartAfterCalm = 6, -- seconds into the Calm phase
+	Kinds = { "Pursuit", "Extraction", "Rush" },
+	-- Sites: spots are checked at runtime (open sky, solid ground, a walkable route home) and
+	-- nudged to the nearest good spot if a prop is in the way. Difficulty is the run home.
+	Sites = {
+		{ Id = "Warehouse", Name = "Warehouse 7", Spot = Vector3.new(140, 0, 40), Difficulty = 2 },
+		{ Id = "Market", Name = "Super Saver", Spot = Vector3.new(135, 0, -112), Difficulty = 1 },
+		{ Id = "Fuel", Name = "Fuel & Go", Spot = Vector3.new(-118, 0, -30), Difficulty = 1 },
+		{ Id = "Houses", Name = "the Houses", Spot = Vector3.new(-150, 0, 95), Difficulty = 2 },
+		{ Id = "Motel", Name = "Starlite Motel", Spot = Vector3.new(0, 0, 150), Difficulty = 3 },
+	},
+}
+
+-- The cache events (Pursuit and Extraction) share the carrier rules in PursuitService.
+Config.Pursuit = {
 	ClaimSeconds = 25, -- the race: the cache disappears if nobody takes it
 	ExtractSeconds = 45, -- after the first grab; then the core destabilises (removed).
 	-- Both windows are cut short so the event always ends before the next storm hits.
 	CacheLootId = "StormCore", -- the prize is a real Storm Core (normal sale value) ...
 	ExtractCoins = 150, -- ... plus this extraction bonus at the plateau, once per event
 	ExtractXP = 40,
-	Spot = Vector3.new(140, 0, 40), -- Warehouse 7, open loading yard in front of the dock
-	District = "Warehouse 7",
-	-- The twister
-	SpawnBehind = 22, -- studs behind the first carrier, back toward the cache
-	-- Speed builds over the chase: slower than a sprint at first, faster than a base sprint
-	-- after ~4 s, so only a quick, direct route home escapes it.
+	-- The twister. It is route-bound: it paths along streets like a player (PathfindingService
+	-- with a wide agent), so narrow alleys and fenced yards are real escapes; on roofs it waits.
+	SpawnBehind = 16, -- studs behind the first carrier, back toward the cache
 	SpeedStart = 25,
-	SpeedRamp = 0.6, -- studs/s gained per second of chase
-	SpeedMax = 30,
+	SpeedRamp = 0.8, -- studs/s gained per second of chase
+	SpeedMax = 31,
+	AgentRadius = 5, -- path width: gaps narrower than ~10 studs are too tight for it
+	RepathSeconds = 0.6,
 	CatchRadius = 7,
+	CatchHeight = 6, -- only catches within this height (a roof is out of reach)
 	CatchDamage = 15,
 	FormSeconds = 0.8, -- the twister forms after the first grab before it moves
 	StunSeconds = 3, -- after a catch it stops, so the dropped core is a fair scramble
@@ -325,10 +342,32 @@ Config.Pursuit = {
 	StrikeEvery = 5, -- telegraphed debris strike at the carrier's lead point
 	StrikeLead = 1.4, -- seconds of lead on the carrier's velocity (= warning: lands where you'd be)
 	StrikeWarn = 1.4,
+	StrikeWindUp = 0.6, -- the funnel visibly winds up this long before a strike is thrown
 	StrikeRadius = 7,
 	StrikeDamage = 20,
-	SafeLine = 80, -- studs short of the plateau edge where the twister stops: the foot of the climb (z ≈ -142)
+	SafeLine = 80, -- studs short of the plateau edge where it stops: the foot of the climb (z ≈ -142)
 	StepSeconds = 0.1, -- server simulation step
+}
+
+-- Extraction: no twister. The core is unstable: surges erupt ahead on the straight line home,
+-- telegraphed, so the obvious route is the dangerous one. Shorter window, smaller bonus.
+Config.Extraction = {
+	ExtractSeconds = 35,
+	ExtractCoins = 120,
+	ExtractXP = 35,
+	SurgeEvery = 2.2,
+	SurgeWarn = 1.6,
+	SurgeRadius = 9,
+	SurgeDamage = 25,
+	SurgeAhead = { 25, 45 }, -- studs ahead of the carrier, along the straight line home
+}
+
+-- Rush: valuable salvage scattered around the site; normal sale values, plus a little XP each.
+Config.Rush = {
+	Seconds = 30,
+	Items = { "Engine", "Engine", "Register", "Register", "Safe", "Jukebox" },
+	Spread = 14, -- studs from the site spot
+	XPPerFind = 6,
 }
 
 -- Tools: permanent coin unlocks in the Gear Shop's Tools tab (V3-SUPPLY-DEPOT.md). Owned once,

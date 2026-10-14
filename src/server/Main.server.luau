@@ -20,6 +20,7 @@ local ServerPerf = require(script.Parent.ServerPerf)
 local ContractService = require(script.Parent.ContractService)
 local DetectorService = require(script.Parent.DetectorService)
 local PursuitService = require(script.Parent.PursuitService)
+local EventService = require(script.Parent.EventService)
 
 require(script.Parent.AssetPivotFix).apply() -- before anything places an asset
 
@@ -30,6 +31,7 @@ PlayerService.init()
 MonetizationService.init()
 ContractService.init()
 PursuitService.init(map) -- before LootService: its death hook must run first
+EventService.init(map) -- before StormService: it schedules off the storm phases
 LootService.init(map)
 DetectorService.init()
 StormService.init(map)

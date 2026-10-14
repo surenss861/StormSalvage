@@ -55,17 +55,99 @@ function Pursuit.spawnPoint(carrier: Vec2, cache: Vec2, behind: number): Vec2
 	return { X = carrier.X + dx / d * behind, Z = carrier.Z + dz / d * behind }
 end
 
-export type Records = { Extractions: number, BestExtract: number }
+export type Records = {
+	Extractions: number,
+	BestExtract: number,
+	Streak: number, -- extractions in a row without being caught
+	BestStreak: number,
+	Hardest: number, -- highest site difficulty extracted from
+	RushFinds: number,
+}
 
--- Applies a successful extraction taking `seconds`. Returns whether it was a personal best.
-function Pursuit.record(records: Records, seconds: number): boolean
+function Pursuit.newRecords(): Records
+	return { Extractions = 0, BestExtract = 0, Streak = 0, BestStreak = 0, Hardest = 0, RushFinds = 0 }
+end
+
+-- Fills fields missing from older profiles (the first V4 build saved only two of them).
+function Pursuit.reconcile(records: any): Records
+	local out = if type(records) == "table" then records else {}
+	for k, v in Pursuit.newRecords() do
+		if type(out[k]) ~= "number" or out[k] ~= out[k] then
+			out[k] = v
+		end
+	end
+	return out :: Records
+end
+
+export type RecordResult = { Best: boolean, Streak: number, NewHardest: boolean }
+
+-- Applies a successful extraction taking `seconds` from a site of `difficulty`. `clean` means the
+-- carrier was never caught during this event (streaks count clean extractions in a row).
+function Pursuit.record(records: Records, seconds: number, difficulty: number?, clean: boolean?): RecordResult
 	assert(seconds == seconds and seconds >= 0 and seconds < math.huge, "invalid time")
 	records.Extractions += 1
+	local best = false
 	if records.BestExtract <= 0 or seconds < records.BestExtract then
 		records.BestExtract = math.floor(seconds * 10 + 0.5) / 10
-		return true
+		best = true
 	end
-	return false
+	if clean == false then
+		records.Streak = 0
+	else
+		records.Streak += 1
+		records.BestStreak = math.max(records.BestStreak, records.Streak)
+	end
+	local d = difficulty or 0
+	local newHardest = d > records.Hardest
+	if newHardest then
+		records.Hardest = d
+	end
+	return { Best = best, Streak = records.Streak, NewHardest = newHardest }
+end
+
+-- A failed event (out of time, or the core lost) breaks the streak.
+function Pursuit.breakStreak(records: Records)
+	records.Streak = 0
+end
+
+-- Next event: never the same kind or the same site twice in a row. `random(n)` returns 1..n.
+function Pursuit.pickNext(
+	lastKind: string?,
+	lastSite: string?,
+	kinds: { string },
+	siteIds: { string },
+	random: (number) -> number
+): (string, string)
+	local k = {}
+	for _, kind in kinds do
+		if kind ~= lastKind then
+			table.insert(k, kind)
+		end
+	end
+	local s = {}
+	for _, id in siteIds do
+		if id ~= lastSite then
+			table.insert(s, id)
+		end
+	end
+	if #k == 0 then
+		k = kinds
+	end
+	if #s == 0 then
+		s = siteIds
+	end
+	return k[random(#k)], s[random(#s)]
+end
+
+-- A surge point `ahead` studs from the carrier along the straight line to `goal`.
+function Pursuit.surgePoint(carrier: Vec2, goal: Vec2, ahead: number): Vec2
+	local dx, dz = goal.X - carrier.X, goal.Z - carrier.Z
+	local d = math.sqrt(dx * dx + dz * dz)
+	if d < 0.001 then
+		return { X = carrier.X, Z = carrier.Z }
+	end
+	local t = math.min(ahead, d)
+	return { X = carrier.X + dx / d * t, Z = carrier.Z + dz / d * t }
 end
 
 return Pursuit

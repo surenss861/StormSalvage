@@ -91,7 +91,9 @@ Settings.init(root, {
 })
 Jobs.init(root)
 DetectorHud.init(root, Hud.onLayout)
-Movement.init()
+Movement.init(function(text)
+	Notifications.feed(text, Color3.fromRGB(255, 226, 110), 5)
+end)
 PursuitHud.init(topStack)
 Nameplates.init()
 for _, modal in { Shop.modal(), Settings.modal(), Jobs.modal() } do
