@@ -20,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
 local CharacterAnims = require(script.Parent:WaitForChild("CharacterAnims"))
+local ProceduralAnims = require(script.Parent:WaitForChild("ProceduralAnims"))
 local BigMoney = require(ReplicatedStorage.Shared:WaitForChild("BigMoney"))
 
 -- Every digit while it has at most `digits` digits, else the compact form (cards are small).
@@ -268,6 +269,7 @@ end
 -- for a personal best, a streak and the hardest site yet. Every number is the server's.
 function SalvageFeedback.extracted(msg: any)
 	CharacterAnims.play("Celebrate", 0.1)
+	ProceduralAnims.pulse(game:GetService("Players").LocalPlayer, "Celebrate")
 	local prize = Config.Loot[msg.Prize or "StormCore"] or Config.Loot.StormCore
 	local golden = msg.Golden == true
 	local accent = if golden then prize.Color else Config.RarityColors.Legendary

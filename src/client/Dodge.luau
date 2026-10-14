@@ -26,6 +26,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
 local CharacterAnims = require(script.Parent:WaitForChild("CharacterAnims"))
+local ProceduralAnims = require(script.Parent:WaitForChild("ProceduralAnims"))
 local UI = require(script.Parent:WaitForChild("UI"))
 
 local Dodge = {}
@@ -102,6 +103,7 @@ function Dodge.trigger(): boolean
 	burstUntil = os.clock() + D.Seconds
 	dodgeRemote:FireServer(direction.X, direction.Z)
 	CharacterAnims.play("Dodge")
+	ProceduralAnims.pulse(Players.LocalPlayer, "Dodge")
 	dust(root.Position - Vector3.new(0, 2.5, 0))
 	Audio.play("WarnWind", 0.35, 1.6)
 	return true
@@ -150,7 +152,10 @@ function Dodge.init()
 	ContextActionService:SetPosition("StormSalvageDodge", UDim2.new(1, -170, 1, -150))
 	RunService.Heartbeat:Connect(step)
 	-- Other players' honoured dodges: the same dust, where they were.
-	Remotes.get("DodgeFx").OnClientEvent:Connect(function(_, at: Vector3)
+	Remotes.get("DodgeFx").OnClientEvent:Connect(function(who, at: Vector3)
+		if typeof(who) == "Instance" and who:IsA("Player") and who ~= Players.LocalPlayer then
+			ProceduralAnims.pulse(who, "Dodge")
+		end
 		if typeof(at) == "Vector3" then
 			dust(at - Vector3.new(0, 2.5, 0))
 		end
