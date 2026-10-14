@@ -216,9 +216,7 @@ Config.Loot = {
 		Material = Enum.Material.Neon,
 		Rarity = "Legendary",
 		Shape = Enum.PartType.Ball,
-		ModelFrom = "StormCore", -- the Storm Core model, tinted gold
-		Tint = Color3.fromRGB(255, 196, 48),
-		Jackpot = true,
+		Jackpot = true, -- its own model (assets/roblox/salvage/GoldenCore), not a recoloured Storm Core
 	},
 } :: { [string]: LootDef }
 
@@ -319,6 +317,18 @@ Config.Dodge = {
 	Speed = 58, -- studs/s during the burst
 	Seconds = 0.22,
 	Cooldown = 2.5,
+	Tolerance = 0.2, -- server: network jitter allowed on the cooldown (DodgeService)
+	Slack = 6, -- server: studs of replication burst allowed in the movement check
+}
+
+-- V4 character animations (CharacterAnims.client). Uploaded Animation asset ids, owned by the
+-- experience's owner. 0 = not uploaded yet: the game uses its fallbacks (Studio previews the
+-- authored KeyframeSequences in ServerStorage.Assets.animations). Never fill these with a guess:
+-- upload steps are in docs/art/v4/ANIMATIONS.md.
+Config.Animations = {
+	Dodge = 0,
+	CoreCarry = 0,
+	Celebrate = 0,
 }
 
 -- V4 events (EventService): one opportunity after each storm passes, rotating through three
@@ -376,11 +386,13 @@ Config.Pursuit = {
 	StrikeDamage = 20,
 	SafeLine = 80, -- studs short of the plateau edge where it stops: the foot of the climb (z ≈ -142)
 	StepSeconds = 0.1, -- server simulation step
-	-- Fairness under latency: the server sees a running player ~0.1-0.2 s late (3-6 studs at a
-	-- sprint), so hits are judged a little after landing and on a slightly smaller circle, and
-	-- catches on a slightly smaller ring. Measured in Studio: without this, a player clearly
-	-- outside a circle on their own screen still took the hit.
-	HitGrace = 0.15,
+	-- Fairness under latency: the server sees a player's movement late, so telegraphed hits are
+	-- judged a little after the warning ends (plus each player's own ping, capped at 0.25 s, in
+	-- DodgeService.lagAllowance) and on a slightly smaller circle; catches use a slightly smaller
+	-- ring. Measured in Studio (M2): a dodge cleared a strike circle on the client 0.12 s after
+	-- the key press but on the server 0.42 s after it, with no added lag. At 0.15 a dodge had to
+	-- come 0.27 s before the ring visibly closed; at 0.35 a last-moment dodge counts.
+	HitGrace = 0.35,
 	HitTolerance = 1.5,
 }
 

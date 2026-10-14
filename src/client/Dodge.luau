@@ -10,16 +10,22 @@
 --   moving (or facing, if still), about 13 studs: enough to clear a debris circle or the twister's
 --   catch ring when timed well. Ground only (not climbing, swimming, seated or mid-air), with a
 --   cooldown, so it's a decision, not extra speed.
--- It changes nothing on the server: no reward, no immunity. Movement is client-owned on Roblox
--- anyway; the dodge stays inside what an ordinary sprinting character can reach in a second.
+-- The client moves its own character (Roblox physics), and the burst is a velocity, never a
+-- teleport, so walls stop it. It asks the server too (Dodge remote): DodgeService honours it only
+-- off cooldown and on the ground, shows it to other players, and judges hits on a position it
+-- trusts, so a dodge never buys more than the movement itself. The burst ends the moment the
+-- character leaves the ground, so it can't stretch a jump across a gap.
 
 local ContextActionService = game:GetService("ContextActionService")
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
+local CharacterAnims = require(script.Parent:WaitForChild("CharacterAnims"))
 local UI = require(script.Parent:WaitForChild("UI"))
 
 local Dodge = {}
@@ -28,6 +34,7 @@ local D = Config.Dodge
 local readyAt = 0
 local burstUntil = 0
 local direction = Vector3.zero
+local dodgeRemote: RemoteEvent
 
 local GROUND_STATES = {
 	[Enum.HumanoidStateType.Running] = true,
@@ -93,6 +100,8 @@ function Dodge.trigger(): boolean
 	direction = move.Unit
 	readyAt = os.clock() + D.Cooldown
 	burstUntil = os.clock() + D.Seconds
+	dodgeRemote:FireServer(direction.X, direction.Z)
+	CharacterAnims.play("Dodge")
 	dust(root.Position - Vector3.new(0, 2.5, 0))
 	Audio.play("WarnWind", 0.35, 1.6)
 	return true
@@ -103,17 +112,34 @@ local function step()
 		return
 	end
 	local character = Players.LocalPlayer.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if not root then
+	if not humanoid or not root or humanoid.Health <= 0 then
 		burstUntil = 0
 		return
 	end
 	local v = root.AssemblyLinearVelocity
+	if not GROUND_STATES[humanoid:GetState()] then
+		-- Left the ground (jumped or ran off a ledge): the burst ends and the extra speed with it,
+		-- so a dodge never carries a jump further than sprinting would.
+		burstUntil = 0
+		local flat = Vector3.new(v.X, 0, v.Z)
+		if flat.Magnitude > humanoid.WalkSpeed then
+			flat = flat.Unit * humanoid.WalkSpeed
+			root.AssemblyLinearVelocity = Vector3.new(flat.X, v.Y, flat.Z)
+		end
+		return
+	end
 	root.AssemblyLinearVelocity = Vector3.new(direction.X * D.Speed, v.Y, direction.Z * D.Speed)
 end
 
 function Dodge.init()
-	ContextActionService:BindAction("StormSalvageDodge", function(_, state)
+	dodgeRemote = Remotes.get("Dodge")
+	ContextActionService:BindAction("StormSalvageDodge", function(_, state, input)
+		-- Gamepad B backs out of menus while one has focus; it only dodges in play.
+		if input.KeyCode == Enum.KeyCode.ButtonB and GuiService.SelectedObject ~= nil then
+			return Enum.ContextActionResult.Pass
+		end
 		if state == Enum.UserInputState.Begin then
 			Dodge.trigger()
 		end
@@ -123,6 +149,12 @@ function Dodge.init()
 	-- Touch: above-left of the jump button, inside the right thumb's reach.
 	ContextActionService:SetPosition("StormSalvageDodge", UDim2.new(1, -170, 1, -150))
 	RunService.Heartbeat:Connect(step)
+	-- Other players' honoured dodges: the same dust, where they were.
+	Remotes.get("DodgeFx").OnClientEvent:Connect(function(_, at: Vector3)
+		if typeof(at) == "Vector3" then
+			dust(at - Vector3.new(0, 2.5, 0))
+		end
+	end)
 	if RunService:IsStudio() then
 		-- QA only: a scripted run can't press Q, so ReplicatedStorage.QA_Dodge:Fire() triggers it.
 		local qa = Instance.new("BindableEvent")

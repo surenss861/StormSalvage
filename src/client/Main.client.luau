@@ -28,6 +28,7 @@ local Jobs = require(script.Parent:WaitForChild("Jobs"))
 local DetectorHud = require(script.Parent:WaitForChild("DetectorHud"))
 local Movement = require(script.Parent:WaitForChild("Movement"))
 local Dodge = require(script.Parent:WaitForChild("Dodge"))
+local CharacterAnims = require(script.Parent:WaitForChild("CharacterAnims"))
 local PursuitHud = require(script.Parent:WaitForChild("PursuitHud"))
 local Nameplates = require(script.Parent:WaitForChild("Nameplates"))
 local Notifications = require(script.Parent:WaitForChild("Notifications"))
@@ -96,6 +97,7 @@ Movement.init(function(text)
 	Notifications.feed(text, Color3.fromRGB(255, 226, 110), 5)
 end)
 PursuitHud.init(topStack)
+CharacterAnims.init()
 Dodge.init()
 Nameplates.init()
 for _, modal in { Shop.modal(), Settings.modal(), Jobs.modal() } do
@@ -211,6 +213,13 @@ Remotes.get("PlayerState").OnClientEvent:Connect(function(s)
 		Hud.pulseBag()
 	end
 	lastCarried = #s.Carried
+	local core = false
+	for _, id in s.Carried do
+		if Config.CoreIds[id] then
+			core = true
+		end
+	end
+	CharacterAnims.setCarrying(core)
 	local levels = 0
 	for _, level in s.Upgrades do
 		levels += level

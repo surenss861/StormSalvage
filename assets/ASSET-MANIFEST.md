@@ -12,6 +12,7 @@ Regenerate the meshes with the Blender script, re-import the FBX, then rerun `to
 | salvage | Pipe | 3.3 x 0.9 x 0.6 | `tools/asset_pipeline/build_salvage.py` | `assets/exports/salvage/Pipe.fbx` | `assets/roblox/salvage/Pipe.rbxm` | `Pipe1__Metal__Rust` 135994713864216<br>`Pipe2__Metal__RustDark` 140603996398787 |
 | salvage | Register | 1.6 x 1.5 x 1.5 | `tools/asset_pipeline/build_salvage.py` | `assets/exports/salvage/Register.fbx` | `assets/roblox/salvage/Register.rbxm` | `Register1__Metal__Mustard` 107127201239085<br>`Register2__Smooth__Cream` 129944620524516<br>`Register3__Smooth__HazardBlack` 138233604549435<br>`Register4__Neon__NeonGreen` 89473399156136<br>`Register5__Metal__Steel` 76690005515803 |
 | salvage | Safe | 1.9 x 1.9 x 2.1 | `tools/asset_pipeline/build_salvage.py` | `assets/exports/salvage/Safe.fbx` | `assets/roblox/salvage/Safe.rbxm` | `Safe1__Plate__Gunmetal` 102081519376640<br>`Safe2__Metal__Steel` 79944506785535<br>`Safe3__Metal__Mustard` 114951994187200<br>`Safe4__Metal__HazardBlack` 109819019592591 |
+| salvage | GoldenCore | 2.2 x 3.5 x 2.2 | `tools/asset_pipeline/build_golden_core.py` | none (Roblox parts) | `assets/roblox/salvage/GoldenCore.model.json` | none: 19 primitive Parts, no upload |
 | salvage | StormCore | 2.2 x 2.1 x 2.2 | `tools/asset_pipeline/build_salvage.py` | `assets/exports/salvage/StormCore.fbx` | `assets/roblox/salvage/StormCore.rbxm` | `StormCore1__Neon__StormCyan` 102495454769132<br>`StormCore2__Metal__Gunmetal` 117786075365891<br>`StormCore3__Metal__SafetyYellow` 119661919009572 |
 | salvage | Tire | 0.9 x 2.1 x 2.1 | `tools/asset_pipeline/build_salvage.py` | `assets/exports/salvage/Tire.fbx` | `assets/roblox/salvage/Tire.rbxm` | `Tire1__Rubber__Rubber` 123671274844771<br>`Tire2__Metal__Steel` 82124387055276<br>`Tire3__Metal__Gunmetal` 110738857571746 |
 | salvage | Toaster | 1.6 x 1.4 x 1.0 | `tools/asset_pipeline/build_salvage.py` | `assets/exports/salvage/Toaster.fbx` | `assets/roblox/salvage/Toaster.rbxm` | `Toaster1__Metal__Steel` 125266719223764<br>`Toaster2__Smooth__HazardBlack` 99407592572648<br>`Toaster3__Fabric__Mustard` 73835114765777 |
@@ -202,3 +203,11 @@ uploaded by the 3D Importer on 2026-10-12. Placed by `src/server/DistrictMotel.l
 | v3motel | FrontDesk | 8.4 x 9.2 x 4.8 | 400 | `assets/exports/v3motel/FrontDesk.fbx` | `assets/roblox/v3motel/FrontDesk.rbxm` | `FrontDesk1__Planks__Teal` 71941701347587<br>`FrontDesk2__Smooth__Cream` 131372898092693<br>`FrontDesk3__Metal__Mustard` 93546200644054<br>`FrontDesk4__Smooth__Coral` 99029641650114<br>`FrontDesk5__Planks__Bark` 137685426667956<br>`FrontDesk6__Smooth__Signboard` 110847697840431 |
 | v3motel | WallSconce | 0.6 x 0.9 x 1.0 | 76 | `assets/exports/v3motel/WallSconce.fbx` | `assets/roblox/v3motel/WallSconce.rbxm` | `WallSconce1__Metal__Gunmetal` 117110555947123<br>`WallSconce2__Neon__WindowWarm` 123829150428105 |
 | v3motel | StormShutter | 4.4 x 4.8 x 0.3 | 80 | `assets/exports/v3motel/StormShutter.fbx` | `assets/roblox/v3motel/StormShutter.rbxm` | `StormShutter1__Planks__Sand` 136543172928417<br>`StormShutter2__Smooth__Coral` 122493390486491<br>`StormShutter3__Smooth__Signboard` 111894593456685 |
+
+## Animations (KeyframeSequences, not meshes)
+
+| Asset | Source script | Model | Uploaded animation ID |
+| --- | --- | --- | --- |
+| Dodge | `tools/asset_pipeline/build_animations.py` | `assets/roblox/animations/Dodge.model.json` | not uploaded yet (`docs/art/v4/ANIMATIONS.md`) |
+| CoreCarry | `tools/asset_pipeline/build_animations.py` | `assets/roblox/animations/CoreCarry.model.json` | not uploaded yet |
+| Celebrate | `tools/asset_pipeline/build_animations.py` | `assets/roblox/animations/Celebrate.model.json` | not uploaded yet |

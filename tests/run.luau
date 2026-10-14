@@ -8,6 +8,8 @@ local specs = {
 	require("./progression.spec"),
 	require("./detector.spec"),
 	require("./pursuit.spec"),
+	require("./salvagelog.spec"),
+	require("./moverules.spec"),
 }
 local passed, failed = 0, 0
 for _, spec in specs do

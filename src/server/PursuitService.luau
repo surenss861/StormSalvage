@@ -29,6 +29,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pursuit = require(ReplicatedStorage.Shared.Pursuit)
+local DodgeService = require(script.Parent.DodgeService)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local ContractService = require(script.Parent.ContractService)
 local LootService = require(script.Parent.LootService)
@@ -182,7 +183,7 @@ local function setTwisterState(e: Event, state: string)
 	end
 end
 
-local spawnCache: (e: Event, position: Vector3, lifetime: number) -> ()
+local spawnCache: (e: Event, position: Vector3, lifetime: number, recovered: boolean?) -> ()
 
 local function takeCore(e: Event, player: Player)
 	e.Cache = nil
@@ -236,7 +237,7 @@ local function takeCore(e: Event, player: Player)
 	broadcast(e)
 end
 
-spawnCache = function(e: Event, position: Vector3, lifetime: number)
+spawnCache = function(e: Event, position: Vector3, lifetime: number, recovered: boolean?)
 	local item = LootService.spawnSpecial(e.Prize, position, lifetime, function(player)
 		if current ~= e or e.Phase == "Done" then
 			return
@@ -246,7 +247,7 @@ spawnCache = function(e: Event, position: Vector3, lifetime: number)
 		elseif e.Phase == "Race" then
 			finish(e, "Unclaimed")
 		end
-	end)
+	end, recovered)
 	item:SetAttribute("PursuitCache", true)
 	e.Cache = item
 end
@@ -257,41 +258,68 @@ local function dropLoose(e: Event, at: Vector3)
 	e.Phase = "Loose"
 	e.Waypoints = {}
 	local left = math.max(1, e.EndsAt - os.clock())
-	spawnCache(e, at, left)
+	spawnCache(e, at, left, true) -- the same core: grabbing it back isn't a new find
 	broadcast(e)
 end
 
 local qaHits: { string } = {} -- Studio QA: each strike's outcome as the server judged it
 
-local function damageZone(at: Pursuit.Vec2, radius: number, damage: number, y: number)
-	for _, player in Players:GetPlayers() do
-		local r = rootOf(player)
-		if r and RunService:IsStudio() then
-			table.insert(
-				qaHits,
-				("%s d=%.1f r=%.1f"):format(player.Name, Pursuit.distance(flat(r.Position), at), radius)
+-- One player's hit check for a zone. Judged where the server trusts the player is
+-- (DodgeService): a teleport or a spammed dodge doesn't escape a hit an honest player in the same
+-- spot would take.
+local function hitPlayer(player: Player, at: Pursuit.Vec2, radius: number, damage: number, y: number)
+	local pos = DodgeService.judgedPosition(player)
+	if pos and RunService:IsStudio() then
+		table.insert(
+			qaHits,
+			("%s d=%.1f r=%.1f lag=%.2f"):format(
+				player.Name,
+				Pursuit.distance(flat(pos), at),
+				radius,
+				DodgeService.lagAllowance(player)
 			)
-		end
-		if
-			r
-			and not onPlateau(r.Position)
-			and math.abs(r.Position.Y - y) < 12
-			and Pursuit.distance(flat(r.Position), at) <= radius
-		then
-			PlayerService.damage(player, damage)
-		end
+		)
+	end
+	if
+		pos
+		and not onPlateau(pos)
+		and math.abs(pos.Y - y) < 12
+		and Pursuit.distance(flat(pos), at) <= radius
+	then
+		PlayerService.damage(player, damage)
+	end
+end
+
+-- A telegraphed strike: everyone sees the warning now; each player is judged at the end of the
+-- warning plus HitGrace plus their own network lag (capped, DodgeService.lagAllowance), because a
+-- dodge made at the last visible moment reaches the server that much later.
+local function strikeZone(
+	style: string,
+	at: Pursuit.Vec2,
+	radius: number,
+	warn: number,
+	damage: number,
+	y: number,
+	live: () -> boolean
+)
+	strikeRemote:FireAllClients(style, Vector3.new(at.X, y, at.Z), radius, warn)
+	for _, player in Players:GetPlayers() do
+		local allowance = DodgeService.lagAllowance(player)
+		-- Real-server evidence for the allowance: the report shows the largest one applied.
+		SessionStats.peak(player, "StrikeLagAllowanceMs", math.floor(allowance * 1000))
+		task.delay(warn + P.HitGrace + allowance, function()
+			if live() and player.Parent then
+				hitPlayer(player, at, radius - P.HitTolerance, damage, y)
+			end
+		end)
 	end
 end
 
 local function debrisStrike(e: Event, root: BasePart)
 	local v = root.AssemblyLinearVelocity
 	local aim = Pursuit.leadPoint(flat(root.Position), { X = v.X, Z = v.Z }, P.StrikeLead)
-	local y = root.Position.Y - 2.5
-	strikeRemote:FireAllClients("Debris", Vector3.new(aim.X, y, aim.Z), P.StrikeRadius, P.StrikeWarn)
-	task.delay(P.StrikeWarn + P.HitGrace, function()
-		if current == e then
-			damageZone(aim, P.StrikeRadius - P.HitTolerance, P.StrikeDamage, y)
-		end
+	strikeZone("Debris", aim, P.StrikeRadius, P.StrikeWarn, P.StrikeDamage, root.Position.Y - 2.5, function()
+		return current == e
 	end)
 end
 
@@ -302,12 +330,8 @@ local function surge(e: Event, root: BasePart)
 	local at = Pursuit.surgePoint(flat(root.Position), goal, ahead)
 	-- A little sideways jitter so the line home is dangerous, not a single predictable spot.
 	at = { X = at.X + (math.random() - 0.5) * 10, Z = at.Z + (math.random() - 0.5) * 10 }
-	local y = root.Position.Y - 2.5
-	strikeRemote:FireAllClients("Surge", Vector3.new(at.X, y, at.Z), X.SurgeRadius, X.SurgeWarn)
-	task.delay(X.SurgeWarn + P.HitGrace, function()
-		if current == e then
-			damageZone(at, X.SurgeRadius - P.HitTolerance, X.SurgeDamage, y)
-		end
+	strikeZone("Surge", at, X.SurgeRadius, X.SurgeWarn, X.SurgeDamage, root.Position.Y - 2.5, function()
+		return current == e
 	end)
 end
 
@@ -464,10 +488,11 @@ local function tick(e: Event, dt: number)
 		moveTwister(e, twister, speed, dt)
 		setTwisterState(e, if now >= e.NextStrike - P.StrikeWindUp then "WindUp" else "Chasing")
 	end
-	local dy = math.abs(root.Position.Y - (twister.Position.Y + 3))
+	local judged = DodgeService.judgedPosition(e.Carrier :: Player) or root.Position
+	local dy = math.abs(judged.Y - (twister.Position.Y + 3))
 	if
 		dy <= P.CatchHeight
-		and Pursuit.caught(flat(twister.Position), flat(root.Position), P.CatchRadius - P.HitTolerance)
+		and Pursuit.caught(flat(twister.Position), flat(judged), P.CatchRadius - P.HitTolerance)
 	then
 		local carrier = e.Carrier :: Player
 		if PlayerService.removeCarried(carrier, e.Prize) then
@@ -527,7 +552,7 @@ function PursuitService.start(kind: string, site: Site, prize: string?): boolean
 	local e: Event = {
 		Id = nextId,
 		Kind = kind,
-		Prize = prize or (if math.random() < Config.Events.GoldenChance then "GoldenCore" else "StormCore"),
+		Prize = prize or Pursuit.pickPrize(Config.Events.GoldenChance, math.random),
 		Site = site,
 		Phase = "Race",
 		EndsAt = math.min(os.clock() + P.ClaimSeconds, stormAt - 1),
@@ -565,6 +590,24 @@ function PursuitService.start(kind: string, site: Site, prize: string?): boolean
 end
 
 -- Studio QA: strike outcomes since the last call.
+-- Studio QA: a debris strike centred on `player` (no event needed), to test hits and dodges.
+function PursuitService.qaStrike(player: Player)
+	assert(RunService:IsStudio(), "Studio only")
+	local root = rootOf(player)
+	assert(root, "no character")
+	strikeZone(
+		"Debris",
+		flat(root.Position),
+		P.StrikeRadius,
+		P.StrikeWarn,
+		0,
+		root.Position.Y - 2.5,
+		function()
+			return true
+		end
+	)
+end
+
 function PursuitService.takeQaHits(): { string }
 	local out = qaHits
 	qaHits = {}

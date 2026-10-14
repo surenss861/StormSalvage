@@ -39,9 +39,15 @@ local salvageModels: Instance? = nil
 do
 	local assets = ServerStorage:FindFirstChild("Assets")
 	salvageModels = assets and assets:FindFirstChild("salvage")
+	-- A copy for the client's Salvage Log thumbnails (display only; the server never reads it).
+	if salvageModels then
+		local copy = salvageModels:Clone()
+		copy.Name = "SalvageModels"
+		copy.Parent = game:GetService("ReplicatedStorage")
+	end
 end
 
-local function attachModel(item: Part, model: Model, height: number, tint: Color3?)
+local function attachModel(item: Part, model: Model, height: number)
 	local pivot = model:GetPivot()
 	local base = item.CFrame * CFrame.new(0, -height / 2, 0)
 	for _, piece in model:GetChildren() do
@@ -53,9 +59,6 @@ local function attachModel(item: Part, model: Model, height: number, tint: Color
 			clone.CanQuery = false
 			clone.CanTouch = false
 			clone.Massless = true
-			if tint then
-				clone.Color = clone.Color:Lerp(tint, 0.8)
-			end
 			local weld = Instance.new("WeldConstraint")
 			weld.Part0 = item
 			weld.Part1 = clone
@@ -102,7 +105,8 @@ local function createLoot(
 	lifetime: number?,
 	owner: Player?,
 	ownerOnlyUntil: number?,
-	zone: string?
+	zone: string?,
+	recovered: boolean?
 ): Part
 	local def = Config.Loot[lootId]
 	local rarityColor = Config.RarityColors[def.Rarity]
@@ -113,7 +117,7 @@ local function createLoot(
 	item.CanCollide = false
 	item.CanTouch = false
 	local yaw = CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
-	local model = salvageModels and salvageModels:FindFirstChild(def.ModelFrom or lootId)
+	local model = salvageModels and salvageModels:FindFirstChild(lootId)
 	local height
 	if model and model:IsA("Model") then
 		local size = model:GetExtentsSize()
@@ -121,7 +125,7 @@ local function createLoot(
 		item.Size = size
 		item.Transparency = 1
 		item.CFrame = CFrame.new(floorPosition + Vector3.new(0, height / 2, 0)) * yaw
-		attachModel(item, model, height, def.Tint)
+		attachModel(item, model, height)
 	else
 		-- Primitive fallback if the asset library is missing.
 		if def.Shape then
@@ -216,7 +220,8 @@ local function createLoot(
 		end
 		StormStats.collected(player, lootId)
 		SessionStats.collected(player, lootId)
-		ContractService.collected(player, lootId, zone, owner ~= nil)
+		-- A dropped bag or a knocked-loose event core was already counted when first picked up.
+		ContractService.collected(player, lootId, zone, owner ~= nil or recovered == true)
 		taken = true
 		item:Destroy()
 		pickupRemote:FireClient(player, { Id = lootId, Position = item.Position })
@@ -302,13 +307,25 @@ end
 -- Studio QA (DebugService): one item of any kind on the floor at `position`.
 -- A one-off item for an event (Storm Pursuit). `onTaken(player)` runs when someone takes it, or
 -- with nil when it expires after `lifetime`. Anyone can grab it (no owner window).
+-- `recovered`: the same item back on the ground (an event core knocked loose), so grabbing it
+-- again isn't a new find (Salvage Log, contracts).
 function LootService.spawnSpecial(
 	lootId: string,
 	position: Vector3,
 	lifetime: number,
-	onTaken: (Player?) -> ()
+	onTaken: (Player?) -> (),
+	recovered: boolean?
 ): Part
-	return createLoot(lootId, Vector3.new(position.X, groundY(position), position.Z), onTaken, lifetime)
+	return createLoot(
+		lootId,
+		Vector3.new(position.X, groundY(position), position.Z),
+		onTaken,
+		lifetime,
+		nil,
+		nil,
+		nil,
+		recovered
+	)
 end
 
 function LootService.spawnForTest(lootId: string, position: Vector3): Instance

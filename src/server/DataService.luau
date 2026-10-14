@@ -12,6 +12,7 @@ local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+local SalvageLog = require(game:GetService("ReplicatedStorage").Shared.SalvageLog)
 
 local DataService = {}
 
@@ -53,7 +54,7 @@ export type Data = {
 	-- V4 Storm Pursuit records.
 	Records: { Extractions: number, BestExtract: number },
 	-- V4 Salvage Log: kinds of salvage found at least once.
-	Collection: { Found: { [string]: boolean } },
+	Collection: { Found: { [string]: boolean }, Counts: { [string]: number } },
 	Lock: { Session: string, Time: number }?,
 }
 
@@ -70,7 +71,7 @@ function DataService.default(): Data
 		Cosmetics = { Owned = { Cardboard = true }, Plate = "Cardboard" },
 		Tools = { Owned = {} },
 		Records = { Extractions = 0, BestExtract = 0 },
-		Collection = { Found = {} },
+		Collection = { Found = {}, Counts = {} },
 	}
 end
 
@@ -88,6 +89,8 @@ local function reconcile(data: any): Data
 			end
 		end
 	end
+	-- Salvage Log counts arrived in V4: kinds already found count as found once. Additive only.
+	data.Collection = SalvageLog.reconcile(data.Collection)
 	return data
 end
 

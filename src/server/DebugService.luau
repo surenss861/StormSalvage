@@ -20,6 +20,7 @@
 --   debug:Invoke("spawn", "Safe", pos)  -- one loot item on the floor at pos
 --   debug:Invoke("boost", 60)           -- 2x Salvage for everyone, for testing sale multipliers
 --   debug:Invoke("look", "A")           -- switch the world look profile (V2, A, B, C)
+--   debug:Invoke("dodge", "Player1")    -- dodge counters (honoured, refused, flags, judged pos)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -27,6 +28,7 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local DataService = require(script.Parent.DataService)
+local DodgeService = require(script.Parent.DodgeService)
 local LookService = require(script.Parent.LookService)
 local LootService = require(script.Parent.LootService)
 local MonetizationService = require(script.Parent.MonetizationService)
@@ -120,6 +122,21 @@ local commands: { [string]: (...any) -> any } = {
 	end,
 	strikehits = function()
 		return PursuitService.takeQaHits()
+	end,
+	-- A harmless debris strike on a player (0 damage); its verdict lands in strikehits.
+	strikeat = function(playerName: string)
+		local player = Players:FindFirstChild(playerName)
+		assert(player and player:IsA("Player"), "no player")
+		PursuitService.qaStrike(player)
+		return true
+	end,
+	-- Dodge authority counters and the position hits are judged at.
+	dodge = function(playerName: string)
+		local player = Players:FindFirstChild(playerName)
+		assert(player and player:IsA("Player"), "no player")
+		local stats = DodgeService.stats(player)
+		stats.Judged = DodgeService.judgedPosition(player)
+		return stats
 	end,
 	-- Clear a player's tool ownership (repeatable Tools-tab purchase tests).
 	cleartools = function(playerName: string)

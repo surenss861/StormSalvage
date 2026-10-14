@@ -23,6 +23,8 @@ local EVENTS = {
 	"DetectorPing", -- server -> client: { { X, Z } } nearest ordinary salvage (detector owners only)
 	"PursuitState", -- server -> client: post-storm event state (V4: Pursuit, Extraction, Rush)
 	"PursuitStrike", -- server -> client: style ("Debris" | "Surge"), position, radius, warning seconds
+	"Dodge", -- client -> server: direction x, z (a dodge request; the server decides if it counts)
+	"DodgeFx", -- server -> other clients: player, position, direction of an honoured dodge
 }
 
 local folder: Folder

@@ -241,11 +241,13 @@ Captures: `docs/art/v4/pursuit/05` (the route-bound twister chasing), `06` (stun
 
 ---
 
-# Milestone M2 (in progress): rewards worth chasing, the dodge (2026-10-14)
+# Milestone M2: rewards worth chasing, the dodge (2026-10-14)
 
-Developed on `v4-gameplay` while RC8 (place v142) is under private test. Not published.
+Developed on `v4-gameplay` while RC8 (place v142) is under private test. Not published. Part 1 below
+is what went in first; **part 2** (further down) completes M2 and supersedes part 1 where they differ
+(the dodge is now server-checked, hits wait 0.35 s, and the Golden Core has its own model).
 
-## Built
+## Part 1: built
 
 - **The dodge (A3).** Q, gamepad B, or the DODGE touch button (placed above-left of jump).
   - A 0.22 s burst at 58 studs/s in the move direction (facing direction if standing), with a 2.5 s cooldown.
@@ -274,7 +276,7 @@ Developed on `v4-gameplay` while RC8 (place v142) is under private test. Not pub
 
   A sparkle burst plays too (larger for golden). Other players get a one-line notice.
 
-## Evidence (Studio)
+## Part 1: evidence (Studio)
 
 | Test | Result |
 | --- | --- |
@@ -288,9 +290,139 @@ Developed on `v4-gameplay` while RC8 (place v142) is under private test. Not pub
 
 Lint, types and 44 unit tests pass.
 
-## Next in M2
+# Milestone M2, part 2: completing it (2026-10-14, "M2 Review")
 
-- A Salvage Log view (where to see the collection).
-- Animation assets authored in Studio, with exact upload steps for the account owner: dodge, core-carry, extraction cheer.
-- A pass on rare-item silhouettes beyond tinting.
-- An M2 release candidate after that.
+Everything below was run in Studio on the place, not on phones or real servers. A scripted runner
+finishing an event says nothing about whether it's fun.
+
+## Built
+
+- **Salvage Log screen** (`Jobs.luau`, third tab **SALVAGE LOG** on the JOBS board, Workshop style).
+  - A progress strip: "SALVAGE LOG 4 / 12 FOUND", a fill bar, and the lifetime total of finds.
+  - One tile per kind, ordered by rarity, then value. A tile has a rarity edge and a rarity pill.
+  - **Found** kinds show:
+    - a live 3D thumbnail of the real model (a ViewportFrame of `ReplicatedStorage.SalvageModels`)
+    - the name, the lifetime count ("x2") and the sale value
+    - where it turns up: the top 3 districts by spawn weight, or "Mid-storm, anywhere in town" or "The rare prize of a cache event"
+  - The Golden Storm Core tile is yellow with a **JACKPOT** stamp.
+  - **Undiscovered** kinds are a kraft card with "?", "???", the rarity, "Not found yet" and "Keep salvaging". No name, value, model or location, so special spawn places stay secret.
+- **Lifetime counts** (`SalvageLog.luau`, pure and unit-tested): `Collection.Counts` sits beside `Collection.Found`.
+  - Older saves are backfilled additively on load: a kind already found counts as 1. Nothing is removed or reset.
+  - Discoveries still give no reward beyond the notice, so there's nothing to farm or duplicate.
+  - **Recoveries don't count:** dropped bags (as before) and now **an event core knocked loose and grabbed again**. Studio found that bug (below); it also stopped regrabs counting toward "collect" contracts.
+- **Golden Storm Core model** (`assets/roblox/salvage/GoldenCore.model.json`, from `tools/asset_pipeline/build_golden_core.py`).
+  - Its own silhouette, no longer a tinted copy: a tall gold reliquary cage on a dark plinth, a faceted crystal star around a molten core, and a crown of four spikes with a diamond on top.
+  - 2.2 × 3.5 × 2.2 studs (the Storm Core is 2.2 × 2.1 × 2.2), from 19 plain Roblox parts. **No mesh upload and no asset IDs needed.**
+  - The carrier's glow is gold, range 18 and brightness 3.5, against the Storm Core's 12 / 2.5.
+  - `ModelFrom`/`Tint` were removed from the loot code.
+- **Dodge authority** (`DodgeService.luau`, `MoveRules.luau`, pure and unit-tested).
+  - **Requests:** each dodge also sends a request. The server honours it only when the player is alive and grounded (raycast), it's off cooldown on the server clock (2.5 s, 0.2 s jitter allowance), and the requester is under 6 requests a second.
+  - **Honoured dodges** show dust to other players (DodgeFx).
+  - **Refused requests** are counted in the session report, never sent to analytics, so a cheater can't flood the dashboards.
+  - **Positions are sampled at 10 Hz.** A move further than 1.75 × top sprint speed, plus one honoured dodge, plus 6 studs of slack over 0.5 s is implausible. Hits are then judged at the position from **before** the move for 1 s.
+  - **What uses the trusted position:** strikes, surges, the twister's catch, and lightning.
+  - **What the server can't do:** stop the client moving, since Roblox physics is client-owned. It decides what a move counts for.
+- **Dodge fixes:**
+  - **The burst ends when the character leaves the ground:** jumping during a dodge used to carry the dodge speed through the jump. Its horizontal speed is now clamped to walk speed.
+  - **Gamepad B passes through** while a menu has focus.
+- **Fair hits under real latency.** `HitGrace` 0.15 → 0.35 s, plus each player's `GetNetworkPing()` capped at 0.25 s (`DodgeService.lagAllowance`). The measurements and reasoning are below.
+- **Animations** (`assets/roblox/animations/*.model.json` from `tools/asset_pipeline/build_animations.py`; `CharacterAnims.luau`).
+  - Three R15 KeyframeSequences:
+    - **Dodge:** 0.34 s, Action priority. A low lunge with the arms swept back.
+    - **CoreCarry:** a 0.9 s loop, arms only, so the run cycle keeps the legs. Both arms hug the core to the chest with a slow heave.
+    - **Celebrate:** 1.2 s. Two fist pumps overhead in a V, with a hop.
+  - **Validated on the real rig.** It's R15 with AnimationConstraint joints; KeyframeSequence poses drive it by part name. Checked by measuring hand and head positions in Studio:
+    - Celebrate: hands at (±1.7, 2.6) above the head (2.0).
+    - Carry: hands at chest height, 1.6 studs in front.
+    - My first celebration crossed the hands over the head. Overhead the arm's frame flips, so the roll signs were reversed.
+  - **IDs:** `Config.Animations` stays 0 (not uploaded). **No IDs were invented.**
+  - **In Studio** the KeyframeSequences preview through `KeyframeSequenceProvider` (`ReplicatedStorage.StudioAnimations`, Studio only).
+  - **On a live server** nothing plays until the owner uploads them. The fallbacks remain: the dodge's dust and whoosh, the carrier glow, and the receipt card with its burst.
+  - Upload steps: [`docs/art/v4/ANIMATIONS.md`](../art/v4/ANIMATIONS.md).
+
+## Evidence (Studio, place 99653875913460, `_STUDIO` save store)
+
+**Salvage Log and Golden Core**
+
+| Test | Result |
+| --- | --- |
+| First Mini Safe picked up | "DISCOVERY Safe 2/12" once; count 1 |
+| Second Mini Safe | No discovery notice; count 2 |
+| Die carrying both Safes, recover the bag | Both back in the bag; count stays 2; no notice |
+| First Engine / Cash Register | "DISCOVERY Engine 3/12" / "Register 4/12" |
+| Golden Core on the ground | 2.2 × 3.5 × 2.2, 19 parts, all non-colliding, non-touching and non-query; flush on the ground (gap 0.00); "Grab" prompt, 1.2 s hold, 16 studs (`m2/03`, `m2/06`) |
+| Carried golden | Server bag `["GoldenCore"]`; CoreGlow kind GoldenCore, range 18; the item leaves the world |
+| Sell golden alone | Receipt line GoldenCore ×1 @ 600, total **600**, no multipliers. An earlier +680 was 600 plus an 80-coin Core contract completing. (`m2/08`) |
+| Engine + golden sale | 600 + 60 = **660** |
+| **Bug found:** golden knocked loose by the twister, then regrabbed | Count rose 3 → 6 in one event; regrabs counted as fresh finds (and toward contracts). **Fixed** (loose cores are recoveries). |
+| After the fix: grab, die (core drops), respawn, regrab | Count 8 → 9 on the first grab, stays 9 on the regrab |
+| After the fix: full Warehouse golden Pursuit, caught 3 times | Count +1 total (10 → 11); extracted, **+150**; celebration track playing |
+| Golden probability | Unit test: 20,000 seeded rolls within 3σ of 15%; boundary 0.1499 → golden, 0.15 → ordinary |
+
+The test profile's Golden count (x11 in `m2/04`) includes the inflated counts from before the fix. That's the Studio-only save; no real save was touched.
+
+**Dodge** (real Q presses unless noted)
+
+| Test | Result |
+| --- | --- |
+| From standing, open ground | 12.4 studs; honoured by the server; no flags |
+| Into a wall 6 studs ahead (face at x = 1009) | Stopped at x = 1007.46 (body against the wall); no pass-through |
+| Mid-air (jump, then Q) | 0 studs; no request sent |
+| Sprint jump vs sprint + dodge + jump | Airborne distance 14.8 vs 15.6 studs (noise); the burst no longer extends a jump. A 20-stud pit is uncrossable either way. |
+| Right after respawn | 12.6 studs, honoured; a plain respawn raises no movement flag |
+| During a windstorm gust (wind acceleration 150) | 12.3 studs in 0.35 s |
+| Exploit: 10 Dodge requests in 1 s plus 1 malformed | 1 honoured; 7 refused (cooldown or bad); 3 dropped by the rate limit |
+| Exploit: client teleports 40 studs | First version: judged half-way (x 21.4). Roblox replicates a teleport as a fast slide over about 0.2 s. **Fixed:** judged at the pre-teleport spot (x 4.5) within about 0.2 s, held 1.3 s, then live again |
+| Keyboard Q, gamepad B, touch | Bound (Q, ButtonB) with a touch button titled DODGE. Studio can't inject ButtonB ("bound to a CoreGUI action") and has no touch here: **controller and phone are unverified.** |
+
+**Hits under latency** (debris strike centred on the player; the client dodges a set delay after it sees the warning)
+
+| Setup | Dodge at (s after warning) | Server verdict |
+| --- | --- | --- |
+| No added lag, old grace 0.15 | 1.30 | Hit ×3 (d 0.0–1.1) |
+| Measured | — | Client clears the circle 0.12 s after the press; the **server sees it 0.42 s after**. Server→client is 0.03–0.05 s. |
+| No added lag, grace 0.35 | 1.20 / 1.30 | Miss (d 11.2 / 6.0, 7.9) |
+| No added lag, grace 0.35 | 1.36 / 1.40 | Hit (d 2.7 / 1.9): the player was still inside on their own screen when the ring closed |
+| 0.15 s lag each way, no allowance | 1.10 / 1.20 / 1.30 | Hit ×3, even 0.3 s before the visible close: unfair |
+| 0.15 s lag each way, 0.25 s allowance | 1.10 / 1.20 / 1.30 | Miss / miss / hit (d 13.8 / 10.7 / 5.4) |
+
+Studio's lag setting doesn't show in `GetNetworkPing()`, so the allowance was exercised with a Studio-only `QA_Ping` attribute. On real servers it comes from `GetNetworkPing()`. Every strike records the largest allowance applied in the session report (`StrikeLagAllowanceMs`), so the owner's playtest will show whether real pings land in range.
+
+**Full M2 journey** (one session, after the fixes)
+
+1. Discover a Cash Register: "DISCOVERY Register 4/12".
+2. A golden Pursuit at the Warehouse: GOLDEN CACHE.
+3. Grab: JACKPOT card; the carry animation plays (`m2/06`).
+4. Four strikes, each with a dodge.
+5. Caught three times and regrabbed: no recount.
+6. Extracted: +150; gold glow; "SELLS FOR 600" (`m2/07`).
+7. Sold: +600 receipt and server announcement (`m2/08`).
+8. Log: Golden ×11, JACKPOT stamp; Register, Engine and Safe found; 8 mystery tiles (`m2/04`, `m2/05`).
+
+The scripted runner got caught soon after grabbing in most runs. That's a bot taking the pathfinder's route, not a balance verdict. Whether the chase is fair to people is for the owner's playtest.
+
+**Performance** (Studio process; Studio caps an unfocused window at about 15 fps, so FPS is meaningless here; **not a device measurement**)
+
+| Same conditions, idle at spawn | RC8 | M2 |
+| --- | --- | --- |
+| Render CPU per frame (median / p95) | 7.51 / 8.42 ms | 6.72 / 7.46 ms |
+| Script heartbeat (median) | 0.31 ms | 0.34 ms |
+| Physics step (median) | 0.39 ms | 0.44 ms |
+
+- **Salvage Log open** (12 thumbnails): render CPU +0.4 ms.
+- **Server heartbeat through the journey:** 29,782 samples, median 16.7, p99 18.0 ms. One 200 ms spike, at a storm phase change.
+- **Golden Core:** 19 parts, one at a time.
+- **DodgeService:** one raycast per request, plus a 10 Hz position sample per player.
+
+The V3 device budgets are unchanged: no new textures and no new meshes. Phones are still the owner's to measure.
+
+**Animation previews:** `m2/09` is the final celebration. `m2/10` (carry) and `m2/11` (dodge) are **first-pass** poses, tuned after these captures: carry forearms flatter, dodge 0.55 studs lower instead of 0.9.
+
+## Known limitations (M2)
+
+- **Animations:** nothing plays live until the owner uploads them (steps in `ANIMATIONS.md`). The fallbacks work without them.
+- **Controller and phone:** the dodge button and gamepad B are bound but unverified on devices.
+- **The movement check catches teleports and gross speed hacks, not subtle ones.** Its budget is generous so gusts and falls never flag honest players. A teleport timed in the ~0.2 s before a hit resolves can still be judged at a mid-slide spot.
+- **The lag allowance relies on `GetNetworkPing()`.** It's capped at 0.25 s; its real-server values still need checking (logged per session).
+- **Not covered:** real multiplayer (other players' dodge dust), phones and fun.
+- **Lightning:** uses the trusted position but not the lag allowance (unchanged V3 timing).

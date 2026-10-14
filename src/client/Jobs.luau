@@ -1,16 +1,20 @@
--- @file Jobs board and nameplate locker
+-- @file Jobs board, nameplate locker and Salvage Log
 -- @domain progression
 -- @status stable
 -- @see [[V3-PROGRESSION]]
--- The Jobs board (Salvage Contracts + Salvager Reputation) and the nameplate locker, as one modal
--- in the Workshop style: a corkboard with three pinned job slips, the rank strip on top, and a
--- second tab of nameplate finishes bought with coins. Everything shown comes from the server's
+-- @see [[SalvageLog.luau]]
+-- The Jobs board (Salvage Contracts + Salvager Reputation), the nameplate locker and the Salvage
+-- Log, as one modal in the Workshop style: a corkboard with three pinned job slips, the rank strip
+-- on top, a second tab of nameplate finishes bought with coins, and a third tab with every kind
+-- of salvage (found ones with their model, count and where they turn up; the rest a mystery). Everything shown comes from the server's
 -- player state; buttons only send requests (ProgressAction) that the server validates.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
-local Progression = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Progression"))
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Progression = require(ReplicatedStorage.Shared:WaitForChild("Progression"))
+local SalvageLog = require(ReplicatedStorage.Shared:WaitForChild("SalvageLog"))
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local PlateStyle = require(script.Parent:WaitForChild("PlateStyle"))
 local UI = require(script.Parent:WaitForChild("UI"))
@@ -43,6 +47,23 @@ local slips: { Slip } = {}
 
 type FinishRow = { Button: TextButton, Note: TextLabel, Finish: Progression.Finish }
 local finishRows: { FinishRow } = {}
+
+type LogTile = {
+	Id: string,
+	Frame: Frame,
+	View: ViewportFrame,
+	Mystery: TextLabel,
+	Name: TextLabel,
+	Rarity: TextLabel,
+	Count: TextLabel,
+	Hint: TextLabel,
+	Stamp: TextLabel,
+	Shown: boolean?,
+}
+local logTiles: { LogTile } = {}
+local logCount: TextLabel
+local logFill: Frame
+local logTotal: TextLabel
 
 ---------------------------------------------------------------------------- Jobs tab
 
@@ -335,6 +356,308 @@ local function buildLocker(parent: Instance): Frame
 	return view
 end
 
+---------------------------------------------------------------------------- Salvage Log tab
+
+-- Where a kind turns up, shown only once it has been found (never for undiscovered kinds).
+local function whereFound(id: string): string
+	if id == "StormCore" then
+		return "Mid-storm, anywhere in town"
+	elseif id == "GoldenCore" then
+		return "The rare prize of a cache event"
+	end
+	local zones = {}
+	for _, zone in Progression.ZoneOrder do
+		for _, entry in Config.ZonePools[zone] or {} do
+			if entry.Id == id then
+				table.insert(
+					zones,
+					{ Name = (Progression.Zones[zone] or zone):gsub("^the ", ""), Weight = entry.Weight }
+				)
+			end
+		end
+	end
+	table.sort(zones, function(a, b)
+		return a.Weight > b.Weight
+	end)
+	local names = {}
+	for i, z in zones do
+		if i <= 3 then
+			table.insert(names, z.Name)
+		end
+	end
+	return if #names > 0 then table.concat(names, " · ") else "Around town"
+end
+
+-- Puts the salvage model in a tile's viewport, framed three-quarter view. The models come from
+-- ReplicatedStorage.SalvageModels (the server's copy); without them the tile keeps its "?".
+local function showModel(tile: LogTile): boolean
+	local models = ReplicatedStorage:FindFirstChild("SalvageModels")
+	local source = models and models:FindFirstChild(tile.Id)
+	if not source or not source:IsA("Model") then
+		return false
+	end
+	local model = source:Clone()
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored = true
+		end
+	end
+	model.Parent = tile.View
+	local cf, size = model:GetBoundingBox()
+	local camera = Instance.new("Camera")
+	camera.FieldOfView = 30
+	local distance = size.Magnitude / 2 / math.tan(math.rad(15)) * 1.05
+	camera.CFrame = CFrame.lookAt(cf.Position + Vector3.new(1, 0.6, -1).Unit * distance, cf.Position)
+	camera.Parent = tile.View
+	tile.View.CurrentCamera = camera
+	return true
+end
+
+local function buildLog(parent: Instance): Frame
+	local view = UI.new("Frame", {
+		Name = "LogView",
+		Parent = parent,
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 21,
+	})
+	-- Progress strip: a manila label with a ruled fill bar.
+	local strip = UI.new("Frame", {
+		Name = "Progress",
+		Parent = view,
+		Size = UDim2.new(1, 0, 0, 40),
+		BackgroundColor3 = M.Manila,
+		BorderSizePixel = 0,
+		ZIndex = 22,
+	}, { UI.corner(6), UI.stroke(M.KraftEdge, 1.5) })
+	logCount = UI.text({
+		Parent = strip,
+		Font = UI.Font.Mono,
+		TextSize = 16,
+		Position = UDim2.fromOffset(12, 3),
+		Size = UDim2.new(0.6, -12, 0, 20),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = M.Marker,
+		Text = "",
+		ZIndex = 23,
+	})
+	logTotal = UI.text({
+		Parent = strip,
+		Font = UI.Font.Label,
+		TextSize = 12,
+		Position = UDim2.new(0.6, 0, 0, 4),
+		Size = UDim2.new(0.4, -12, 0, 18),
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextColor3 = M.Pencil,
+		Text = "",
+		ZIndex = 23,
+	})
+	local track = UI.new("Frame", {
+		Parent = strip,
+		Position = UDim2.new(0, 12, 0, 26),
+		Size = UDim2.new(1, -24, 0, 7),
+		BackgroundColor3 = M.Kraft,
+		BorderSizePixel = 0,
+		ZIndex = 23,
+	}, { UI.corner(3) })
+	logFill = UI.new("Frame", {
+		Parent = track,
+		Size = UDim2.fromScale(0, 1),
+		BackgroundColor3 = M.Orange,
+		BorderSizePixel = 0,
+		ZIndex = 24,
+	}, { UI.corner(3) })
+
+	local grid = UI.new("ScrollingFrame", {
+		Name = "Entries",
+		Parent = view,
+		Position = UDim2.fromOffset(0, 48),
+		Size = UDim2.new(1, 0, 1, -48),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 5,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		ZIndex = 21,
+	}, {
+		UI.new("UIGridLayout", {
+			CellSize = UDim2.new(1 / 3, -6, 0, 96),
+			CellPadding = UDim2.fromOffset(8, 8),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+		UI.padding(0, 6, 4, 0),
+	})
+	for i, id in SalvageLog.order(Config.Loot) do
+		local def = Config.Loot[id]
+		local frame = UI.new("Frame", {
+			Name = id,
+			Parent = grid,
+			LayoutOrder = i,
+			BackgroundColor3 = M.Paper,
+			BorderSizePixel = 0,
+			ZIndex = 22,
+		}, { UI.corner(5), UI.stroke(M.KraftEdge, 1.5) })
+		-- Rarity edge down the left side, like a coloured file tab.
+		UI.new("Frame", {
+			Name = "Edge",
+			Parent = frame,
+			Size = UDim2.new(0, 5, 1, 0),
+			BackgroundColor3 = Config.RarityColors[def.Rarity] or M.Pencil,
+			BorderSizePixel = 0,
+			ZIndex = 23,
+		}, { UI.corner(3) })
+		local well = UI.new("Frame", {
+			Name = "Well",
+			Parent = frame,
+			Position = UDim2.fromOffset(11, 8),
+			Size = UDim2.fromOffset(62, 62),
+			BackgroundColor3 = M.Manila,
+			BorderSizePixel = 0,
+			ZIndex = 23,
+		}, { UI.corner(5) })
+		local vp = UI.new("ViewportFrame", {
+			Parent = well,
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Ambient = Color3.fromRGB(170, 160, 150),
+			LightColor = Color3.fromRGB(255, 244, 225),
+			LightDirection = Vector3.new(-1, -1.5, 0.6),
+			ZIndex = 24,
+		})
+		local mystery = UI.text({
+			Parent = well,
+			Font = UI.Font.Mono,
+			TextSize = 30,
+			Size = UDim2.fromScale(1, 1),
+			TextColor3 = M.Paper,
+			Text = "?",
+			ZIndex = 25,
+		})
+		local name = UI.text({
+			Parent = frame,
+			Font = UI.Font.Label,
+			TextSize = 14,
+			Position = UDim2.fromOffset(80, 6),
+			Size = UDim2.new(1, -86, 0, 32),
+			TextWrapped = true,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			TextColor3 = M.Marker,
+			Text = "",
+			ZIndex = 23,
+		})
+		-- Rarity as a coloured pill, readable on both the paper and the kraft (mystery) card.
+		local rarity = UI.text({
+			Parent = frame,
+			Font = UI.Font.Mono,
+			TextSize = 10,
+			Position = UDim2.fromOffset(80, 38),
+			Size = UDim2.fromOffset(84, 15),
+			BackgroundColor3 = Config.RarityColors[def.Rarity] or M.Pencil,
+			TextColor3 = M.Marker,
+			Text = string.upper(def.Rarity),
+			ZIndex = 23,
+		})
+		rarity.BackgroundTransparency = 0 -- UI.text makes labels clear
+		UI.corner(4).Parent = rarity
+		local count = UI.text({
+			Parent = frame,
+			Font = UI.Font.Mono,
+			TextSize = 14,
+			Position = UDim2.fromOffset(80, 53),
+			Size = UDim2.new(1, -86, 0, 18),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = M.Marker,
+			Text = "",
+			ZIndex = 23,
+		})
+		local hint = UI.text({
+			Parent = frame,
+			Font = UI.Font.Label,
+			TextSize = 11,
+			Position = UDim2.fromOffset(11, 74),
+			Size = UDim2.new(1, -17, 0, 16),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			TextColor3 = M.Pencil,
+			Text = "",
+			ZIndex = 23,
+		})
+		-- JACKPOT stamp across the bottom of the model well.
+		local stamp = UI.text({
+			Name = "Stamp",
+			Parent = frame,
+			Font = UI.Font.Mono,
+			TextSize = 11,
+			Position = UDim2.fromOffset(8, 58),
+			Size = UDim2.fromOffset(68, 16),
+			Rotation = if UI.reduced() then 0 else -6,
+			BackgroundColor3 = M.Note,
+			TextColor3 = M.RedPen,
+			Text = "JACKPOT",
+			Visible = false,
+			ZIndex = 26,
+		})
+		stamp.BackgroundTransparency = 0
+		UI.stroke(M.RedPen, 1.5).Parent = stamp
+		table.insert(logTiles, {
+			Id = id,
+			Frame = frame,
+			View = vp,
+			Mystery = mystery,
+			Name = name,
+			Rarity = rarity,
+			Count = count,
+			Hint = hint,
+			Stamp = stamp,
+		})
+	end
+	return view
+end
+
+local function refreshLog()
+	local collection = SalvageLog.reconcile(state and state.Collection)
+	local found, total = SalvageLog.progress(collection, Config.Loot)
+	local finds = 0
+	for _, n in collection.Counts do
+		finds += n
+	end
+	logCount.Text = ("SALVAGE LOG   %d / %d FOUND"):format(found, total)
+	logTotal.Text = if found == total
+		then ("Complete! %s finds logged"):format(UI.comma(finds))
+		else ("%s finds logged"):format(UI.comma(finds))
+	logFill.Size = UDim2.fromScale(if total > 0 then found / total else 0, 1)
+	for _, tile in logTiles do
+		local def = Config.Loot[tile.Id]
+		local known = collection.Found[tile.Id] == true
+		if known then
+			tile.Frame.BackgroundColor3 = if def.Jackpot then M.Note else M.Paper
+			tile.Name.Text = def.Name
+			tile.Count.Text = ("x%s  ·  %s c"):format(
+				UI.comma(collection.Counts[tile.Id] or 1),
+				UI.comma(def.Value)
+			)
+			tile.Hint.Text = whereFound(tile.Id)
+			tile.Stamp.Visible = def.Jackpot == true
+		else
+			-- Undiscovered: rarity only. No name, value, model or where to look.
+			tile.Frame.BackgroundColor3 = M.Kraft
+			tile.Name.Text = "???"
+			tile.Count.Text = "Not found yet"
+			tile.Hint.Text = "Keep salvaging"
+			tile.Stamp.Visible = false
+		end
+		if known and not tile.Shown then
+			tile.Shown = showModel(tile)
+		end
+		tile.View.Visible = known and tile.Shown == true
+		tile.Mystery.Visible = not tile.View.Visible
+		tile.Mystery.Text = if known then "" else "?"
+		tile.Mystery.Parent.BackgroundColor3 = if known then M.Manila else M.KraftEdge
+	end
+end
+
 ---------------------------------------------------------------------------- Refresh
 
 function Jobs.refresh()
@@ -391,6 +714,7 @@ function Jobs.refresh()
 		row.Button:SetAttribute("Disabled", disabled)
 		row.Note.Text = note
 	end
+	refreshLog()
 end
 
 function Jobs.setState(s: any)
@@ -478,12 +802,12 @@ function Jobs.init(root: Frame)
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
-	for i, entry in { { "Jobs", "CONTRACTS" }, { "Locker", "NAMEPLATE" } } do
+	for i, entry in { { "Jobs", "CONTRACTS" }, { "Locker", "NAMEPLATE" }, { "Log", "SALVAGE LOG" } } do
 		local b = UI.new("TextButton", {
 			Name = entry[1],
 			Parent = tabs,
 			LayoutOrder = i,
-			Size = UDim2.new(0.5, -3, 1, 0),
+			Size = UDim2.new(1 / 3, -4, 1, 0),
 			BackgroundColor3 = M.Manila,
 			AutoButtonColor = false,
 			BorderSizePixel = 0,
@@ -500,6 +824,7 @@ function Jobs.init(root: Frame)
 	end
 	views.Jobs = buildJobs(modal.Content)
 	views.Locker = buildLocker(modal.Content)
+	views.Log = buildLog(modal.Content)
 	Jobs.showTab("Jobs")
 end
 

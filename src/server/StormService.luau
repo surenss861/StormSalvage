@@ -19,6 +19,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Shelter = require(ReplicatedStorage.Shared.Shelter)
 local PlayerService = require(script.Parent.PlayerService)
+local DodgeService = require(script.Parent.DodgeService)
 local LootService = require(script.Parent.LootService)
 local SessionStats = require(script.Parent.SessionStats)
 local ContractService = require(script.Parent.ContractService)
@@ -368,7 +369,9 @@ local function runLightning(token: number)
 				end
 				bolt(target)
 				for _, entry in exposedPlayers() do
-					local flat = (entry.Root.Position - target) * Vector3.new(1, 0, 1)
+					-- Judged where the server trusts the player is (DodgeService), like event strikes.
+					local at = DodgeService.judgedPosition(entry.Player) or entry.Root.Position
+					local flat = (at - target) * Vector3.new(1, 0, 1)
 					if flat.Magnitude <= radius then
 						hurt(entry.Player, T.LightningDamage)
 					end

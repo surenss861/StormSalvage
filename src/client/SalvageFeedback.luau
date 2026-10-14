@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
+local CharacterAnims = require(script.Parent:WaitForChild("CharacterAnims"))
 local Notifications = require(script.Parent:WaitForChild("Notifications"))
 local UI = require(script.Parent:WaitForChild("UI"))
 
@@ -296,6 +297,7 @@ end
 -- biggest thing on the card), the bonus, what the core is worth at the Scrap Buyer, and stamps
 -- for a personal best, a streak and the hardest site yet. Every number is the server's.
 function SalvageFeedback.extracted(msg: any)
+	CharacterAnims.play("Celebrate", 0.1)
 	local prize = Config.Loot[msg.Prize or "StormCore"] or Config.Loot.StormCore
 	local golden = msg.Golden == true
 	local accent = if golden then prize.Color else Config.RarityColors.Legendary

@@ -32,9 +32,9 @@ Core experience → gameplay systems → world and content → reliability → p
 
 | # | Phase | Depends on | Status |
 | --- | --- | --- | --- |
-| A | Movement and controls (run/sprint, conflicts, one evasive action, animations) | none | **M1 done:** run/sprint plus the Shift Lock, state and focus fixes. **Next:** the evasive action (M2). Animations blocked on uploads (see Blockers). |
+| A | Movement and controls (run/sprint, conflicts, one evasive action, animations) | none | **M1 done:** run/sprint plus the Shift Lock, state and focus fixes. **M2 done (Studio):** the dodge, server-checked (cooldown, ground, movement plausibility), fair under measured latency. Three animations authored and validated on the R15 rig; **waiting on the owner's upload** (`docs/art/v4/ANIMATIONS.md`). Controller and phone unverified. |
 | B | Signature pursuit system (pursuer, routes, locations, event catalog, multiplayer, records) | A | **M1 done in Studio:** route-bound twister, 5 self-checking sites, Pursuit/Extraction/Rush with a scheduler, pursuer states and visuals, own strike VFX, records. **Open:** real multi-client play (B6). |
-| C | High-value salvage and reward moments (rarity ladder, opportunities, feedback, fairness) | B (events carry the big rewards) | Next |
+| C | High-value salvage and reward moments (rarity ladder, opportunities, feedback, fairness) | B (events carry the big rewards) | **M2 done (Studio):** Golden Storm Core (own model, 600, 15%), Salvage Log screen with lifetime counts, extraction receipt. Evidence in `V4-GAMEPLAY.md` M2 part 2. |
 | D | World and traversal (audit Gale Hollow, district hooks, routes, then new districts) | B, C (routes serve events) | Planned |
 | E | Weather, VFX, GFX and sound (storm identities, pursuit effects, audio hierarchy, quality tiers) | B, D | Planned |
 | F | Large-scale economy (bands, safe integers, formatter, sinks, migration plan) | C | Design done (`V4-ECONOMY.md`). Build after C. Namespace decision is an **owner gate**. |
@@ -46,15 +46,15 @@ Core experience → gameplay systems → world and content → reliability → p
 ## Milestones (each ends with a private RC candidate and a report)
 
 1. **M1: Controls and the pursuit system.** A fixes, B1–B5, B7. **Done (Studio), 2026-10-14**; B6 needs real clients.
-2. **M2: Rewards worth chasing.** C, plus the A3 evasive action. *Next.*
-3. **M3: Gale Hollow alive.** D1, D2, D5, plus E for pursuits and storms.
+2. **M2: Rewards worth chasing.** C, plus the A3 evasive action. **Done in Studio, 2026-10-14**; candidate RC9 (`rc-20261014-9`), not deployed. Owner items: animation uploads, device and controller checks.
+3. **M3: Gale Hollow alive.** D1, D2, D5, plus E for pursuits and storms. (Per the M2 review: the economy and status milestones (F, G) come next, before M3.)
 4. **M4: The long chase.** F bands 1–2, plus G slice (titles and inspect card).
 5. **M5: Shop and polish.** H review, I pass, and E quality tiers.
 6. **M6: Release readiness.** J on real servers and devices.
 
 ## Blockers needing the owner (tracked, not worked around)
 
-- **Custom character animations:** Roblox animations must be uploaded as assets by the account. I can author them in Studio (KeyframeSequences), but uploading needs the owner (or an approved upload step). Until then the default Roblox animations stay as the fallback. No animation IDs will be invented.
+- **Custom character animations:** authored and validated (Dodge, CoreCarry, Celebrate), **waiting on the owner's upload**: about 10 minutes, steps in `docs/art/v4/ANIMATIONS.md`. Until then the fallbacks play. No animation IDs will be invented.
 - **Physical phones and real multi-player servers:** these need the owner's devices and people. Studio's two-client test wouldn't start on two attempts.
 - **Live Robux** and **a V4 save namespace**: owner gates.
 

@@ -96,33 +96,40 @@ function PlayerService.sellMultiplier(session: Session): number
 	return m
 end
 
--- Anyone carrying a Storm Core glows, so everyone can see who's holding the big prize.
+-- Anyone carrying a Storm Core glows, so everyone can see who's holding the big prize. A Golden
+-- Storm Core glows gold, brighter and further, so the jackpot carrier stands out in a crowd.
 local function refreshCoreGlow(player: Player, session: Session)
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if not root then
 		return
 	end
-	local carrying = false
+	local kind: string? = nil
 	for _, id in session.Carried do
-		if Config.CoreIds[id] then
-			carrying = true
+		if id == "GoldenCore" then
+			kind = id
 			break
+		elseif Config.CoreIds[id] then
+			kind = id
 		end
 	end
 	local glow = root:FindFirstChild("CoreGlow")
-	if carrying and not glow then
-		local color = Config.RarityColors.Legendary
+	if glow and glow:GetAttribute("Kind") ~= kind then
+		glow:Destroy()
+		glow = nil
+	end
+	if kind and not glow then
+		local golden = kind == "GoldenCore"
+		local color = if golden then Config.Loot.GoldenCore.Color else Config.RarityColors.Legendary
 		local light = Instance.new("PointLight")
 		light.Name = "CoreGlow"
+		light:SetAttribute("Kind", kind)
 		light.Color = color
-		light.Range = 12
-		light.Brightness = 2.5
+		light.Range = if golden then 18 else 12
+		light.Brightness = if golden then 3.5 else 2.5
 		light.Parent = root
 		local sparkles = Instance.new("Sparkles")
 		sparkles.SparkleColor = color
 		sparkles.Parent = light -- removed together with the light
-	elseif not carrying and glow then
-		glow:Destroy()
 	end
 end
 

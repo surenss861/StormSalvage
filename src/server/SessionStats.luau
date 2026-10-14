@@ -41,6 +41,8 @@ export type Report = {
 	Trips: { Trip },
 	WentOutAgain: boolean, -- picked something up after their first sale
 	StormsSeen: number,
+	Counters: { [string]: number }, -- V4: e.g. refused dodges, implausible moves (in memory only)
+	Peaks: { [string]: number }, -- V4: e.g. the largest strike lag allowance applied
 }
 
 local reports: { [Player]: Report } = {}
@@ -78,6 +80,8 @@ function SessionStats.joined(player: Player)
 		Trips = {},
 		WentOutAgain = false,
 		StormsSeen = 0,
+		Counters = {},
+		Peaks = {},
 	}
 	funnel(player, "Joined")
 end
@@ -160,6 +164,22 @@ end
 -- A named analytics event from other systems (Storm Pursuit), logged like the others.
 function SessionStats.event(player: Player, name: string, value: number?)
 	event(player, name, value)
+end
+
+-- In-report counters and peaks: cheap, never sent to analytics (a misbehaving client can't flood
+-- the dashboards), shown in the leave summary and the Studio "session" report.
+function SessionStats.count(player: Player, name: string)
+	local report = reports[player]
+	if report then
+		report.Counters[name] = (report.Counters[name] or 0) + 1
+	end
+end
+
+function SessionStats.peak(player: Player, name: string, value: number)
+	local report = reports[player]
+	if report and value > (report.Peaks[name] or -math.huge) then
+		report.Peaks[name] = value
+	end
 end
 
 function SessionStats.toolBought(player: Player, toolId: string)

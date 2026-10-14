@@ -150,4 +150,10 @@ function Pursuit.surgePoint(carrier: Vec2, goal: Vec2, ahead: number): Vec2
 	return { X = carrier.X + dx / d * t, Z = carrier.Z + dz / d * t }
 end
 
+-- The cache's prize, decided once when the event spawns: a Golden Storm Core with probability
+-- `goldenChance`, otherwise an ordinary Storm Core. `roll()` returns a number in [0, 1).
+function Pursuit.pickPrize(goldenChance: number, roll: () -> number): string
+	return if roll() < goldenChance then "GoldenCore" else "StormCore"
+end
+
 return Pursuit
