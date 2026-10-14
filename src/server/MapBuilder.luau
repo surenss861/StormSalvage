@@ -27,6 +27,7 @@ local DistrictSupermarket = require(script.Parent.DistrictSupermarket)
 local DistrictWarehouse = require(script.Parent.DistrictWarehouse)
 local DistrictRailYard = require(script.Parent.DistrictRailYard)
 local DistrictFloodWorks = require(script.Parent.DistrictFloodWorks)
+local DistrictSouth = require(script.Parent.DistrictSouth)
 local WorldSlice = require(script.Parent.WorldSlice)
 
 local MapBuilder = {}
@@ -1948,6 +1949,23 @@ function MapBuilder.build()
 		"FloodWorks",
 		DistrictFloodWorks.Min,
 		DistrictFloodWorks.Max + Vector3.new(0, 0, 4)
+	)
+	local ballpark, trailers = DistrictSouth.build(north)
+	zones.Ballpark = { Points = ballpark, Label = "Ballpark" }
+	zones.Trailers = { Points = trailers, Label = "Trailer Park" }
+	footprint(
+		"Ballpark",
+		"Gale Hollow Ballpark",
+		"Ballpark",
+		DistrictSouth.BallparkMin,
+		DistrictSouth.BallparkMax
+	)
+	footprint(
+		"Trailers",
+		"Pine Rest Trailer Park",
+		"Trailers",
+		DistrictSouth.TrailersMin,
+		DistrictSouth.TrailersMax
 	)
 
 	-- The look profile's palette applies once everything is built.

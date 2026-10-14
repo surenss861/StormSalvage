@@ -53,8 +53,8 @@ Each major feature ships complete: mechanics → models → animation → VFX/au
 | M2 | Rewards worth chasing, the dodge, animations authored | Done (Studio); RC9 |
 | M3 | Economy and status first slice; exact 303-digit money | Done (Studio); RC10–RC12 |
 | M4 | Bands 3–5: new salvage, signature events, band equipment, licences, sinks | Done (Studio): Storm Hunter / the Storm's Eye, Heavy Salvage / the Armored Wreck, Storm Legend / the Storm Titan. Report: `V4-M4.md` |
-| **M5** | **World: district polish, Rail Yard, Flood Control Works, traversal** | **Next** |
-| M6 | Animation, twister, storm VFX, lighting, audio | Planned (and per feature as it ships) |
+| M5 | World: district polish, Rail Yard, Flood Control Works, traversal | Done (Studio): Rail Yard and Flood Control Works with shortcuts to the plateau, Ballpark and Pine Rest in the south; flood covers the north strip; WorldMotion. Report: `V4-M5.md` |
+| **M6** | **Animation, twister, storm VFX, lighting, audio** | **Next** (animation uploads owner-gated) |
 | M7 | Prestige, leaderboards, collectibles, wealth milestones | Planned |
 | M8 | Equipment shop, Supply Counter, Robux catalogue (off until activation) | Planned |
 | M9 | HUD, menus, mobile/gamepad, onboarding, polish | Planned |

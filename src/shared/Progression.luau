@@ -88,9 +88,21 @@ Progression.Zones = {
 	TownSquare = "Town Square",
 	RailYard = "the Rail Yard",
 	FloodWorks = "Flood Control",
+	Ballpark = "the Ballpark",
+	Trailers = "Pine Rest",
 } :: { [string]: string }
-Progression.ZoneOrder =
-	{ "Houses", "Supermarket", "GasStation", "Warehouse", "Motel", "TownSquare", "RailYard", "FloodWorks" }
+Progression.ZoneOrder = {
+	"Houses",
+	"Supermarket",
+	"GasStation",
+	"Warehouse",
+	"Motel",
+	"TownSquare",
+	"RailYard",
+	"FloodWorks",
+	"Ballpark",
+	"Trailers",
+}
 
 Progression.ACTIVE = 3
 Progression.SWAP_COOLDOWN = 120 -- seconds between free job swaps (session-only)

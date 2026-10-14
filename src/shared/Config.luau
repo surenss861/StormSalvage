@@ -413,6 +413,20 @@ Config.ZonePools = {
 		{ Id = "Engine", Weight = 15 },
 		{ Id = "Safe", Weight = 4 },
 	},
+	Ballpark = { -- V4 M5
+		{ Id = "Can", Weight = 35 },
+		{ Id = "Battery", Weight = 20 },
+		{ Id = "Register", Weight = 15 },
+		{ Id = "Tv", Weight = 15 },
+		{ Id = "Jukebox", Weight = 4 },
+	},
+	Trailers = { -- V4 M5
+		{ Id = "Toaster", Weight = 30 },
+		{ Id = "Tv", Weight = 28 },
+		{ Id = "Can", Weight = 22 },
+		{ Id = "Jukebox", Weight = 6 },
+		{ Id = "Safe", Weight = 5 },
+	},
 	TownSquare = {
 		{ Id = "Can", Weight = 50 },
 		{ Id = "Pipe", Weight = 30 },
@@ -536,6 +550,8 @@ Config.Events = {
 		-- V4 M5: beside the plateau, each with a shortcut up (the gantry ramp, the catwalk).
 		{ Id = "RailYard", Name = "the Rail Yard", Spot = Vector3.new(-147, 0, -288), Difficulty = 1 },
 		{ Id = "FloodWorks", Name = "Flood Control", Spot = Vector3.new(118, 0, -262), Difficulty = 1 },
+		{ Id = "Ballpark", Name = "the Ballpark", Spot = Vector3.new(-150, 0, 165), Difficulty = 3 },
+		{ Id = "Trailers", Name = "Pine Rest", Spot = Vector3.new(132, 0, 170), Difficulty = 3 },
 	},
 }
 
