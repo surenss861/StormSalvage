@@ -54,10 +54,10 @@ Each major feature ships complete: mechanics → models → animation → VFX/au
 | M3 | Economy and status first slice; exact 303-digit money | Done (Studio); RC10–RC12 |
 | M4 | Bands 3–5: new salvage, signature events, band equipment, licences, sinks | Done (Studio): Storm Hunter / the Storm's Eye, Heavy Salvage / the Armored Wreck, Storm Legend / the Storm Titan. Report: `V4-M4.md` |
 | M5 | World: district polish, Rail Yard, Flood Control Works, traversal | Done (Studio): Rail Yard and Flood Control Works with shortcuts to the plateau, Ballpark and Pine Rest in the south; flood covers the north strip; WorldMotion. Report: `V4-M5.md` |
-| **M6** | **Animation, twister, storm VFX, lighting, audio** | **In progress:** Storm Titan rebuilt (charge node, inhale, layered funnel, arcs, debris; tuned in Studio); Armored Wreck crew bonus and shared sparks. Next: storm VFX and lighting pass, audio, animation fallbacks (uploads owner-gated) |
-| **M7** | **Prestige, leaderboards, collectibles, wealth milestones** | **In progress:** Salvager ID card (concept), all-time and weekly leaderboards on a Scrapyard board. Next: achievements beyond titles, collectible display |
-| M8 | Equipment shop, Supply Counter, Robux catalogue (off until activation) | Planned |
-| **M9** | **HUD, menus, mobile/gamepad, onboarding, polish** | **In progress:** one priority objective strip (no stacked banners), Storm-Scarred Arcade gameplay HUD, Arcade theme across menus (`docs/art/v4/HUD.md`). Next: richer shop/log layouts, onboarding, gamepad navigation |
+| **M6** | **Animation, twister, storm VFX, lighting, audio** | **In progress:** Titan charge node, inhale with escape arrow, node ring, layered funnel; Wreck alarm, blinking locks, vault burst; tiered rare-loot effects; spatial Titan roar/hum, tension music (Music volume); procedural carry/dodge/celebrate fallbacks (real uploads owner-gated). Next: storm-specific lighting pass, rogue-twister identity |
+| **M7** | **Prestige, leaderboards, collectibles, wealth milestones** | **In progress:** Salvager ID with badges and trophy case; collection titles; exact-ranked all-time and weekly leaderboards (`V4-LEADERBOARDS.md`); fair cooperative rewards (`V4-COOP.md`) |
+| **M8** | **Equipment shop, Supply Counter, Robux catalogue (off until activation)** | **Designed and plumbed, all off** (`V4-CATALOG.md`); activation is an owner gate |
+| **M9** | **HUD, menus, mobile/gamepad, onboarding, polish** | **In progress:** priority strip (pills hide under danger), Arcade HUD and menus, onboarding with a world guide and welcome find (`V4-ONBOARDING.md`), controller focus and keyboard shortcuts. Pending: physical phone and controller QA |
 | M10 | Real servers, real phones, purchases, the migration rehearsal (paused at B0), final QA | Needs owner hardware and deploy approval |
 | M11 | Private release validation, monetization activation, launch | Owner gates |
 
