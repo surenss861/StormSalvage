@@ -102,7 +102,7 @@ function Onboarding.step(p: Progress, live: Live): Step?
 		return {
 			Id = "Licence",
 			Index = 7,
-			Text = "Work toward the Pro licence (Gear Shop · Supply Counter).",
+			Text = "Work toward the Pro licence (Gear Shop · Tools).",
 			Target = nil,
 		}
 	end

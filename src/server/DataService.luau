@@ -472,9 +472,28 @@ end
 function DataService.useStoreForTest(name: string)
 	assert(RunService:IsStudio(), "Studio only")
 	assert(name:match("^StormSalvage_v1_STUDIO_REHEARSAL") ~= nil, "rehearsal stores only")
+	assert(#name + #"_Purchases" <= 50, "store name too long (50 characters with suffixes)")
 	store = DataStoreService:GetDataStore(name)
 	history = DataStoreService:GetDataStore(name .. "_Purchases")
 	backups = DataStoreService:GetDataStore(name .. "_Backups")
+	pending = DataStoreService:GetDataStore(name .. "_Pending")
+end
+
+-- Studio QA only: a brand-new disposable profile for playing the real onboarding from nothing
+-- (no granted rank, coins, licences or extractions). Set ServerStorage attribute
+-- QA_ProfileStore to an unused rehearsal-prefixed store name before pressing Play; every Play
+-- then loads and saves that store, so progress carries between sessions like a real player's.
+do
+	local qaStore = RunService:IsStudio() and game:GetService("ServerStorage"):GetAttribute("QA_ProfileStore")
+	if type(qaStore) == "string" and qaStore ~= "" then
+		-- (Store names cap at 50 characters including the "_Purchases" suffix.)
+		local ok, err = pcall(DataService.useStoreForTest, qaStore)
+		if ok then
+			print("[DataService] Studio QA profile store:", qaStore)
+		else
+			warn("[DataService] QA_ProfileStore ignored:", err)
+		end
+	end
 end
 
 function DataService.storeNameForTest(): string?
