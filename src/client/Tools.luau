@@ -49,15 +49,16 @@ local function licenseOf(id: string): Bands.License?
 	return if key then Bands.Licenses[key] else nil
 end
 
--- A licence card: a little ID badge with the band on it.
-local function licenseIcon(parent: Instance, size: number): Frame
+-- A licence card: a little ID badge with the licence's tag, coloured by band.
+local BAND_COLORS = { [2] = Color3.fromRGB(240, 196, 70), [3] = Color3.fromRGB(190, 150, 255) }
+local function licenseIcon(parent: Instance, size: number, license: Bands.License): Frame
 	local card = UI.new("Frame", {
 		Name = "LicenseIcon",
 		Parent = parent,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(size, size * 0.72),
-		BackgroundColor3 = Color3.fromRGB(240, 196, 70),
+		BackgroundColor3 = BAND_COLORS[license.Band] or Color3.fromRGB(240, 196, 70),
 		BorderSizePixel = 0,
 	}, { UI.corner(4), UI.stroke(M.Marker, 2.5) })
 	UI.new("Frame", {
@@ -74,13 +75,14 @@ local function licenseIcon(parent: Instance, size: number): Frame
 		Position = UDim2.fromScale(0.44, 0.18),
 		Size = UDim2.fromScale(0.5, 0.5),
 		TextColor3 = M.Marker,
-		Text = "PRO",
+		Text = license.Tag,
 	})
 	return card
 end
 
 local function iconFor(id: string, parent: Instance, size: number): Frame
-	return if licenseOf(id) then licenseIcon(parent, size) else Tools.detectorIcon(parent, size)
+	local license = licenseOf(id)
+	return if license then licenseIcon(parent, size, license) else Tools.detectorIcon(parent, size)
 end
 
 -- A dial with a needle and two blips: reads as "detector" without an image asset.
@@ -131,20 +133,25 @@ local function costOf(id: string): number
 	return if license then license.Cost else Config.Tools[id].Cost
 end
 
--- One line per requirement: done or progress, from the server's own numbers.
+-- One line per requirement: done or progress, from the server's own numbers (the same
+-- Bands.progressOf the server checks with).
 local function checklist(license: Bands.License): (string, boolean)
+	local rank = Progression.rankFor(state.Rep and state.Rep.XP or 0)
+	local collection = state.Collection
+	local progress: Bands.Progress = {
+		Rank = rank.Index,
+		Extractions = state.Records and state.Records.Extractions or 0,
+		Coins = state.Coins,
+		Owned = false,
+		Found = Bands.foundByClass(collection and collection.Found, Config.Loot),
+		Records = state.Records,
+	}
 	local lines, all = {}, true
 	for _, r in license.Requirements do
-		local have, show
-		if r.Kind == "Rank" then
-			local rank = Progression.rankFor(state.Rep and state.Rep.XP or 0)
-			have, show = rank.Index, rank.Title
-		else
-			have = state.Records and state.Records.Extractions or 0
-			show = ("%d / %d"):format(math.min(have, r.Value), r.Value)
-		end
-		local done = have >= r.Value
+		local have, need = Bands.progressOf(r, progress)
+		local done = have >= need
 		all = all and done
+		local show = if r.Kind == "Rank" then rank.Title else ("%d / %d"):format(math.min(have, need), need)
 		table.insert(lines, ("%s  %s  (%s)"):format(if done then "DONE" else "TODO", r.Text, show))
 	end
 	return table.concat(lines, "\n"), all
@@ -157,7 +164,10 @@ function Tools.refresh()
 	for id, tag in tags do
 		local cost = costOf(id)
 		local have = owned(id)
-		tag.PriceText.Text = if have then "OWNED" else UI.comma(cost)
+		tag.PriceText.Text = if have
+			then "OWNED"
+			elseif cost < 100000 then UI.comma(cost)
+			else BigMoney.compact(cost)
 		tag.Price.BackgroundColor3 = if have
 			then Color3.fromRGB(80, 170, 90)
 			elseif BigMoney.gte(state.Coins, BigMoney.of(cost)) then M.Orange
@@ -193,8 +203,8 @@ function Tools.refresh()
 		-- the LICENSED stamp clear of them.
 		desc.Size = UDim2.new(1, -112, 0, 100)
 		facts.Position = UDim2.fromOffset(14, 158)
-		facts.Size = UDim2.new(1, -28, 0, 40)
-		stamp.Position = UDim2.new(0.5, 0, 0, 236)
+		facts.Size = UDim2.new(1, -28, 0, 20 * #license.Requirements)
+		stamp.Position = UDim2.new(0.5, 0, 0, 216 + 20 * #license.Requirements)
 		facts.TextColor3 = if all then Color3.fromRGB(34, 130, 56) else M.RedPen
 		ready = all
 		stampText.Text = "LICENSED"

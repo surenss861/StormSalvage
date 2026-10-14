@@ -66,6 +66,8 @@ local function formatValue(id: string, value: any): string
 		return ("RUN %d / SPRINT %s"):format(value, tostring(Config.Upgrades.Boots.SprintValues[level]))
 	elseif id == "Press" then
 		return if value <= 1 then "NO PRESS" else ("x%s ON SALES"):format(tostring(value))
+	elseif id == "Harness" then
+		return if value <= 0 then "NO HARNESS" else ("-%d%% STORM"):format(math.floor(value * 100 + 0.5))
 	elseif value == 0 then
 		return "NO ARMOR"
 	end
@@ -74,7 +76,7 @@ end
 
 ---------------------------------------------------------------------------- Pegboard tags
 
-local TILTS = { -1.5, 1.2, -0.8, 1 }
+local TILTS = { -1.5, 1.2, -0.8, 1, -1.2 }
 
 -- Licence-gated gear (the Salvage Press): locked until the server says the licence is held.
 local function locked(def: any): boolean

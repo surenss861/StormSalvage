@@ -74,12 +74,31 @@ local function rootOf(player: Player): BasePart?
 	return character:FindFirstChild("HumanoidRootPart") :: BasePart?
 end
 
--- Players in town and not under a roof.
+-- Extra shelters registered by other services (the band 3 Storm's Eye): position -> sheltered.
+local shelters: { (Vector3) -> boolean } = {}
+function StormService.addShelter(fn: (Vector3) -> boolean)
+	table.insert(shelters, fn)
+end
+local function extraShelter(pos: Vector3): boolean
+	for _, fn in shelters do
+		if fn(pos) then
+			return true
+		end
+	end
+	return false
+end
+
+-- Players in town and not under a roof (or inside the Storm's Eye).
 local function exposedPlayers(): { { Player: Player, Root: BasePart } }
 	local list = {}
 	for _, player in Players:GetPlayers() do
 		local root = rootOf(player)
-		if root and not inSafeZone(root.Position) and not Shelter.isSheltered(root.Position) then
+		if
+			root
+			and not inSafeZone(root.Position)
+			and not Shelter.isSheltered(root.Position)
+			and not extraShelter(root.Position)
+		then
 			table.insert(list, { Player = player, Root = root })
 		end
 	end
@@ -91,7 +110,7 @@ local function hurt(player: Player, amount: number)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local before = humanoid and humanoid.Health or 0
-	PlayerService.damage(player, amount)
+	PlayerService.damage(player, amount, "Storm")
 	if humanoid then
 		StormStats.damage(player, before - humanoid.Health)
 	end
@@ -141,6 +160,10 @@ local function launchDebris(origin: Vector3, velocity: Vector3)
 			return
 		end
 		local player = Players:GetPlayerFromCharacter(hit.Parent)
+		local root = player and rootOf(player)
+		if root and extraShelter(root.Position) then
+			return -- inside the Storm's Eye: the calm holds
+		end
 		if player and os.clock() - (debrisCooldown[player] or 0) > 0.8 then
 			debrisCooldown[player] = os.clock()
 			hurt(player, T.DebrisDamage)
@@ -494,6 +517,15 @@ local function cycle()
 			if stormToken == token then
 				LootService.spawnStormCores(Config.StormCoresPerStorm)
 				PlayerService.notifyAll("Storm Cores have appeared in town!", Config.RarityColors.Legendary)
+				-- Band 3: this storm's artifacts form out in the open (Storm Hunters only).
+				if LootService.spawnArtifacts(storm, Config.Cycle.Storm * 0.7) > 0 then
+					PlayerService.notifyAll(
+						("Storm artifacts are forming in the open: %s"):format(
+							LootService.artifactName(storm)
+						),
+						Color3.fromRGB(170, 220, 255)
+					)
+				end
 			end
 		end)
 		waitPhase(Config.Cycle.Storm)

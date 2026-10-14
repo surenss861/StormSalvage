@@ -1,0 +1,657 @@
+{
+ "className": "Model",
+ "properties": {
+  "WorldPivotData": {
+   "OptionalCFrame": {
+    "position": [
+     0,
+     0,
+     0
+    ],
+    "orientation": [
+     [
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      1
+     ]
+    ]
+   }
+  }
+ },
+ "children": [
+  {
+   "name": "Reef",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     2.0,
+     0.35,
+     1.6
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.17,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.4706,
+     0.3529,
+     0.3137
+    ],
+    "Material": "Rock",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Disc",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.3,
+     1.7,
+     1.7
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.2,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        0,
+        1.0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        -1.0,
+        0,
+        0.0
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.5882,
+     0.4314,
+     0.2353
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Rim",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.36,
+     1.82,
+     1.82
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.2,
+       -0.02
+      ],
+      "orientation": [
+       [
+        0.0,
+        0,
+        1.0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        -1.0,
+        0,
+        0.0
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.2745,
+     0.6275,
+     0.549
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Glow",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.34,
+     0.8,
+     0.8
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.2,
+       0.02
+      ],
+      "orientation": [
+       [
+        0.0,
+        0,
+        1.0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        -1.0,
+        0,
+        0.0
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.2353,
+     0.8627,
+     0.8235
+    ],
+    "Material": "Neon",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Point",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.18,
+     0.18,
+     0.34
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.62,
+       1.2,
+       0.2
+      ],
+      "orientation": [
+       [
+        1.0,
+        -0.0,
+        0
+       ],
+       [
+        0.0,
+        1.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.5882,
+     0.4314,
+     0.2353
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Point",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.18,
+     0.18,
+     0.34
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.0,
+       1.82,
+       0.2
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.5882,
+     0.4314,
+     0.2353
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Point",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.18,
+     0.18,
+     0.34
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.62,
+       1.2,
+       0.2
+      ],
+      "orientation": [
+       [
+        -1.0,
+        -0.0,
+        0
+       ],
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.5882,
+     0.4314,
+     0.2353
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Point",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.18,
+     0.18,
+     0.34
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.0,
+       0.58,
+       0.2
+      ],
+      "orientation": [
+       [
+        -0.0,
+        1.0,
+        0
+       ],
+       [
+        -1.0,
+        -0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.5882,
+     0.4314,
+     0.2353
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Barnacle",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.2,
+     0.2,
+     0.2
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.55,
+       0.55,
+       0.18
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.8627,
+     0.8431,
+     0.7843
+    ],
+    "Material": "Pebble",
+    "Shape": "Ball",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Barnacle",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.2,
+     0.2,
+     0.2
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.6,
+       0.8,
+       0.18
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.8627,
+     0.8431,
+     0.7843
+    ],
+    "Material": "Pebble",
+    "Shape": "Ball",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Barnacle",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.2,
+     0.2,
+     0.2
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.45,
+       1.85,
+       0.18
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.8627,
+     0.8431,
+     0.7843
+    ],
+    "Material": "Pebble",
+    "Shape": "Ball",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Barnacle",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.2,
+     0.2,
+     0.2
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.35,
+       1.9,
+       0.18
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.8627,
+     0.8431,
+     0.7843
+    ],
+    "Material": "Pebble",
+    "Shape": "Ball",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  }
+ ]
+}

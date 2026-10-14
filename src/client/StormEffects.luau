@@ -446,6 +446,12 @@ function StormEffects.step(now: number)
 		force.Enabled = windy
 		if windy then
 			local push = if gust == "gust" then T.GustPush else T.WindPush
+			-- Band 3: the Storm Harness braces against the push (server-set attribute).
+			local resist = Players.LocalPlayer.Character
+				and Players.LocalPlayer.Character:GetAttribute("WindResist")
+			if type(resist) == "number" then
+				push *= 1 - math.clamp(resist, 0, 0.9)
+			end
 			force.Force = state.WindDir * root.AssemblyMass * push
 		end
 	end

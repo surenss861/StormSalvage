@@ -63,6 +63,7 @@ export type Records = {
 	Hardest: number, -- highest site difficulty extracted from
 	RushFinds: number,
 	GoldenExtractions: number, -- V4 M3: Golden Storm Cores extracted
+	EyeHearts: number, -- V4 M4: Storm Hearts delivered (band 3 signature event)
 }
 
 function Pursuit.newRecords(): Records
@@ -74,6 +75,7 @@ function Pursuit.newRecords(): Records
 		Hardest = 0,
 		RushFinds = 0,
 		GoldenExtractions = 0,
+		EyeHearts = 0,
 	}
 end
 

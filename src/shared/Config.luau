@@ -111,8 +111,9 @@ export type LootDef = {
 	Shape: Enum.PartType?,
 	Upright: boolean?, -- stand a cylinder on its end
 	Jackpot: boolean?,
-	Class: string?, -- "Industrial": band 2 salvage (Bands.luau)
+	Class: string?, -- "Industrial" (band 2), "Artifact" / "StormHeart" (band 3): Bands.luau
 	License: string?, -- licence needed to pick it up
+	Storm: string?, -- artifacts: the storm type that forms it
 }
 
 Config.Loot = {
@@ -260,6 +261,41 @@ do
 	end
 end
 
+-- V4 band 3: storm artifacts (one kind per storm type, only mid-storm, out in the open) and the
+-- Storm Heart (the Storm's Eye prize). Values in Bands.luau. Storm Hunter licence holders only.
+do
+	local looks = {
+		GaleShard = { Size = Vector3.new(1.6, 2.4, 1.6), Color = Color3.fromRGB(170, 230, 255) },
+		TideRelic = { Size = Vector3.new(2, 1.2, 2), Color = Color3.fromRGB(60, 190, 180) },
+		Fulgurite = { Size = Vector3.new(1.6, 2.6, 1.6), Color = Color3.fromRGB(255, 230, 120) },
+	}
+	for _, item in Bands.Artifacts do
+		local look = looks[item.Id]
+		Config.Loot[item.Id] = {
+			Name = item.Name,
+			Value = item.Value,
+			Size = look.Size,
+			Color = look.Color,
+			Material = Enum.Material.Glass,
+			Rarity = item.Rarity,
+			Class = "Artifact",
+			License = Bands.ArtifactLicense,
+			Storm = item.Storm,
+		}
+	end
+	Config.Loot.StormHeart = {
+		Name = Bands.StormHeart.Name,
+		Value = Bands.StormHeart.Value,
+		Size = Vector3.new(2.4, 2.4, 2.4),
+		Color = Color3.fromRGB(190, 120, 255),
+		Material = Enum.Material.Neon,
+		Rarity = Bands.StormHeart.Rarity,
+		Shape = Enum.PartType.Ball,
+		Class = "StormHeart",
+		License = Bands.ArtifactLicense,
+	}
+end
+
 -- Storm Cores of any kind (glow, contracts, delivery announcements).
 Config.CoreIds = { StormCore = true, GoldenCore = true }
 
@@ -348,7 +384,15 @@ Config.Upgrades.Press = {
 	Values = Bands.Press.Values,
 	License = Bands.Press.License,
 }
-Config.UpgradeOrder = { "Backpack", "Boots", "Armor", "Press" }
+-- V4 band 3 gear: the Storm Harness (Bands.Harness; needs the Storm Hunter licence).
+Config.Upgrades.Harness = {
+	DisplayName = Bands.Harness.DisplayName,
+	Description = Bands.Harness.Description,
+	Costs = Bands.Harness.Costs,
+	Values = Bands.Harness.Values,
+	License = Bands.Harness.License,
+}
+Config.UpgradeOrder = { "Backpack", "Boots", "Armor", "Press", "Harness" }
 
 -- V4 movement (Movement.client): run by default, sprint on Shift (keyboard), automatically after
 -- a moment of steady movement (touch and gamepad), with a short ramp so it doesn't snap. Speeds

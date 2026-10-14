@@ -28,6 +28,7 @@ local EVENTS = {
 	"BuyLicense", -- client -> server: licenseId (V4 M3; requirements and coins checked on the server)
 	"Inspect", -- client -> server: userId of a player to inspect (rate-limited)
 	"InspectCard", -- server -> client: that player's public summary
+	"StormEye", -- server -> client: the Storm's Eye (band 3 event) state: active, centre, radius, heart
 }
 
 local folder: Folder

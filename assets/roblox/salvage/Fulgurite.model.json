@@ -1,0 +1,605 @@
+{
+ "className": "Model",
+ "properties": {
+  "WorldPivotData": {
+   "OptionalCFrame": {
+    "position": [
+     0,
+     0,
+     0
+    ],
+    "orientation": [
+     [
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      1
+     ]
+    ]
+   }
+  }
+ },
+ "children": [
+  {
+   "name": "FusedSand",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.35,
+     1.5,
+     1.5
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.17,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.8392,
+     0.7451,
+     0.549
+    ],
+    "Material": "Sand",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Trunk",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.34,
+     2.3,
+     0.34
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.45,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.8824,
+     0.549
+    ],
+    "Material": "Glass",
+    "Shape": "Block",
+    "Transparency": 0.15,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Vein",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.1,
+     2.2,
+     0.1
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.45,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.9608,
+     0.6275
+    ],
+    "Material": "Neon",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Branch",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.18,
+     0.8,
+     0.18
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.2899,
+       1.25,
+       0.0
+      ],
+      "orientation": [
+       [
+        0.7648,
+        -0.6442,
+        0.0
+       ],
+       [
+        0.6442,
+        0.7648,
+        0
+       ],
+       [
+        0.0,
+        0.0,
+        1.0
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.8824,
+     0.549
+    ],
+    "Material": "Glass",
+    "Shape": "Block",
+    "Transparency": 0.15,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "BranchVein",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.06,
+     0.75,
+     0.06
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.2899,
+       1.25,
+       0.0
+      ],
+      "orientation": [
+       [
+        0.7648,
+        -0.6442,
+        0.0
+       ],
+       [
+        0.6442,
+        0.7648,
+        0
+       ],
+       [
+        0.0,
+        0.0,
+        1.0
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.9608,
+     0.6275
+    ],
+    "Material": "Neon",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Branch",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.18,
+     0.8,
+     0.18
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.2097,
+       1.85,
+       -0.1435
+      ],
+      "orientation": [
+       [
+        0.6812,
+        0.466,
+        0.5646
+       ],
+       [
+        -0.5646,
+        0.8253,
+        0
+       ],
+       [
+        -0.466,
+        -0.3188,
+        0.8253
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.8824,
+     0.549
+    ],
+    "Material": "Glass",
+    "Shape": "Block",
+    "Transparency": 0.15,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "BranchVein",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.06,
+     0.75,
+     0.06
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.2097,
+       1.85,
+       -0.1435
+      ],
+      "orientation": [
+       [
+        0.6812,
+        0.466,
+        0.5646
+       ],
+       [
+        -0.5646,
+        0.8253,
+        0
+       ],
+       [
+        -0.466,
+        -0.3188,
+        0.8253
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.9608,
+     0.6275
+    ],
+    "Material": "Neon",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Branch",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.18,
+     0.8,
+     0.18
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.0782,
+       2.25,
+       -0.2011
+      ],
+      "orientation": [
+       [
+        0.318,
+        -0.1737,
+        -0.932
+       ],
+       [
+        0.4794,
+        0.8776,
+        0
+       ],
+       [
+        0.8179,
+        -0.4468,
+        0.3624
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.8824,
+     0.549
+    ],
+    "Material": "Glass",
+    "Shape": "Block",
+    "Transparency": 0.15,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "BranchVein",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.06,
+     0.75,
+     0.06
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.0782,
+       2.25,
+       -0.2011
+      ],
+      "orientation": [
+       [
+        0.318,
+        -0.1737,
+        -0.932
+       ],
+       [
+        0.4794,
+        0.8776,
+        0
+       ],
+       [
+        0.8179,
+        -0.4468,
+        0.3624
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.9608,
+     0.6275
+    ],
+    "Material": "Neon",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Branch",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.18,
+     0.8,
+     0.18
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.19,
+       1.55,
+       -0.261
+      ],
+      "orientation": [
+       [
+        -0.41,
+        -0.4222,
+        0.8085
+       ],
+       [
+        -0.7174,
+        0.6967,
+        0
+       ],
+       [
+        -0.5633,
+        -0.58,
+        -0.5885
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.8824,
+     0.549
+    ],
+    "Material": "Glass",
+    "Shape": "Block",
+    "Transparency": 0.15,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "BranchVein",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.06,
+     0.75,
+     0.06
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.19,
+       1.55,
+       -0.261
+      ],
+      "orientation": [
+       [
+        -0.41,
+        -0.4222,
+        0.8085
+       ],
+       [
+        -0.7174,
+        0.6967,
+        0
+       ],
+       [
+        -0.5633,
+        -0.58,
+        -0.5885
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.9608,
+     0.6275
+    ],
+    "Material": "Neon",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  }
+ ]
+}

@@ -77,7 +77,7 @@ function DataService.default(): Data
 	return {
 		Version = 1,
 		Coins = Config.StartingCoins,
-		Upgrades = { Backpack = 0, Boots = 0, Armor = 0, Press = 0 },
+		Upgrades = { Backpack = 0, Boots = 0, Armor = 0, Press = 0, Harness = 0 },
 		Stats = { TotalEarned = 0, ItemsSold = 0, StormsSurvived = 0 },
 		ProcessedReceipts = {},
 		BoostUntil = 0,

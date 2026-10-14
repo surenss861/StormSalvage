@@ -135,7 +135,7 @@ local function refreshCoreGlow(player: Player, session: Session)
 	end
 	local kind: string? = nil
 	for _, id in session.Carried do
-		if id == "GoldenCore" then
+		if id == "StormHeart" or id == "GoldenCore" then
 			kind = id
 			break
 		elseif Config.CoreIds[id] then
@@ -148,8 +148,11 @@ local function refreshCoreGlow(player: Player, session: Session)
 		glow = nil
 	end
 	if kind and not glow then
-		local golden = kind == "GoldenCore"
-		local color = if golden then Config.Loot.GoldenCore.Color else Config.RarityColors.Legendary
+		local golden = kind == "GoldenCore" or kind == "StormHeart"
+		local color = if kind == "StormHeart"
+			then Config.Loot.StormHeart.Color
+			elseif golden then Config.Loot.GoldenCore.Color
+			else Config.RarityColors.Legendary
 		local light = Instance.new("PointLight")
 		light.Name = "CoreGlow"
 		light:SetAttribute("Kind", kind)
@@ -229,6 +232,11 @@ function PlayerService.applyCharacterStats(player: Player)
 		humanoid.WalkSpeed = boots.Values[level]
 		character:SetAttribute("RunSpeed", boots.Values[level])
 		character:SetAttribute("SprintSpeed", boots.SprintValues[level])
+		-- Band 3: the Storm Harness also braces against wind push (client StormEffects reads this).
+		character:SetAttribute(
+			"WindResist",
+			if PlayerService.hasLicense(session, "Hunter") then upgradeValue(session, "Harness") else 0
+		)
 	end
 end
 
@@ -246,7 +254,9 @@ function PlayerService.isNear(player: Player, prompt: ProximityPrompt): boolean
 end
 
 -- All storm damage goes through here so armor applies consistently.
-function PlayerService.damage(player: Player, amount: number)
+-- `kind` "Storm": weather damage (wind debris, lightning, flood), which the Storm Harness also
+-- reduces (band 3), on top of armour.
+function PlayerService.damage(player: Player, amount: number, kind: string?)
 	local session = sessions[player]
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -254,7 +264,12 @@ function PlayerService.damage(player: Player, amount: number)
 		return
 	end
 	local reduction = session and upgradeValue(session, "Armor") or 0
-	humanoid:TakeDamage(amount * (1 - reduction))
+	local harness = if session
+			and kind == "Storm"
+			and PlayerService.hasLicense(session, "Hunter")
+		then upgradeValue(session, "Harness")
+		else 0
+	humanoid:TakeDamage(amount * (1 - reduction) * (1 - harness))
 	if session then
 		session.LastDamage = os.clock()
 	end
@@ -365,6 +380,13 @@ function PlayerService.sell(player: Player)
 	session.Carried = {}
 	session.Sales += 1
 	refreshCoreGlow(player, session)
+	-- Band 3: count delivered Storm Hearts before paying, so the state push that follows (and
+	-- the title check that runs with it) already sees the record.
+	local hearts = counts.StormHeart or 0
+	if hearts > 0 then
+		local records = session.Data.Records :: any
+		records.EyeHearts = (records.EyeHearts or 0) + hearts
+	end
 	-- The receipt shows what was really paid: only at the coin cap (10^303 - 1) is that less.
 	local paid = PlayerService.addCoins(player, earned)
 	local capLoss = BigMoney.sub(earned, paid) :: string
@@ -386,6 +408,21 @@ function PlayerService.sell(player: Player)
 		Balance = Wallet.cash(session.Data),
 		HadCore = hadCore,
 	})
+	-- Band 3: a delivered Storm Heart is a server-wide moment (its record is counted above).
+	if hearts > 0 then
+		PlayerService.notifyAll(
+			("%s delivered a STORM HEART! +%s"):format(
+				player.DisplayName,
+				BigMoney.full(
+					BigMoney.mulFactors(
+						BigMoney.mulSmall(BigMoney.of(Config.Loot.StormHeart.Value), hearts),
+						factors
+					)
+				)
+			),
+			Color3.fromRGB(200, 140, 255)
+		)
+	end
 	if hadCore then
 		local coreValue = BigMoney.add(
 			BigMoney.mulSmall(BigMoney.of(Config.Loot.StormCore.Value), counts.StormCore or 0),
@@ -543,11 +580,14 @@ local function buyLicense(player: Player, licenseId: unknown)
 		session.Data.Licenses = {}
 	end
 	local records = session.Data.Records :: any
+	local collection = session.Data.Collection :: any
 	local check = Bands.checkLicense(licenseId, {
 		Rank = Progression.rankFor(session.Data.Rep.XP).Index,
 		Extractions = records and records.Extractions or 0,
 		Coins = Wallet.cash(session.Data),
 		Owned = session.Data.Licenses[licenseId] == true,
+		Found = Bands.foundByClass(collection and collection.Found, Config.Loot),
+		Records = records,
 	})
 	if check.Reason == "owned" then
 		PlayerService.notify(player, "You already hold the " .. def.DisplayName .. ".")
@@ -577,7 +617,7 @@ local function buyLicense(player: Player, licenseId: unknown)
 	PlayerService.pushState(player)
 	PlayerService.notify(
 		player,
-		("%s earned! Industrial salvage is yours to haul."):format(def.DisplayName),
+		("%s earned! %s"):format(def.DisplayName, def.Earned),
 		Color3.fromRGB(255, 200, 60)
 	)
 end

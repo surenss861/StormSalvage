@@ -750,9 +750,43 @@ function UI.pressIcon(parent: Instance, size: number): Frame
 	return holder
 end
 
+-- A harness: two shoulder straps and a chest buckle, in storm violet.
+function UI.harnessIcon(parent: Instance, size: number): Frame
+	local holder = UI.new("Frame", {
+		Name = "HarnessIcon",
+		Parent = parent,
+		Size = UDim2.fromOffset(size, size),
+		BackgroundTransparency = 1,
+	})
+	local function strap(x: number, rot: number)
+		UI.new("Frame", {
+			Parent = holder,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(x, 0.5),
+			Size = UDim2.fromScale(0.16, 0.9),
+			Rotation = rot,
+			BackgroundColor3 = Color3.fromRGB(150, 110, 210),
+			BorderSizePixel = 0,
+		}, { UI.corner(3), UI.stroke(UI.Mat.Marker, 2) })
+	end
+	strap(0.33, -14)
+	strap(0.67, 14)
+	UI.new("Frame", {
+		Parent = holder,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.55),
+		Size = UDim2.fromScale(0.42, 0.26),
+		BackgroundColor3 = UI.Mat.Tin,
+		BorderSizePixel = 0,
+	}, { UI.corner(3), UI.stroke(UI.Mat.Marker, 2) })
+	return holder
+end
+
 function UI.upgradeIcon(id: string, parent: Instance, size: number): Frame
 	if id == "Press" then
 		return UI.pressIcon(parent, size)
+	elseif id == "Harness" then
+		return UI.harnessIcon(parent, size)
 	elseif id == "Boots" then
 		return UI.bootIcon(parent, size)
 	elseif id == "Armor" then

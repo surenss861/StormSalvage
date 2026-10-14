@@ -130,6 +130,33 @@ Titles.List = {
 			return v.Licenses.Pro == true
 		end,
 	},
+	{
+		Id = "StormHunter",
+		Name = "Storm Hunter",
+		Category = "Career",
+		How = "Earn the Storm Hunter License",
+		earned = function(v)
+			return v.Licenses.Hunter == true
+		end,
+	},
+	{
+		Id = "EyeDiver",
+		Name = "Eye Diver",
+		Category = "Pursuit",
+		How = "Deliver a Storm Heart from the Storm's Eye",
+		earned = function(v)
+			return rec(v, "EyeHearts") >= 1
+		end,
+	},
+	{
+		Id = "ArtifactCollector",
+		Name = "Artifact Collector",
+		Category = "Discovery",
+		How = "Log a Gale Shard, a Tide Relic and a Fulgurite",
+		earned = function(v)
+			return v.Found.GaleShard == true and v.Found.TideRelic == true and v.Found.Fulgurite == true
+		end,
+	},
 } :: { Def }
 
 -- Wealth titles: lifetime-earnings milestones, so spending never takes one away. One per named

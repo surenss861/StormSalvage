@@ -1,0 +1,709 @@
+{
+ "className": "Model",
+ "properties": {
+  "WorldPivotData": {
+   "OptionalCFrame": {
+    "position": [
+     0,
+     0,
+     0
+    ],
+    "orientation": [
+     [
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      1
+     ]
+    ]
+   }
+  }
+ },
+ "children": [
+  {
+   "name": "Base",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.3,
+     1.4,
+     1.4
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.15,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1804,
+     0.1647,
+     0.2275
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Prong",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.2,
+     1.3,
+     0.2
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.75,
+       0.85,
+       0.0
+      ],
+      "orientation": [
+       [
+        0.9394,
+        -0.3429,
+        0.0
+       ],
+       [
+        0.3429,
+        0.9394,
+        0
+       ],
+       [
+        0.0,
+        0.0,
+        1.0
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1804,
+     0.1647,
+     0.2275
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Prong",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.2,
+     1.3,
+     0.2
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.375,
+       0.85,
+       0.6495
+      ],
+      "orientation": [
+       [
+        -0.4697,
+        0.1714,
+        -0.866
+       ],
+       [
+        0.3429,
+        0.9394,
+        0
+       ],
+       [
+        0.8135,
+        -0.297,
+        -0.5
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1804,
+     0.1647,
+     0.2275
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Prong",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.2,
+     1.3,
+     0.2
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.375,
+       0.85,
+       -0.6495
+      ],
+      "orientation": [
+       [
+        -0.4697,
+        0.1714,
+        0.866
+       ],
+       [
+        0.3429,
+        0.9394,
+        0
+       ],
+       [
+        -0.8135,
+        0.297,
+        -0.5
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1804,
+     0.1647,
+     0.2275
+    ],
+    "Material": "Metal",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Core",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     1.5,
+     1.5,
+     1.5
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.75,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.7451,
+     0.4706,
+     1.0
+    ],
+    "Material": "Neon",
+    "Shape": "Ball",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Shell",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     2.3,
+     2.3,
+     2.3
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.75,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.8627,
+     0.7843,
+     1.0
+    ],
+    "Material": "Glass",
+    "Shape": "Ball",
+    "Transparency": 0.6,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Arc",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     2.0,
+     0.08
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.85,
+       1.75,
+       0.0
+      ],
+      "orientation": [
+       [
+        1.0,
+        0.0,
+        0.0
+       ],
+       [
+        0,
+        0.8253,
+        -0.5646
+       ],
+       [
+        0.0,
+        0.5646,
+        0.8253
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.9412,
+     0.9255,
+     1.0
+    ],
+    "Material": "Neon",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Arc",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     2.0,
+     0.08
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.425,
+       1.75,
+       0.7361
+      ],
+      "orientation": [
+       [
+        0.5,
+        -0.489,
+        0.7148
+       ],
+       [
+        0,
+        0.8253,
+        0.5646
+       ],
+       [
+        -0.866,
+        -0.2823,
+        0.4127
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.9412,
+     0.9255,
+     1.0
+    ],
+    "Material": "Neon",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Arc",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     2.0,
+     0.08
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.425,
+       1.75,
+       0.7361
+      ],
+      "orientation": [
+       [
+        -0.5,
+        0.489,
+        0.7148
+       ],
+       [
+        0,
+        0.8253,
+        -0.5646
+       ],
+       [
+        -0.866,
+        -0.2823,
+        -0.4127
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.9412,
+     0.9255,
+     1.0
+    ],
+    "Material": "Neon",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Arc",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     2.0,
+     0.08
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.85,
+       1.75,
+       0.0
+      ],
+      "orientation": [
+       [
+        -1.0,
+        -0.0,
+        0.0
+       ],
+       [
+        0,
+        0.8253,
+        0.5646
+       ],
+       [
+        -0.0,
+        0.5646,
+        -0.8253
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.9412,
+     0.9255,
+     1.0
+    ],
+    "Material": "Neon",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Arc",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     2.0,
+     0.08
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.425,
+       1.75,
+       -0.7361
+      ],
+      "orientation": [
+       [
+        -0.5,
+        -0.489,
+        -0.7148
+       ],
+       [
+        0,
+        0.8253,
+        -0.5646
+       ],
+       [
+        0.866,
+        -0.2823,
+        -0.4127
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.9412,
+     0.9255,
+     1.0
+    ],
+    "Material": "Neon",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Arc",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     2.0,
+     0.08
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.425,
+       1.75,
+       -0.7361
+      ],
+      "orientation": [
+       [
+        0.5,
+        0.489,
+        -0.7148
+       ],
+       [
+        0,
+        0.8253,
+        0.5646
+       ],
+       [
+        0.866,
+        -0.2823,
+        0.4127
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.9412,
+     0.9255,
+     1.0
+    ],
+    "Material": "Neon",
+    "Shape": "Block",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Crown",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.3,
+     0.3,
+     0.3
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       3.05,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.9412,
+     0.9255,
+     1.0
+    ],
+    "Material": "Neon",
+    "Shape": "Ball",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  }
+ ]
+}

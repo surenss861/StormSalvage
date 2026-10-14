@@ -368,8 +368,15 @@ end
 
 -- Where a kind turns up, shown only once it has been found (never for undiscovered kinds).
 local function whereFound(id: string): string
-	if Config.Loot[id] and Config.Loot[id].Class == "Industrial" then
+	local class = Config.Loot[id] and Config.Loot[id].Class
+	if class == "Industrial" then
 		return "Industrial yards · Pro license"
+	elseif class == "Artifact" then
+		local storm = Config.Loot[id].Storm
+		local name = storm and Config.Storms[storm] and Config.Storms[storm].DisplayName or "a storm"
+		return ("Mid-%s, out in the open · Hunter"):format(string.lower(name))
+	elseif class == "StormHeart" then
+		return "The Storm's Eye · Storm Hunter license"
 	elseif id == "StormCore" then
 		return "Mid-storm, anywhere in town"
 	elseif id == "GoldenCore" then

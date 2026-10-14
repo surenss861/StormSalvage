@@ -68,6 +68,70 @@ return {
 		eq(has(Titles.earned(view(nil, nil, "1e18")), "Billionaire"), false, "garbage earns nothing")
 		eq(has(Titles.earned(view(nil, nil, 0, { Pro = true })), "Professional"), true, "licence")
 	end,
+	["titles: band 3 titles"] = function()
+		local got = Titles.earned(
+			view(
+				{ EyeHearts = 1 },
+				{ GaleShard = true, TideRelic = true, Fulgurite = true },
+				0,
+				{ Hunter = true }
+			)
+		)
+		for _, id in { "StormHunter", "EyeDiver", "ArtifactCollector" } do
+			assert(has(got, id), id)
+		end
+		eq(
+			has(Titles.earned(view(nil, { GaleShard = true, TideRelic = true })), "ArtifactCollector"),
+			false,
+			"two of three"
+		)
+	end,
+	["bands: storm hunter licence needs rank, extractions and the industrial log"] = function()
+		local base =
+			{ Rank = 4, Extractions = 10, Coins = "4000000", Owned = false, Found = { Industrial = 4 } }
+		eq(Bands.checkLicense("Hunter", base).Ok, true, "all met")
+		local p = table.clone(base)
+		p.Found = { Industrial = 3 }
+		local r = Bands.checkLicense("Hunter", p)
+		eq(r.Reason, "requirements", "three industrial kinds")
+		eq(#r.Missing, 1, "only that one")
+		p = table.clone(base)
+		p.Found = nil
+		eq(Bands.checkLicense("Hunter", p).Reason, "requirements", "no log at all")
+		p = table.clone(base)
+		p.Coins = "3999999"
+		eq(Bands.checkLicense("Hunter", p).Reason, "short", "one coin short")
+		local have, need = Bands.progressOf(Bands.Licenses.Hunter.Requirements[3], base)
+		eq(have, 4, "progress have")
+		eq(need, 4, "progress need")
+	end,
+	["bands: artifacts are a storm each, worth more than any industrial salvage"] = function()
+		local storms = {}
+		for _, a in Bands.Artifacts do
+			assert(a.Value > Bands.Industrial[#Bands.Industrial].Value, a.Id .. " beats a Turbine Rotor")
+			assert(not storms[a.Storm], "one per storm")
+			storms[a.Storm] = true
+		end
+		eq(storms.Wind and storms.Flood and storms.Lightning, true, "all three storms")
+		assert(
+			Bands.StormHeart.Value > Bands.Artifacts[#Bands.Artifacts].Value * 10,
+			"the Heart is the jackpot"
+		)
+		local found = Bands.foundByClass({ CopperSpool = true, Can = true, GaleShard = true }, {
+			CopperSpool = { Class = "Industrial" },
+			Can = {},
+			GaleShard = { Class = "Artifact" },
+		})
+		eq(found.Industrial, 1, "industrial count")
+		eq(found.Artifact, 1, "artifact count")
+	end,
+	["bands: harness protection rises and stays below total immunity"] = function()
+		for i = 2, #Bands.Harness.Values do
+			assert(Bands.Harness.Values[i] > Bands.Harness.Values[i - 1], "rises")
+		end
+		assert(Bands.Harness.Values[#Bands.Harness.Values] < 1, "never immune")
+		eq(#Bands.Harness.Values, #Bands.Harness.Costs + 1, "a value per level")
+	end,
 	["titles: bad records never grant"] = function()
 		local got = Titles.earned(view({ Extractions = 0 / 0, BestExtract = -5, BestStreak = "9" }))
 		eq(#got, 0, "nothing from garbage")
@@ -146,7 +210,7 @@ return {
 		eq(Bands.eventBonus(1, "Pursuit", true), 150, "band 1 golden (unchanged)")
 		eq(Bands.eventBonus(2, "Pursuit", false), 6000, "band 2")
 		eq(Bands.eventBonus(2, "Pursuit", true), 18000, "band 2 golden")
-		eq(Bands.eventBonus(99, "Pursuit", false), 6000, "clamped to the top band")
+		eq(Bands.eventBonus(99, "Pursuit", false), 90000, "clamped to the top band")
 	end,
 	["bands: industrial salvage outvalues town salvage, rarer is worth more"] = function()
 		for i = 2, #Bands.Industrial do

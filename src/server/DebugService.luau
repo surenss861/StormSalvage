@@ -165,6 +165,14 @@ local commands: { [string]: (...any) -> any } = {
 			Band = PlayerService.bandOf(player :: Player),
 		}
 	end,
+	-- Band 3: open a Storm's Eye now (during a storm; skips the band check).
+	eye = function(seconds: number?)
+		task.spawn(require(script.Parent.StormEyeService).run, seconds or 40, true)
+		return true
+	end,
+	eyestate = function()
+		return require(script.Parent.StormEyeService).state()
+	end,
 	-- A harmless debris strike on a player (0 damage); its verdict lands in strikehits.
 	strikeat = function(playerName: string)
 		local player = Players:FindFirstChild(playerName)

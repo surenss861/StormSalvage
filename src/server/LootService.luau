@@ -242,7 +242,7 @@ local function createLoot(
 		item:Destroy()
 		pickupRemote:FireClient(player, { Id = lootId, Position = item.Position })
 		-- Only the signature find goes to everyone; Epic finds get the finder's own card.
-		if def.Rarity == "Legendary" then
+		if def.Rarity == "Legendary" and def.Class ~= "StormHeart" then -- the Eye announces its own
 			PlayerService.notifyAll(("%s grabbed a %s!"):format(player.DisplayName, def.Name), rarityColor)
 		end
 		if onTaken then
@@ -354,6 +354,44 @@ function LootService.spawnStormCores(count: number)
 			createLoot("StormCore", point, nil, Config.Cycle.Storm + Config.Cycle.Aftermath)
 		end
 	end
+end
+
+-- Band 3: the storm's artifacts (the kind its storm type forms), out in the open, melting away
+-- after `lifetime`. Only Storm Hunter licence holders can take them (createLoot's licence gate).
+-- Returns how many formed.
+function LootService.spawnArtifacts(storm: string, lifetime: number): number
+	local id: string? = nil
+	for _, a in Bands.Artifacts do
+		if a.Storm == storm then
+			id = a.Id
+		end
+	end
+	if not id then
+		return 0
+	end
+	local n = 0
+	for _ = 1, Bands.ArtifactsPerStorm do
+		local point = exposedTownPoint()
+		if point then
+			createLoot(id :: string, point, nil, lifetime)
+			n += 1
+		end
+	end
+	return n
+end
+
+function LootService.artifactName(storm: string): string
+	for _, a in Bands.Artifacts do
+		if a.Storm == storm then
+			return a.Name .. "s"
+		end
+	end
+	return "artifacts"
+end
+
+-- A random point on open ground in town (for events that drift across it, e.g. the Storm's Eye).
+function LootService.randomExposedPoint(): Vector3?
+	return exposedTownPoint()
 end
 
 -- Studio QA (DebugService): one item of any kind on the floor at `position`.

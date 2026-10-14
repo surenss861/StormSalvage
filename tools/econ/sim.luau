@@ -65,11 +65,18 @@ end
 -- Bands 3-5 from band 2's shape: each next band's items are worth `jump` times more, its gear
 -- costs scale the same way, and its licence costs `licenseMinutes` of the previous band's peak
 -- income. Requirements arrive at `reqMinutes`.
-local function extrapolate(b2: Band, jump: number, licenseMinutes: number, reqMinutes: { number }): { Band }
+local NAMES = { "3 Storm Hunter", "4 Salvage Magnate", "5 Storm Legend" }
+local function extrapolate(
+	last: Band,
+	from: number,
+	jump: number,
+	licenseMinutes: number,
+	reqMinutes: { number }
+): { Band }
 	local out = {}
-	local prev = b2
-	local names = { "3 Storm Hunter", "4 Salvage Magnate", "5 Storm Legend" }
-	for i = 1, 3 do
+	local prev = last
+	for i = from, 3 do
+		local names = NAMES
 		local gear = {}
 		for _, g in prev.Gear do
 			table.insert(gear, { Cost = g.Cost * jump, Factor = g.Factor })
@@ -90,16 +97,21 @@ local function extrapolate(b2: Band, jump: number, licenseMinutes: number, reqMi
 	return out
 end
 
+-- `built`: the bands implemented in Bands.luau (from band 2); the rest are extrapolated.
 local function curveFrom(
 	name: string,
 	note: string,
-	b2: Band,
+	built: Band | { Band },
 	jump: number,
 	licenseMinutes: number,
 	req: { number }
 ): Curve
-	local bands = { BAND1, b2 }
-	for _, b in extrapolate(b2, jump, licenseMinutes, req) do
+	local list: { Band } = if (built :: any).Name then { built :: Band } else built :: { Band }
+	local bands = { BAND1 }
+	for _, b in list do
+		table.insert(bands, b)
+	end
+	for _, b in extrapolate(list[#list], #list, jump, licenseMinutes, req) do
 		table.insert(bands, b)
 	end
 	return { Name = name, Note = note, Bands = bands }
@@ -130,8 +142,8 @@ local B = curveFrom("B faster", "licence 25K; band 2 items ~40x band 1", {
 -- C: the shipped bands 1-2 (src/shared/Bands.luau): an early fortune.
 local C = curveFrom(
 	"C early fortune (built)",
-	"Bands.luau: Pro licence after rank + extractions; industrial salvage",
-	Bands.simBand2(),
+	"Bands.luau: bands 2-3 built (Pro, Storm Hunter); 4-5 extrapolated",
+	{ Bands.simBand2(), Bands.simBand3() },
 	15,
 	120,
 	{ 600, 1800, 4200 }
