@@ -46,6 +46,62 @@ function Leaderboard.amount(score: number): string
 	return lead .. string.rep("0", digits - LEAD)
 end
 
+-- Server-side check that an exact amount read back matches the index score stored with it (a
+-- stale or mismatched pair is dropped, never shown).
+function Leaderboard.verify(score: unknown, exact: unknown): boolean
+	return type(score) == "number" and BigMoney.parse(exact) ~= nil and Leaderboard.score(exact) == score
+end
+
+export type Entry = { Id: string, Score: number, Exact: string?, Rank: number? }
+
+-- Exact ranking of index entries. Scores are monotone in the money they stand for, so ordering
+-- by score is right except within equal scores (only possible above 12 digits); those are
+-- ordered by their exact amounts. Equal exact amounts share a rank (competition ranking: 1, 2,
+-- 2, 4), and are listed by user id so the order is stable. Entries without a verified exact
+-- amount use the score's amount, which is exact below a trillion.
+function Leaderboard.rank(entries: { Entry }): { Entry }
+	local list = table.clone(entries)
+	local function amount(e: Entry): string
+		return if e.Exact and Leaderboard.verify(e.Score, e.Exact)
+			then BigMoney.parse(e.Exact) :: string
+			else Leaderboard.amount(e.Score)
+	end
+	table.sort(list, function(a, b)
+		local c = BigMoney.cmp(amount(a), amount(b))
+		if c ~= 0 then
+			return c > 0
+		end
+		return a.Id < b.Id
+	end)
+	for i, e in list do
+		local prev = list[i - 1]
+		e.Rank = if prev and BigMoney.cmp(amount(prev), amount(e)) == 0 then prev.Rank else i
+	end
+	return list
+end
+
+-- Paging: keep reading index pages while a lower page could still tie or beat the top `n`.
+-- With scores sorted descending, once the `n`th best score seen is greater than the last
+-- score on the page just read, nothing further down can reach the top `n`.
+function Leaderboard.needMore(
+	scoresSoFar: { number },
+	n: number,
+	lastOnPage: number?,
+	pageFull: boolean
+): boolean
+	if not pageFull or lastOnPage == nil then
+		return false
+	end
+	if #scoresSoFar < n then
+		return true
+	end
+	local sorted = table.clone(scoresSoFar)
+	table.sort(sorted, function(a, b)
+		return a > b
+	end)
+	return sorted[n] <= lastOnPage
+end
+
 -- ISO-8601 week key ("2026W42") for a unix time (UTC). Weeks start on Monday.
 function Leaderboard.weekKey(unix: number): string
 	local days = math.floor(unix / 86400)

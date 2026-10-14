@@ -43,6 +43,75 @@ return {
 		eq(L.amount(L.score("1234567890123456")), "1234567890120000", "16 digits keep 12")
 		eq(L.amount(0), "0", "zero")
 	end,
+	["leaderboard: the index is monotone across random 300-digit fortunes"] = function()
+		local B = require("../src/shared/BigMoney")
+		local seed = 99
+		local function digit(): string
+			seed = (seed * 1103515245 + 12345) % 2147483648
+			return tostring(math.floor(seed / 65536) % 10)
+		end
+		local function big(): string
+			seed = (seed * 1103515245 + 12345) % 2147483648
+			local len = 1 + math.floor(seed / 65536) % 303
+			local s = tostring(1 + (math.floor(seed / 7) % 9))
+			for _ = 2, len do
+				s ..= digit()
+			end
+			return s
+		end
+		for _ = 1, 2000 do
+			local a, b = big(), big()
+			local c = B.cmp(a, b)
+			if c > 0 then
+				assert(L.score(a) >= L.score(b), "bigger never scores lower")
+			elseif c < 0 then
+				assert(L.score(a) <= L.score(b), "smaller never scores higher")
+			end
+		end
+	end,
+	["leaderboard: exact ranking resolves index ties and shares ranks for equal amounts"] = function()
+		-- Three fortunes sharing the first 12 digits (same index score), one far behind.
+		local a = "1234567890129" .. string.rep("0", 20)
+		local b = "1234567890125" .. string.rep("0", 20)
+		local c = "1234567890125" .. string.rep("0", 20)
+		eq(L.score(a), L.score(b), "same index")
+		local ranked = L.rank({
+			{ Id = "u_3", Score = L.score(c), Exact = c },
+			{ Id = "u_1", Score = L.score(b), Exact = b },
+			{ Id = "u_2", Score = L.score(a), Exact = a },
+			{ Id = "u_9", Score = L.score("5"), Exact = "5" },
+		})
+		eq(ranked[1].Id, "u_2", "the exact biggest first")
+		eq(ranked[1].Rank, 1, "rank 1")
+		eq(ranked[2].Id, "u_1", "equal amounts by id")
+		eq(ranked[2].Rank, 2, "rank 2")
+		eq(ranked[3].Id, "u_3", "the tie")
+		eq(ranked[3].Rank, 2, "shares rank 2")
+		eq(ranked[4].Rank, 4, "competition ranking skips to 4")
+	end,
+	["leaderboard: a mismatched exact amount is not trusted"] = function()
+		eq(L.verify(L.score("1000"), "1000"), true, "matches")
+		eq(L.verify(L.score("1000"), "999999999999999999"), false, "an inflated exact is rejected")
+		eq(L.verify("1000", "1000"), false, "score must be a number")
+		-- An unverified pair ranks by its index amount only.
+		local r = L.rank({ { Id = "u_1", Score = L.score("1000"), Exact = "999999999999999999" } })
+		eq(r[1].Rank, 1, "still listed")
+	end,
+	["leaderboard: paging stops once nothing lower can reach the top"] = function()
+		eq(L.needMore({ 5, 4 }, 3, 3, true), true, "fewer than n so far")
+		eq(L.needMore({ 9, 8, 7 }, 3, 5, true), false, "7 > 5: nothing below can reach")
+		eq(L.needMore({ 9, 8, 5 }, 3, 5, true), true, "the last could tie the 3rd")
+		eq(L.needMore({ 9 }, 3, 1, false), false, "last page")
+	end,
+	["leaderboard: purchases never count as earnings"] = function()
+		local W = require("../src/shared/Wallet")
+		local d = { Coins = 0, Stats = { TotalEarned = 0 } }
+		W.load(d)
+		W.earn(d, 500)
+		W.deposit(d, 1000000)
+		eq(W.lifetime(d), "500", "a coin pack adds cash, not lifetime earned")
+		eq(L.score(W.lifetime(d)), L.score("500"), "so it can't inflate an earned-wealth board")
+	end,
 	["leaderboard: ISO week keys"] = function()
 		-- Fixtures from Python's isocalendar (midnight UTC, and the last second of that day).
 		for _, case in

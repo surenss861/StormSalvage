@@ -2,15 +2,21 @@
 -- @domain progression
 -- @status wip
 -- @see [[Leaderboard.luau]]
--- Two OrderedDataStores per data environment (never production unless this build runs there):
---   <store>_LB_Lifetime           lifetime earned (exact BigMoney, as an orderable score)
---   <store>_LB_Week_<2026W42>     earned since the week began (ISO weeks, UTC)
--- Unknown environments (no DataStore) have no leaderboards: the board says so.
--- Writes: at most one per player per WRITE_EVERY, only when their score changed, and once as
--- they leave. Reads: the top 10 of each board every READ_EVERY, with names cached.
--- The board stands on the Scrapyard plateau beside the Contract board, facing the ramp, so
--- everyone sees it on the way to sell. Earned only: purchases (coin packs) never count, because
--- lifetime earned counts earnings, not deposits (Wallet.deposit).
+-- @see [[V4-LEADERBOARDS]]
+-- Exact ranking of exact money (docs/production/V4-LEADERBOARDS.md). Per data environment
+-- (Studio, LIVETEST, production: never another environment's data; none in unknown places):
+--   <store>_LB_Lifetime, <store>_LB_Week_<2026W42>   OrderedDataStores holding an INDEX score
+--       (Leaderboard.score: digit count and leading 12 digits, monotone in the amount)
+--   <store>_LB_Exact   a DataStore with each entry's exact amount ("L_<id>", "W_<week>_<id>")
+-- Writes (server only, from the profile's Wallet lifetime, which never includes purchases):
+--   exact first, then the index; recorded as done only when both succeed, so a failure is
+--   retried next cycle. At most one write per kind per player per WRITE_EVERY, only on change,
+--   and a final one as they leave.
+-- Reads: index pages (PAGE) until nothing further down can reach the top TOP
+--   (Leaderboard.needMore), exact amounts for those entries (cached by score, so unchanged
+--   entries cost no reads), each checked against its index score (Leaderboard.verify), then
+--   exact ranking with shared ranks for equal amounts (Leaderboard.rank). A failed read keeps
+--   the last good board and says it's paused.
 
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
@@ -27,11 +33,14 @@ local LeaderboardService = {}
 local WRITE_EVERY = 120
 local READ_EVERY = 60
 local TOP = 10
+local PAGE = 25
+local MAX_PAGES = 4
 local BOARD_AT = CFrame.new(34, 30, -250) -- on the plateau, facing the ramp (+Z)
 
 type Board = { Title: string, Rows: { TextLabel }, Status: TextLabel }
 local boards: { [string]: Board } = {}
-local lastWrite: { [Player]: { At: number, Life: number, Week: number } } = {}
+local lastWrite: { [Player]: { [string]: { At: number, Score: number } } } = {}
+local exactCache: { [string]: { Score: number, Exact: string? } } = {} -- by exact key
 local names: { [number]: string } = {}
 local enabled = false
 
@@ -46,6 +55,21 @@ local function storeName(kind: string): string?
 	return base .. "_LB_Lifetime"
 end
 
+local function exactStore(): DataStore?
+	local base = Config.DataStoreName
+	if not base then
+		return nil
+	end
+	local ok, store = pcall(function()
+		return DataStoreService:GetDataStore(base .. "_LB_Exact")
+	end)
+	return if ok then store else nil
+end
+
+local function exactKey(kind: string, id: string): string
+	return if kind == "Week" then ("W_%s_%s"):format(Leaderboard.weekKey(os.time()), id) else "L_" .. id
+end
+
 local function ordered(kind: string): OrderedDataStore?
 	local name = storeName(kind)
 	if not name then
@@ -57,45 +81,47 @@ local function ordered(kind: string): OrderedDataStore?
 	return if ok then store else nil
 end
 
--- This player's two scores, from their profile (and the weekly record kept in it).
-local function scoresOf(player: Player): (number?, number?)
+-- This player's two exact amounts, from their profile (and the weekly record kept in it).
+local function amountsOf(player: Player): { [string]: string }?
 	local session = PlayerService.get(player)
 	if not session then
-		return nil, nil
+		return nil
 	end
 	local data = session.Data
 	local lifetime = Wallet.lifetime(data)
 	local record, week = Leaderboard.weekly(data.Weekly, lifetime, Leaderboard.weekKey(os.time()))
 	data.Weekly = record
-	return Leaderboard.score(lifetime), Leaderboard.score(week)
+	return { Lifetime = lifetime, Week = week }
 end
 
 local function write(player: Player, force: boolean?)
 	if not enabled then
 		return
 	end
-	local life, week = scoresOf(player)
-	if not life or not week then
+	local amounts = amountsOf(player)
+	if not amounts then
 		return
 	end
-	local last = lastWrite[player]
-	if last and not force and (os.clock() - last.At < WRITE_EVERY) then
-		return
-	end
-	if last and last.Life == life and last.Week == week then
-		last.At = os.clock()
-		return
-	end
-	lastWrite[player] = { At = os.clock(), Life = life, Week = week }
-	local key = "u_" .. player.UserId
-	for kind, score in { Lifetime = life, Week = week } do
-		local store = ordered(kind)
-		if store and score > 0 then
-			local ok, err = pcall(function()
-				store:SetAsync(key, score)
-			end)
-			if not ok then
-				warn("[LeaderboardService] write failed:", kind, err)
+	local id = tostring(player.UserId)
+	local done = lastWrite[player] or {}
+	lastWrite[player] = done
+	for kind, exact in amounts do
+		local score = Leaderboard.score(exact)
+		local last = done[kind]
+		local due = force or not last or os.clock() - last.At >= WRITE_EVERY
+		if score > 0 and due and (not last or last.Score ~= score) then
+			local store, exacts = ordered(kind), exactStore()
+			if store and exacts then
+				-- Exact first: a reader never finds an index score without its exact amount.
+				local ok, err = pcall(function()
+					(exacts :: DataStore):SetAsync(exactKey(kind, id), exact)
+					store:SetAsync("u_" .. id, score)
+				end)
+				if ok then
+					done[kind] = { At = os.clock(), Score = score }
+				else
+					warn("[LeaderboardService] write failed (retrying next cycle):", kind, err)
+				end
 			end
 		end
 	end
@@ -118,6 +144,25 @@ local function nameOf(userId: number): string
 	return names[userId]
 end
 
+-- The exact amount behind an index entry, cached while its score is unchanged.
+local function exactFor(kind: string, id: string, score: number): string?
+	local key = exactKey(kind, id)
+	local cached = exactCache[key]
+	if cached and cached.Score == score then
+		return cached.Exact
+	end
+	local exacts = exactStore()
+	if not exacts then
+		return nil
+	end
+	local ok, value = pcall(function()
+		return (exacts :: DataStore):GetAsync(key)
+	end)
+	local exact = if ok and Leaderboard.verify(score, value) then value :: string else nil
+	exactCache[key] = { Score = score, Exact = exact }
+	return exact
+end
+
 local function refresh(kind: string)
 	local board = boards[kind]
 	if not board then
@@ -128,24 +173,56 @@ local function refresh(kind: string)
 		board.Status.Text = "No leaderboard in this test place"
 		return
 	end
-	local ok, page = pcall(function()
-		return store:GetSortedAsync(false, TOP):GetCurrentPage()
+	local entries: { Leaderboard.Entry } = {}
+	local scores: { number } = {}
+	local ok, err = pcall(function()
+		local pages = store:GetSortedAsync(false, PAGE)
+		for _ = 1, MAX_PAGES do
+			local page = pages:GetCurrentPage()
+			local last: number? = nil
+			for _, entry in page do
+				local id = string.match(entry.key, "^u_(%d+)$")
+				if id and type(entry.value) == "number" then
+					table.insert(entries, { Id = id, Score = entry.value })
+					table.insert(scores, entry.value)
+					last = entry.value
+				end
+			end
+			if not Leaderboard.needMore(scores, TOP, last, #page >= PAGE and not pages.IsFinished) then
+				break
+			end
+			pages:AdvanceToNextPageAsync()
+		end
 	end)
 	if not ok then
-		board.Status.Text = "Leaderboard unavailable, retrying"
+		warn("[LeaderboardService] read failed:", kind, err)
+		board.Status.Text = "Leaderboard paused, retrying"
 		return
 	end
+	-- Exact amounts only where they decide order or are shown: the top TOP by index, plus any
+	-- entry sharing an index score with one of them.
+	table.sort(entries, function(a, b)
+		return a.Score > b.Score
+	end)
+	local cutoff = if entries[TOP] then entries[TOP].Score else -1
+	for _, e in entries do
+		if e.Score >= cutoff then
+			e.Exact = exactFor(kind, e.Id, e.Score)
+		end
+	end
+	local ranked = Leaderboard.rank(entries)
 	for i, row in board.Rows do
-		local entry = (page :: any)[i]
-		if entry then
-			local userId = tonumber(string.match(entry.key, "^u_(%d+)$"))
+		local e = ranked[i]
+		if e then
+			local userId = tonumber(e.Id)
 			local who = if userId then nameOf(userId) else "?"
-			row.Text = ("%d. %s  ·  %s"):format(i, who, BigMoney.compact(Leaderboard.amount(entry.value)))
+			local amount = e.Exact or Leaderboard.amount(e.Score)
+			row.Text = ("%d. %s  ·  %s"):format(e.Rank or i, who, BigMoney.compact(amount))
 		else
 			row.Text = ""
 		end
 	end
-	board.Status.Text = if #(page :: any) == 0 then "Nobody yet. Be the first!" else ""
+	board.Status.Text = if #ranked == 0 then "Nobody yet. Be the first!" else ""
 end
 
 local function buildBoard(map: Instance)
