@@ -20,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local EventStrip = require(script.Parent:WaitForChild("EventStrip"))
 local UI = require(script.Parent:WaitForChild("UI"))
 local BigMoney = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("BigMoney"))
 
@@ -46,23 +47,6 @@ local crateSlots: Frame
 local crateScale: UIScale
 local boostSticker: Frame
 local boostLabel: TextLabel
-
--- Storm sign.
-local signHolder: Frame
-local swing: Frame
-local sign: Frame
-local signStroke: UIStroke
-local signBand: Frame
-local signBandText: TextLabel
-local signCaption: TextLabel
-local tiles: { TextLabel } = {}
-local tileFrames: { Frame } = {}
-local orders: Frame
-local orderLine: TextLabel
-local orderLive: TextLabel
-local orderWidth: UISizeConstraint
-local coreChip: Frame
-local coreLabel: TextLabel
 
 -- Right rail.
 local rail: Frame
@@ -211,12 +195,14 @@ end
 ---------------------------------------------------------------------------- Storm sign
 
 local function buildSign()
+	-- V4: the top centre holds one objective strip (EventStrip); the V3 swinging storm sign,
+	-- its orders strip and the cores chip are gone (all three are strip entries now).
 	topStack = UI.new("Frame", {
 		Name = "TopStack",
 		Parent = root,
 		ZIndex = 25, -- storm info and danger alerts stay readable over the shop and settings
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 0),
+		Position = UDim2.new(0.5, 0, 0, 6),
 		AutomaticSize = Enum.AutomaticSize.XY,
 		Size = UDim2.new(),
 		BackgroundTransparency = 1,
@@ -227,278 +213,53 @@ local function buildSign()
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
-	signHolder = UI.new("Frame", {
-		Name = "StormSign",
-		Parent = topStack,
-		LayoutOrder = 1,
-		Size = UDim2.fromOffset(270, 112),
-		BackgroundTransparency = 1,
-	})
-	swing = UI.new("Frame", {
-		Name = "Swing",
-		Parent = signHolder,
-		Size = UDim2.fromScale(1, 1),
-		BackgroundTransparency = 1,
-	})
-	-- Hanging wires.
-	for _, x in { 0.22, 0.78 } do
-		UI.new("Frame", {
-			Parent = swing,
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(x, 0),
-			Size = UDim2.fromOffset(2, 16),
-			BackgroundColor3 = M.Marker,
-			BorderSizePixel = 0,
-		})
-	end
-	sign = UI.new("Frame", {
-		Name = "Sign",
-		Parent = swing,
-		Position = UDim2.fromOffset(0, 14),
-		Size = UDim2.new(1, 0, 1, -14),
-		BackgroundColor3 = M.Tin,
-		BorderSizePixel = 0,
-		ClipsDescendants = true,
-	}, {
-		UI.corner(6),
-		UI.new("UIGradient", {
-			Color = ColorSequence.new(Color3.fromRGB(226, 232, 236), Color3.fromRGB(170, 176, 182)),
-			Rotation = 100,
-		}),
-	})
-	signStroke = UI.stroke(M.TinDark, 3)
-	signStroke.Parent = sign
-	-- Storm-type band across the top: the storm's own colour, plain bold lettering.
-	signBand = UI.new("Frame", {
-		Name = "Band",
-		Parent = sign,
-		Size = UDim2.new(1, 0, 0, 28),
-		BackgroundColor3 = Config.RarityColors.Uncommon,
-		BorderSizePixel = 0,
-	})
-	signBandText = UI.text({
-		Parent = signBand,
-		Font = UI.Font.Mono,
-		TextSize = 16,
-		Size = UDim2.fromScale(1, 1),
-		TextColor3 = M.Marker,
-		Text = "ALL CLEAR",
-	})
-	for _, p in { UDim2.new(0, 9, 1, -9), UDim2.new(1, -9, 1, -9) } do
-		UI.rivet(sign, p, 2)
-	end
-	signCaption = UI.text({
-		Name = "Caption",
-		Parent = sign,
-		Font = UI.Font.Label,
-		TextSize = 12,
-		Position = UDim2.fromOffset(14, 34),
-		Size = UDim2.new(1, -178, 0, 52),
-		TextWrapped = true,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = M.Marker,
-		Text = "NEXT STORM IN",
-		ZIndex = 2,
-	})
-	-- Flip-clock tiles: mm:ss.
-	local clock = UI.new("Frame", {
-		Name = "Clock",
-		Parent = sign,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -14, 0, 36),
-		Size = UDim2.fromOffset(150, 48),
-		BackgroundTransparency = 1,
-	}, {
-		UI.new("UIListLayout", {
-			FillDirection = Enum.FillDirection.Horizontal,
-			HorizontalAlignment = Enum.HorizontalAlignment.Right,
-			VerticalAlignment = Enum.VerticalAlignment.Center,
-			Padding = UDim.new(0, 3),
-			SortOrder = Enum.SortOrder.LayoutOrder,
-		}),
-	})
-	for i = 1, 4 do
-		local tile = UI.new("Frame", {
-			Parent = clock,
-			LayoutOrder = if i <= 2 then i else i + 1,
-			Size = UDim2.fromOffset(32, 46),
-			BackgroundColor3 = M.Tile,
-			BorderSizePixel = 0,
-			ZIndex = 2,
-		}, { UI.corner(4) })
-		UI.new("Frame", {
-			Parent = tile,
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.fromScale(0, 0.5),
-			Size = UDim2.new(1, 0, 0, 1),
-			BackgroundColor3 = Color3.new(0, 0, 0),
-			BackgroundTransparency = 0.4,
-			BorderSizePixel = 0,
-			ZIndex = 4,
-		})
-		tiles[i] = UI.text({
-			Parent = tile,
-			Font = UI.Font.Mono,
-			TextSize = 30,
-			Size = UDim2.fromScale(1, 1),
-			TextColor3 = Color3.fromRGB(248, 244, 232),
-			Text = "0",
-			ZIndex = 3,
-		})
-		tileFrames[i] = tile
-	end
-	UI.text({
-		Parent = clock,
-		LayoutOrder = 3,
-		Font = UI.Font.Mono,
-		TextSize = 26,
-		Size = UDim2.fromOffset(8, 46),
-		TextColor3 = M.Marker,
-		Text = ":",
-	})
-
-	-- Orders: what to do right now, on a paper strip pinned under the sign. Never scrolls; the
-	-- whole instruction is always on screen while the danger lasts.
-	orders = UI.new("Frame", {
-		Name = "Orders",
-		Parent = topStack,
-		LayoutOrder = 2,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.new(),
-		BackgroundColor3 = M.Paper,
-		BorderSizePixel = 0,
-		Visible = false,
-	}, {
-		UI.corner(3),
-		UI.stroke(M.Marker, 2),
-		UI.padding(6, 14),
-		UI.new("UIListLayout", {
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			Padding = UDim.new(0, 2),
-			SortOrder = Enum.SortOrder.LayoutOrder,
-		}),
-	})
-	orderLive = UI.text({
-		Name = "Live",
-		Parent = orders,
-		LayoutOrder = 1,
-		Font = UI.Font.Mono,
-		TextSize = 17,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.new(),
-		TextColor3 = M.RedPen,
-		Text = "",
-		Visible = false,
-	})
-	orderLine = UI.text({
-		Name = "Do",
-		Parent = orders,
-		LayoutOrder = 2,
-		Font = UI.Font.Label,
-		TextSize = 15,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.new(),
-		TextWrapped = true,
-		TextColor3 = M.Marker,
-		Text = "",
-	})
-	orderWidth = UI.new("UISizeConstraint", { Parent = orderLine, MaxSize = Vector2.new(420, 60) })
-
-	coreChip = UI.new("Frame", {
-		Name = "Cores",
-		Parent = topStack,
-		LayoutOrder = 3,
-		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromOffset(0, 26),
-		BackgroundColor3 = Config.RarityColors.Legendary,
-		BorderSizePixel = 0,
-		Rotation = -1,
-		Visible = false,
-	}, { UI.padding(0, 10) })
-	coreLabel = UI.text({
-		Parent = coreChip,
-		Font = UI.Font.Mono,
-		TextSize = 14,
-		AutomaticSize = Enum.AutomaticSize.X,
-		Size = UDim2.fromScale(0, 1),
-		TextColor3 = M.Marker,
-		Text = "",
-	})
 end
 
-local lastPhase = ""
-local jolt = 0
-local modalOpen = false
-
--- While the shop or settings is open the sign keeps the storm and its countdown, but the
--- orders strip steps aside so it doesn't cover the menu's title (it returns on close).
-function Hud.setModalOpen(open: boolean)
-	modalOpen = open
-end -- os.clock() of the last phase change (one-shot sign jolt)
+-- Menus hide the strip's lower-priority entries themselves (EventStrip reads UI.modalOpen).
+function Hud.setModalOpen(_open: boolean) end
 
 local CALM_BAND = Color3.fromRGB(120, 200, 110)
 
--- `status` is the storm's live line ("Gust in 1.7s - get behind a wall!") or nil.
-function Hud.stepStorm(now: number, storm: any, status: string?, statusColor: Color3?, cores: number)
-	local remaining = math.max(0, math.ceil(storm.EndsAt - now))
+-- The storm as one objective-strip entry. `status` is its live line ("Gust in 1.7s - get behind
+-- a wall!") or nil; `cores` is how many Storm Cores are out in town.
+function Hud.stepStorm(now: number, storm: any, status: string?, _statusColor: Color3?, cores: number)
 	local phase = storm.Phase
 	local info = storm.Storm and Config.Storms[storm.Storm]
 	local danger = (phase == "Warning" or phase == "Storm") and info ~= nil
-
-	local band, bandColor, caption
-	if phase == "Warning" and info then
-		band, bandColor, caption = info.DisplayName .. " COMING", info.Color, "HITS IN"
-	elseif phase == "Storm" and info then
-		band, bandColor, caption = info.DisplayName, info.Color, "PASSES IN"
-	elseif phase == "Aftermath" then
-		band, bandColor, caption = "STORM PASSED", UI.Color.Coin, "CALM IN"
-	else
-		band, bandColor, caption = "ALL CLEAR", CALM_BAND, if compact then "NEXT STORM" else "NEXT STORM IN"
-	end
-	signBandText.Text = band
-	signBand.BackgroundColor3 = bandColor
-	signCaption.Text = caption
-	local digits = ("%02d%02d"):format(math.min(remaining // 60, 99), remaining % 60)
-	for i = 1, 4 do
-		tiles[i].Text = digits:sub(i, i)
-	end
-	-- Last seconds before a storm hits: red tiles.
-	local urgent = (phase == "Warning" or phase == "Calm") and remaining <= 3
-	for _, tile in tileFrames do
-		tile.BackgroundColor3 = if urgent then Color3.fromRGB(176, 30, 26) else M.Tile
-	end
-	-- Danger outranks decoration: storm-coloured frame, and the sign holds still.
-	signStroke.Color = if danger then (info :: any).Color:Lerp(M.Marker, 0.25) else M.TinDark
-	signStroke.Thickness = if danger then 5 else 3
-
-	orders.Visible = danger and not modalOpen
+	local serverEnds = workspace:GetServerTimeNow() + (storm.EndsAt - now)
 	if danger then
-		orderLine.Text = (info :: any).Hint
 		local live = phase == "Storm" and status ~= nil
-		orderLive.Visible = live
-		if live then
-			orderLive.Text = string.upper(status :: string)
-			-- Darken light status colours so they read on paper.
-			orderLive.TextColor3 = (statusColor or M.RedPen):Lerp(M.Marker, 0.6)
-		end
-	end
-	coreChip.Visible = cores > 0 and (phase == "Storm" or phase == "Aftermath") and not modalOpen
-	if coreChip.Visible then
-		coreLabel.Text = ("%d STORM CORE%s IN TOWN"):format(cores, if cores == 1 then "" else "S")
-	end
-
-	if phase ~= lastPhase then
-		lastPhase = phase
-		jolt = os.clock()
-	end
-	if UI.reduced() then
-		swing.Rotation = 0
+		EventStrip.set("storm", {
+			Priority = if phase == "Storm" then 50 else 48,
+			Title = if phase == "Warning"
+				then (info :: any).DisplayName .. " coming"
+				else (info :: any).DisplayName,
+			Sub = if live then string.upper(status :: string) else (info :: any).Hint,
+			Accent = (info :: any).Color,
+			EndsAt = serverEnds,
+			Pill = if phase == "Warning" then "STORM IN" else (info :: any).DisplayName,
+		})
 	else
-		local t = os.clock() - jolt
-		-- A short jolt when the phase changes, then a gentle sway in calm weather only.
-		local kick = if t < 0.8 then math.sin(t * 18) * 5 * (1 - t / 0.8) else 0
-		local sway = if danger then 0 else math.sin(now * 1.3) * 0.8
-		swing.Rotation = kick + sway
+		local after = phase == "Aftermath"
+		EventStrip.set("storm", {
+			Priority = if after then 25 else 20,
+			Title = if after then "Storm passed" else "All clear",
+			Sub = if after then "Calm in a moment. Go salvage." else "Salvage, sell, upgrade. Next storm in",
+			Accent = if after then UI.Color.Coin else CALM_BAND,
+			EndsAt = serverEnds,
+			Pill = if after then "CALM IN" else "NEXT STORM",
+		})
+	end
+	if cores > 0 and (phase == "Storm" or phase == "Aftermath") then
+		EventStrip.set("cores", {
+			Priority = 30,
+			Title = ("%d Storm Core%s in town"):format(cores, if cores == 1 then "" else "s"),
+			Sub = "Legendary loot out in the storm. Grab one and sell it.",
+			Accent = Config.RarityColors.Legendary,
+			Pill = ("%d CORE%s"):format(cores, if cores == 1 then "" else "S"),
+		})
+	else
+		EventStrip.clear("cores")
 	end
 end
 
@@ -725,10 +486,8 @@ local function fit()
 		crateSlots.Position = UDim2.fromOffset(14, 24)
 		crateSlots.Size = UDim2.new(1, -28, 0, 28)
 		boostSticker.Position = UDim2.fromOffset(120, -8)
-		signHolder.Size = UDim2.fromOffset(250, 104)
-		-- Right of centre, so the orders strip under it stays out of the thumbstick zone.
-		topStack.Position = UDim2.new(0.6, 0, 0, 0)
-		orderWidth.MaxSize = Vector2.new(300, 80)
+		-- Right of centre, so the strip stays out of the thumbstick zone.
+		topStack.Position = UDim2.new(0.6, 0, 0, 4)
 		rail.Position = UDim2.new(1, -10, 0.22, 0)
 	else
 		cluster.Size = UDim2.fromOffset(250, 180)
@@ -740,9 +499,7 @@ local function fit()
 		crateSlots.Position = UDim2.fromOffset(14, 28)
 		crateSlots.Size = UDim2.new(1, -28, 0, 38)
 		boostSticker.Position = UDim2.fromOffset(170, -6)
-		signHolder.Size = UDim2.fromOffset(270, 112)
-		topStack.Position = UDim2.new(0.5, 0, 0, 0)
-		orderWidth.MaxSize = Vector2.new(420, 60)
+		topStack.Position = UDim2.new(0.5, 0, 0, 6)
 		rail.Position = UDim2.new(1, -12, 0.3, 0)
 	end
 	if compact ~= wasCompact or not laidOut then

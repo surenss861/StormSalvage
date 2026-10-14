@@ -7,7 +7,7 @@
 --     Effects), lavender against the storm, so the calm reads from across town;
 --   * a soft lit disc on the ground marking where it's safe, and a beam of clear light;
 --   * the Storm Heart: a tall violet beacon with its distance, until someone takes it;
---   * a banner line under the storm sign: where the Eye is and who can take the Heart.
+--   * an objective-strip entry (EventStrip): where the Eye is and who can take the Heart.
 -- The centre is eased toward each server update so the drift is smooth between updates.
 
 local Players = game:GetService("Players")
@@ -17,6 +17,7 @@ local RunService = game:GetService("RunService")
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
 local UI = require(script.Parent:WaitForChild("UI"))
+local EventStrip = require(script.Parent:WaitForChild("EventStrip"))
 
 local StormEyeHud = {}
 
@@ -30,9 +31,6 @@ local panels: { BasePart } = {}
 local disc: BasePart? = nil
 local heartBeacon: BasePart? = nil
 local heartLabel: TextLabel? = nil
-local banner: Frame
-local title: TextLabel
-local sub: TextLabel
 local target: Vector3? = nil
 local shown: Vector3? = nil
 local radius = 22
@@ -52,7 +50,7 @@ local function clear()
 		heartBeacon = nil
 		heartLabel = nil
 	end
-	banner.Visible = false
+	EventStrip.clear("eye")
 	target, shown, heart = nil, nil, nil
 	hadHeart = false
 end
@@ -156,7 +154,6 @@ local function onState(m: any)
 	end
 	hadHeart = hadHeart or m.Heart ~= nil
 	heart = m.Heart
-	banner.Visible = not UI.modalOpen()
 end
 
 local function isHunter(): boolean
@@ -184,60 +181,37 @@ local function step(dt: number)
 	local root = Players.LocalPlayer.Character
 		and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	local inside = root ~= nil and ((root.Position - c) * Vector3.new(1, 0, 1)).Magnitude <= radius
-	title.Text = if inside then "INSIDE THE STORM'S EYE · CALM" else "THE STORM'S EYE"
+	local e = {
+		Priority = if inside then 66 else 64,
+		Title = if inside then "Inside the Storm's Eye · calm" else "The Storm's Eye",
+		Sub = "",
+		Accent = VIOLET,
+		Pill = "STORM'S EYE",
+	}
 	if heart and root then
 		local d = math.floor(((root.Position - heart) * Vector3.new(1, 0, 1)).Magnitude)
 		if heartLabel then
 			heartLabel.Text = ("STORM HEART · %dm"):format(d)
 		end
-		sub.Text = if isHunter()
-			then ("The Storm Heart is %dm away. Grab it before the calm drifts off it!"):format(d)
-			else "Shelter here. The Storm Heart is for Storm Hunters."
+		if isHunter() then
+			e.Priority = if inside then 86 else 70
+			e.Sub = ("The Storm Heart is %dm away. Grab it before the calm drifts off it!"):format(d)
+			e.Pill = ("HEART %dm"):format(d)
+		else
+			e.Sub = "Shelter here. The Storm Heart is for Storm Hunters."
+		end
 	elseif hadHeart then
-		sub.Text = "Someone took the Storm Heart. The calm still shelters you."
+		e.Sub = "Someone took the Storm Heart. The calm still shelters you."
 	else
-		sub.Text = "No wind, debris or lightning inside (floods still rise). A Storm Heart is forming..."
+		e.Sub = "No wind, debris or lightning inside (floods still rise). A Storm Heart is forming..."
 	end
-	banner.Visible = not UI.modalOpen()
+	EventStrip.set("eye", e)
 end
 
-function StormEyeHud.init(topStack: Frame)
+function StormEyeHud.init(_topStack: Frame)
 	folder = Instance.new("Folder")
 	folder.Name = "StormEyeFx"
 	folder.Parent = workspace
-	banner = UI.plate({
-		Name = "StormEyeBanner",
-		Parent = topStack,
-		LayoutOrder = 5,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.fromOffset(0, 0),
-		Visible = false,
-	})
-	UI.padding(5, 14).Parent = banner
-	UI.new("UIListLayout", {
-		Parent = banner,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		SortOrder = Enum.SortOrder.LayoutOrder,
-	})
-	title = UI.text({
-		Parent = banner,
-		LayoutOrder = 1,
-		Font = UI.Font.Mono,
-		TextSize = 18,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.new(),
-		TextColor3 = VIOLET,
-		Text = "",
-	})
-	sub = UI.text({
-		Parent = banner,
-		LayoutOrder = 2,
-		Font = UI.Font.Body,
-		TextSize = 14,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.new(),
-		Text = "",
-	})
 	Remotes.get("StormEye").OnClientEvent:Connect(onState)
 	RunService.RenderStepped:Connect(step)
 end

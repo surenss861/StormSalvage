@@ -1,4 +1,4 @@
--- @file Post-storm events presentation: banner, markers, the twister, strikes, audio
+-- @file Post-storm events presentation: strip entry, markers, the twister, strikes, audio
 -- @domain world
 -- @status wip
 -- @see [[PursuitService.luau]]
@@ -31,6 +31,7 @@ local Audio = require(script.Parent:WaitForChild("Audio"))
 local Notifications = require(script.Parent:WaitForChild("Notifications"))
 local SalvageFeedback = require(script.Parent:WaitForChild("SalvageFeedback"))
 local UI = require(script.Parent:WaitForChild("UI"))
+local EventStrip = require(script.Parent:WaitForChild("EventStrip"))
 
 local PursuitHud = {}
 
@@ -42,9 +43,6 @@ local FUNNEL_DARK = Color3.fromRGB(46, 42, 44)
 local FUNNEL_LIGHT = Color3.fromRGB(104, 96, 92)
 
 local state: any = nil
-local banner: Frame
-local title: TextLabel
-local sub: TextLabel
 local markerFolder: Folder
 local fxFolder: Folder
 local tagPart: Part?
@@ -52,11 +50,6 @@ local tagText: TextLabel?
 local funnel: Model?
 local roar: Sound?
 local lastKey = ""
-
-local function clock(secondsLeft: number): string
-	local s = math.max(0, math.ceil(secondsLeft))
-	return ("%d:%02d"):format(s // 60, s % 60)
-end
 
 local function clearMarkers()
 	markerFolder:ClearAllChildren()
@@ -403,65 +396,63 @@ end
 local function step(dt: number)
 	stepFunnel(dt)
 	if not state or state.Phase == "Done" then
-		banner.Visible = false
+		EventStrip.clear("pursuit")
 		return
 	end
-	-- A modal (shop, Jobs, a player card) sits where the banner does: hide it meanwhile.
-	banner.Visible = not UI.modalOpen()
-	local left = (state.EndsAt or 0) - workspace:GetServerTimeNow()
 	local me = Players.LocalPlayer
 	local root = me.Character and me.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	local carrier = state.Phase == "Chase" and state.CarrierId == me.UserId
-	local site = string.upper(state.Site or state.District or "")
-	sub.TextColor3 = UI.Color.Text
+	local site = state.Site or state.District or ""
+	local e = { Priority = 58, Title = "", Sub = "", Accent = GOLD, EndsAt = state.EndsAt, Pill = "" }
 	if state.Phase == "Rush" then
-		title.Text = ("SALVAGE RUSH · %s · %s"):format(site, clock(left))
-		title.TextColor3 = GOLD
-		sub.Text = ("%d valuable finds left. Grab what you can!"):format(state.Left or 0)
+		e.Title = "Salvage Rush · " .. site
+		e.Sub = ("%d valuable finds left. Grab what you can!"):format(state.Left or 0)
+		e.Pill = "RUSH"
 	elseif state.Phase == "Race" then
-		title.Text = ("%s · %s · %s"):format(kindTitle(state.Kind, state.Golden), site, clock(left))
-		title.TextColor3 = GOLD
-		sub.Text = if state.Kind == "Extraction"
+		e.Priority = 62
+		e.Title = kindTitle(state.Kind, state.Golden) .. " · " .. site
+		e.Sub = if state.Kind == "Extraction"
 			then "Grab it and get it home before it blows"
 			else "Grab it first. A twister will chase you home"
+		e.Pill = kindTitle(state.Kind, state.Golden)
 	elseif state.Phase == "Loose" then
-		title.Text = ("CORE DROPPED! · %s"):format(clock(left))
-		title.TextColor3 = GOLD
-		sub.Text = "Grab it before time runs out"
+		e.Priority = 64
+		e.Title = "Core dropped!"
+		e.Sub = "Grab it before time runs out"
+		e.Pill = "CORE DROPPED"
 	elseif carrier then
-		title.Text = ("GET IT TO THE SCRAPYARD · %s"):format(clock(left))
-		title.TextColor3 = DANGER
+		e.Priority = 90
+		e.Title = "Get it to the Scrapyard"
+		e.Accent = DANGER
+		e.Pill = "CARRYING"
 		if state.Kind == "Extraction" then
-			sub.Text = "Surges erupt on the straight road. Pick your route!"
+			e.Sub = "Surges erupt on the straight road. Pick your route!"
 		else
 			local server = workspace:FindFirstChild("PursuitTwister") :: BasePart?
 			if server and root then
 				local d = ((root.Position - server.Position) * Vector3.new(1, 0, 1)).Magnitude
 				local searching = server:GetAttribute("State") == "Searching"
-				sub.Text = if searching
+				e.Sub = if searching
 					then "TWISTER LOST YOUR TRAIL · keep going"
 					elseif d < 12 then ("TWISTER %dm · DODGE! (Q / B)"):format(math.floor(d + 0.5))
 					else ("TWISTER %dm BEHIND · %s"):format(
 						math.floor(d + 0.5),
 						if d < 25 then "SPRINT!" else "keep moving"
 					)
-				if d < 25 and not searching then
-					sub.TextColor3 = DANGER
-				end
+				-- How close it is, as the bar: full = on top of you.
+				e.Progress = math.clamp(1 - d / 60, 0, 1)
 			else
-				sub.Text = "Reach the plateau!"
+				e.Sub = "Reach the plateau!"
 			end
 		end
 	else
-		title.Text = ("%s HAS THE CORE · %s"):format(
-			string.upper(state.CarrierName or "SOMEONE"),
-			clock(left)
-		)
-		title.TextColor3 = GOLD
-		sub.Text = if state.Kind == "Extraction"
+		e.Title = (state.CarrierName or "Someone") .. " has the core"
+		e.Sub = if state.Kind == "Extraction"
 			then "If they fall, it drops"
 			else "If the twister catches them, it drops"
+		e.Pill = "CORE TAKEN"
 	end
+	EventStrip.set("pursuit", e :: any)
 	if tagPart and tagText and root then
 		local d = (tagPart.Position - root.Position).Magnitude
 		tagText.Text = ("%s  %dm"):format(tagText:GetAttribute("Label") :: string, math.floor(d + 0.5))
@@ -545,46 +536,13 @@ local function onState(msg: any)
 	end
 end
 
-function PursuitHud.init(topStack: Frame)
+function PursuitHud.init(_topStack: Frame)
 	markerFolder = Instance.new("Folder")
 	markerFolder.Name = "PursuitMarkers"
 	markerFolder.Parent = workspace
 	fxFolder = Instance.new("Folder")
 	fxFolder.Name = "PursuitFx"
 	fxFolder.Parent = workspace
-	banner = UI.plate({
-		Name = "PursuitBanner",
-		Parent = topStack,
-		LayoutOrder = 4,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.fromOffset(0, 0),
-		Visible = false,
-	})
-	UI.padding(5, 14).Parent = banner
-	UI.new("UIListLayout", {
-		Parent = banner,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		SortOrder = Enum.SortOrder.LayoutOrder,
-	})
-	title = UI.text({
-		Parent = banner,
-		LayoutOrder = 1,
-		Font = UI.Font.Mono,
-		TextSize = 18,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.new(),
-		TextColor3 = GOLD,
-		Text = "",
-	})
-	sub = UI.text({
-		Parent = banner,
-		LayoutOrder = 2,
-		Font = UI.Font.Body,
-		TextSize = 14,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.new(),
-		Text = "",
-	})
 	Remotes.get("PursuitState").OnClientEvent:Connect(onState)
 	Remotes.get("PursuitStrike").OnClientEvent:Connect(onStrike)
 	RunService.RenderStepped:Connect(step)

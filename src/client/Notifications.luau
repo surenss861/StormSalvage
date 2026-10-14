@@ -21,16 +21,13 @@
 local RunService = game:GetService("RunService")
 
 local UI = require(script.Parent:WaitForChild("UI"))
+local EventStrip = require(script.Parent:WaitForChild("EventStrip"))
 
 local Notifications = {}
 local M = UI.Mat
 
 local root: Frame
 local topStack: Frame
-local alertSlot: Frame
-local alertLabel: TextLabel
-local alertSub: TextLabel
-local alertStroke: UIStroke
 local feedHolder: Frame
 local hintLabel: TextLabel
 local hintPlate: Frame
@@ -38,7 +35,6 @@ local cardSlot: GuiObject
 local cardScale: UIScale
 local compact = false
 local dangerText = ""
-local locationUntil = 0
 local suppress = { Modal = false, Storm = false }
 
 ---------------------------------------------------------------------------- Event cards
@@ -223,10 +219,6 @@ function showCard(spec: CardSpec)
 	cardSlot.AnchorPoint = if compact then Vector2.new(1, 0) else Vector2.new(0, 0.5)
 	spec.Build(surface(spec))
 	cardSlot.Visible = true
-	if compact and dangerText == "" then
-		locationUntil = 0
-		alertSlot.Visible = false
-	end
 	local rest = restPosition()
 	if UI.reduced() then
 		cardSlot.Position = rest
@@ -335,36 +327,13 @@ end
 
 ---------------------------------------------------------------------------- Alert slot
 
--- Personal danger (P4). Empty text clears it.
+-- Personal danger (P4). Empty text clears it. V4: it tops the objective strip (EventStrip).
 function Notifications.danger(text: string, color: Color3?)
-	if text == dangerText then
-		if color then
-			alertLabel.TextColor3 = color
-			alertStroke.Color = color
-		end
-		return
-	end
-	local wasEmpty = dangerText == ""
 	dangerText = text
 	if text == "" then
-		-- Back to the district title if one is still on its timer.
-		alertSlot.Visible = os.clock() < locationUntil
-		if alertSlot.Visible then
-			alertLabel.Text = tostring(alertSlot:GetAttribute("LocationTitle") or "")
-			alertLabel.TextColor3 = UI.Color.Text
-			alertStroke.Color = UI.Color.Outline
-			alertSub.Visible = alertSub.Text ~= ""
-		end
-		return
-	end
-	alertLabel.Text = text
-	alertLabel.TextColor3 = color or UI.Color.Danger
-	alertStroke.Color = color or UI.Color.Danger
-	alertSub.Visible = false
-	alertSlot.Visible = true
-	if wasEmpty and not UI.reduced() then
-		local scale = alertSlot:FindFirstChildOfClass("UIScale") :: UIScale
-		UI.pop(scale, 1.08, 0.2)
+		EventStrip.clear("danger")
+	else
+		EventStrip.set("danger", { Priority = 100, Title = text, Accent = color or UI.Color.Danger })
 	end
 end
 
@@ -372,30 +341,12 @@ function Notifications.hasDanger(): boolean
 	return dangerText ~= ""
 end
 
--- District title (P0): shown for a few seconds, never over a danger alert.
+-- District title (P0): a short-lived strip entry, below storms and events.
 function Notifications.location(title: string, sub: string)
-	if suppress.Modal or (compact and cardSlot.Visible) then
-		-- Lowest priority: never over the shop or settings, and on phones never over a card
-		-- (both sit in the right half there).
-		return
-	end
-	locationUntil = os.clock() + 3.2
-	alertSlot:SetAttribute("LocationTitle", title)
-	alertSub.Text = sub
-	if dangerText ~= "" then
-		return
-	end
-	alertLabel.Text = title
-	alertLabel.TextColor3 = UI.Color.Text
-	alertStroke.Color = UI.Color.Outline
-	alertSub.Visible = sub ~= ""
-	alertSlot.Visible = true
-	local token = locationUntil
-	task.delay(3.2, function()
-		if locationUntil == token and dangerText == "" then
-			alertSlot.Visible = false
-		end
-	end)
+	EventStrip.set(
+		"location",
+		{ Priority = 35, Title = title, Sub = sub, Accent = UI.Color.Coin, Seconds = 3.2 }
+	)
 end
 
 ---------------------------------------------------------------------------- Objective note
@@ -426,11 +377,6 @@ function Notifications.setModalOpen(open: boolean)
 	-- modal's buttons.
 	if feedHolder then
 		Notifications.applyLayout(compact)
-	end
-	if open and dangerText == "" then
-		-- A district title would sit over the modal's top edge; danger alerts still show.
-		locationUntil = 0
-		alertSlot.Visible = false
 	end
 	refreshHint()
 end
@@ -484,60 +430,15 @@ end
 ---------------------------------------------------------------------------- Per frame
 
 function Notifications.step()
-	if dangerText ~= "" and not UI.reduced() then
-		-- Slow pulse on the danger outline so it reads as urgent without flashing.
-		alertStroke.Transparency = 0.25 + 0.25 * math.sin(os.clock() * 10)
-	else
-		alertStroke.Transparency = 0
-	end
 	refreshHint()
 end
 
 ---------------------------------------------------------------------------- Init
 
--- `stack` is the vertical list under the storm sign (the alert slot goes in it).
+-- `stack` is the vertical list at the top centre (the objective strip; the phone hint note).
 function Notifications.init(hudRoot: Frame, stack: Frame)
 	root = hudRoot
 	topStack = stack
-
-	alertSlot = UI.plate({
-		Name = "AlertSlot",
-		Parent = topStack,
-		LayoutOrder = 5,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.fromOffset(0, 0),
-		Visible = false,
-	})
-	UI.new("UIScale", { Parent = alertSlot })
-	alertStroke = alertSlot:FindFirstChildOfClass("UIStroke") :: UIStroke
-	alertStroke.Thickness = 3
-	UI.padding(5, 14).Parent = alertSlot
-	UI.new("UIListLayout", {
-		Parent = alertSlot,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		SortOrder = Enum.SortOrder.LayoutOrder,
-	})
-	alertLabel = UI.text({
-		Name = "Text",
-		Parent = alertSlot,
-		Font = UI.Font.Mono,
-		TextSize = 18,
-		LayoutOrder = 1,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.new(),
-		Text = "",
-	})
-	alertSub = UI.text({
-		Name = "Sub",
-		Parent = alertSlot,
-		Role = "Caption",
-		LayoutOrder = 2,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.new(),
-		TextColor3 = UI.Color.TextDim,
-		Text = "",
-		Visible = false,
-	})
 
 	-- On touch screens cards let touches through (camera drags still work under them). With a
 	-- mouse a card is a button you can click to dismiss.

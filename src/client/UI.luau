@@ -217,7 +217,11 @@ function UI.text(props: { [string]: any }): TextLabel
 	props.Role = nil
 	props.Outline = nil
 	props.BackgroundTransparency = 1
-	props.Font = props.Font or (UI.Font :: any)[role] or UI.Font.Body
+	if props.FontFace == nil then -- a FontFace (e.g. a weight of a family) wins over Font
+		props.Font = props.Font or (UI.Font :: any)[role] or UI.Font.Body
+	else
+		props.Font = nil
+	end
 	props.TextSize = props.TextSize or (UI.TextSize :: any)[role] or UI.TextSize.Body
 	props.TextColor3 = props.TextColor3 or UI.Color.Text
 	local label = UI.new("TextLabel", props)

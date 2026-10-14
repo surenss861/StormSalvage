@@ -9,7 +9,7 @@
 --   * the siphon ring on the ground (magenta), and the inner "too close" ring (red);
 --   * the pull: a VectorForce toward the centre while you're near it, strongest at the inner
 --     edge (the Containment Rig resists it: the server sets TitanResist), like the wind push;
---   * for Storm Legends, a banner with your siphon meter and where you stand.
+--   * an objective-strip entry: for Storm Legends the siphon meter as its bar and where you stand.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,6 +19,7 @@ local Bands = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Ban
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
 local UI = require(script.Parent:WaitForChild("UI"))
+local EventStrip = require(script.Parent:WaitForChild("EventStrip"))
 
 local TitanHud = {}
 
@@ -38,10 +39,6 @@ local target: Vector3? = nil
 local shown: Vector3? = nil
 local spin = 0
 local force: VectorForce? = nil
-local banner: Frame
-local title: TextLabel
-local sub: TextLabel
-local meterFill: Frame
 
 local function anchoredPart(name: string): Part
 	local p = Instance.new("Part")
@@ -65,7 +62,7 @@ local function clear()
 	if force then
 		force.Enabled = false
 	end
-	banner.Visible = false
+	EventStrip.clear("titan")
 end
 
 local function groundRing(name: string, radius: number, color: Color3, transparency: number): Part
@@ -187,79 +184,40 @@ local function step(dt: number)
 	end
 
 	if not isLegend() then
-		banner.Visible = false
+		EventStrip.set("titan", {
+			Priority = 56,
+			Title = "The Storm Titan",
+			Sub = "A colossal twister roams town. Keep clear of its ring.",
+			Accent = MAGENTA,
+			Pill = ("TITAN %dm"):format(math.floor(d)),
+		})
 		return
 	end
 	local s = Players.LocalPlayer:GetAttribute("TitanSiphon")
 	local siphon = if type(s) == "number" then s else 0
-	meterFill.Size = UDim2.fromScale(siphon, 1)
+	local e = { Priority = 72, Title = "", Sub = "", Accent = MAGENTA, Progress = siphon, Pill = "" }
 	if d < T.InnerRadius then
-		title.Text = "TOO CLOSE · THE TITAN IS TEARING YOU APART"
-		title.TextColor3 = DANGER
-		sub.Text = "Get back out to the magenta ring!"
+		e.Priority, e.Accent = 95, DANGER
+		e.Title = "Too close · the Titan is tearing you apart"
+		e.Sub = "Get back out to the magenta ring!"
+		e.Pill = "TOO CLOSE"
 	elseif d <= T.OuterRadius then
-		title.Text = ("SIPHONING THE STORM TITAN · %d%%"):format(math.floor(siphon * 100))
-		title.TextColor3 = MAGENTA
-		sub.Text = "Hold the ring. Fight the pull, dodge the debris."
+		e.Priority = 88
+		e.Title = ("Siphoning the Storm Titan · %d%%"):format(math.floor(siphon * 100))
+		e.Sub = "Hold the ring. Fight the pull, dodge the debris."
+		e.Pill = ("SIPHON %d%%"):format(math.floor(siphon * 100))
 	else
-		title.Text = ("THE STORM TITAN · %dm"):format(math.floor(d))
-		title.TextColor3 = MAGENTA
-		sub.Text = "Get inside its magenta ring to siphon it for a Mythic Core."
+		e.Title = ("The Storm Titan · %dm"):format(math.floor(d))
+		e.Sub = "Get inside its magenta ring to siphon it for a Mythic Core."
+		e.Pill = ("TITAN %dm"):format(math.floor(d))
 	end
-	banner.Visible = not UI.modalOpen()
+	EventStrip.set("titan", e)
 end
 
-function TitanHud.init(topStack: Frame)
+function TitanHud.init(_topStack: Frame)
 	folder = Instance.new("Folder")
 	folder.Name = "TitanFx"
 	folder.Parent = workspace
-	banner = UI.plate({
-		Name = "TitanBanner",
-		Parent = topStack,
-		LayoutOrder = 7,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.fromOffset(0, 0),
-		Visible = false,
-	})
-	UI.padding(5, 14).Parent = banner
-	UI.new("UIListLayout", {
-		Parent = banner,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		SortOrder = Enum.SortOrder.LayoutOrder,
-		Padding = UDim.new(0, 3),
-	})
-	title = UI.text({
-		Parent = banner,
-		LayoutOrder = 1,
-		Font = UI.Font.Mono,
-		TextSize = 18,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.new(),
-		TextColor3 = MAGENTA,
-		Text = "",
-	})
-	local meter = UI.new("Frame", {
-		Parent = banner,
-		LayoutOrder = 2,
-		Size = UDim2.fromOffset(220, 8),
-		BackgroundColor3 = Color3.fromRGB(40, 36, 48),
-		BorderSizePixel = 0,
-	}, { UI.corner(4) })
-	meterFill = UI.new("Frame", {
-		Parent = meter,
-		Size = UDim2.fromScale(0, 1),
-		BackgroundColor3 = MAGENTA,
-		BorderSizePixel = 0,
-	}, { UI.corner(4) })
-	sub = UI.text({
-		Parent = banner,
-		LayoutOrder = 3,
-		Font = UI.Font.Body,
-		TextSize = 14,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.new(),
-		Text = "",
-	})
 	Remotes.get("TitanState").OnClientEvent:Connect(onState)
 	RunService.RenderStepped:Connect(step)
 end

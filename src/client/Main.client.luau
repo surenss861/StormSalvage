@@ -34,6 +34,7 @@ local StormEyeHud = require(script.Parent:WaitForChild("StormEyeHud"))
 local WreckHud = require(script.Parent:WaitForChild("WreckHud"))
 local TitanHud = require(script.Parent:WaitForChild("TitanHud"))
 local WorldMotion = require(script.Parent:WaitForChild("WorldMotion"))
+local EventStrip = require(script.Parent:WaitForChild("EventStrip"))
 local BigMoney = require(ReplicatedStorage.Shared:WaitForChild("BigMoney"))
 local PursuitHud = require(script.Parent:WaitForChild("PursuitHud"))
 local Nameplates = require(script.Parent:WaitForChild("Nameplates"))
@@ -74,6 +75,8 @@ local gui = UI.new("ScreenGui", {
 	Parent = playerGui,
 })
 local root, topStack = Hud.init(gui)
+EventStrip.init(topStack)
+Hud.onLayout(EventStrip.setCompact)
 Notifications.init(root, topStack)
 Hud.onLayout(Notifications.applyLayout)
 

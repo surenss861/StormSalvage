@@ -5,8 +5,8 @@
 -- The server owns the wreck (WreckState: where, each lock's progress, when it ends). This draws:
 --   * an amber beacon over the truck, so it's findable from across town;
 --   * a marker on each uncut lock (the progress bars themselves are server billboards);
---   * a banner, only for Heavy licence holders (band 4+): locks cut, time left, and whether
---     you're cutting. Everyone else gets the one announcement, not a permanent panel.
+--   * an objective-strip entry, only for Heavy licence holders (band 4+): locks cut as a bar,
+--     time left, cutting or paused. Everyone else gets the one announcement.
 -- Sparks fly from a lock while the local player is cutting it (fewer in Reduced Effects).
 
 local Players = game:GetService("Players")
@@ -17,6 +17,7 @@ local Bands = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Ban
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
 local UI = require(script.Parent:WaitForChild("UI"))
+local EventStrip = require(script.Parent:WaitForChild("EventStrip"))
 
 local WreckHud = {}
 
@@ -27,9 +28,6 @@ local folder: Folder
 local beacon: BasePart? = nil
 local markers: { BasePart } = {}
 local sparks: ParticleEmitter? = nil
-local banner: Frame
-local title: TextLabel
-local sub: TextLabel
 local state: any = nil
 
 local function clearWorld()
@@ -74,7 +72,7 @@ local function onState(m: any)
 	if type(m) ~= "table" or not m.Active then
 		state = nil
 		clearWorld()
-		banner.Visible = false
+		EventStrip.clear("wreck")
 		return
 	end
 	local fresh = not state or state.Id ~= m.Id
@@ -170,21 +168,31 @@ local function step()
 		if cutAt and me and (me.Position - cutAt).Magnitude <= Bands.Wreck.CutReach + 1 then cutAt else nil
 	)
 	if not isHeavy() then
-		banner.Visible = false
+		EventStrip.clear("wreck")
 		return
 	end
 	local cut, total = 0, #state.Locks
+	local progress = 0
 	for _, lock in state.Locks do
 		if lock.Cut then
 			cut += 1
 		end
+		progress += (lock.Progress or 0) / total
 	end
-	local left = math.max(0, math.floor(state.EndsAt - workspace:GetServerTimeNow()))
-	title.Text = if state.Opened
-		then "ARMORED WRECK · VAULT OPEN"
-		else ("ARMORED WRECK · %d/%d LOCKS · %d:%02d"):format(cut, total, left // 60, left % 60)
+	local e = {
+		Priority = if cutting then 80 else 60,
+		Title = if state.Opened
+			then "Armored Wreck · vault open"
+			else ("Armored Wreck · %d/%d locks"):format(cut, total),
+		Sub = "",
+		Accent = AMBER,
+		EndsAt = state.EndsAt,
+		Progress = if state.Opened then nil else progress,
+		Pill = ("WRECK %d/%d"):format(cut, total),
+	}
 	if state.Opened then
-		sub.Text = "Grab the bullion before it's hauled away!"
+		e.Sub = "Grab the bullion before it's hauled away!"
+		e.Priority = 74
 	elseif cutting then
 		local at = lockPosition(cutting)
 		local root = Players.LocalPlayer.Character
@@ -192,52 +200,19 @@ local function step()
 		local inReach = at ~= nil
 			and root ~= nil
 			and (root.Position - at).Magnitude <= Bands.Wreck.CutReach + 1
-		sub.Text = if inReach
+		e.Sub = if inReach
 			then "Cutting… dodge the security charges, then get back to the lock!"
 			else "Cut paused: get back to the lock to keep cutting."
 	else
-		sub.Text = ("At %s. Cut the locks: rear doors, side hatch (climb up), roof hatch."):format(state.Site)
+		e.Sub = ("At %s. Cut the locks: rear doors, side hatch (climb up), roof hatch."):format(state.Site)
 	end
-	banner.Visible = not UI.modalOpen()
+	EventStrip.set("wreck", e)
 end
 
-function WreckHud.init(topStack: Frame)
+function WreckHud.init(_topStack: Frame)
 	folder = Instance.new("Folder")
 	folder.Name = "WreckFx"
 	folder.Parent = workspace
-	banner = UI.plate({
-		Name = "WreckBanner",
-		Parent = topStack,
-		LayoutOrder = 6,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.fromOffset(0, 0),
-		Visible = false,
-	})
-	UI.padding(5, 14).Parent = banner
-	UI.new("UIListLayout", {
-		Parent = banner,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		SortOrder = Enum.SortOrder.LayoutOrder,
-	})
-	title = UI.text({
-		Parent = banner,
-		LayoutOrder = 1,
-		Font = UI.Font.Mono,
-		TextSize = 18,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.new(),
-		TextColor3 = AMBER,
-		Text = "",
-	})
-	sub = UI.text({
-		Parent = banner,
-		LayoutOrder = 2,
-		Font = UI.Font.Body,
-		TextSize = 14,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Size = UDim2.new(),
-		Text = "",
-	})
 	Remotes.get("WreckState").OnClientEvent:Connect(onState)
 	RunService.RenderStepped:Connect(step)
 end
