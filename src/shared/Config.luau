@@ -697,6 +697,7 @@ Config.Sounds = {
 	TitanInhale = { Id = "rbxassetid://9119705908", Volume = 0.9, Group = "Effects", MinInterval = 2 }, -- Swish Spin 5 (PSE)
 	WreckAlarm = { Id = "rbxassetid://9125544264", Volume = 0.45, Group = "Effects", Loop = true }, -- Elevator Alarm Bell Emergency Several Rings 1 (PSE)
 	StormMusic = { Id = "rbxassetid://1840085313", Volume = 0.35, Group = "Music", Loop = true }, -- "Your Final Answer", dark low tension bed (APM)
+	TwisterWhirl = { Id = "rbxassetid://9119706123", Volume = 0.9, Group = "Effects", Loop = true }, -- Swish Spin 8, whirling whomps (PSE)
 } :: { [string]: SoundDef }
 
 -- Monetization. Set IDs after creating products on the Creator Dashboard; 0 disables.

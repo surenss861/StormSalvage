@@ -72,7 +72,8 @@ function OnboardingGuide.compute(s: any, phase: string, eventLive: boolean): Onb
 		ItemsSold = s.Stats and s.Stats.ItemsSold or 0,
 		Carried = #(s.Carried or {}),
 		Capacity = s.Capacity or 1,
-		StormsSeen = s.Stats and (s.Stats.StormsSeen or s.Stats.StormsSurvived) or 0,
+		-- Profiles from before StormsSeen existed start it at 0: their survived storms count too.
+		StormsSeen = if s.Stats then math.max(s.Stats.StormsSeen or 0, s.Stats.StormsSurvived or 0) else 0,
 		Extractions = records.Extractions or 0,
 		RushFinds = records.RushFinds or 0,
 		Upgrades = levels,

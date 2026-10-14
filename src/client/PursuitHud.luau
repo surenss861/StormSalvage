@@ -40,8 +40,11 @@ local EXTRACT_AT = Vector3.new(0, 34, -222) -- the Scrapyard gate on the plateau
 local DANGER = Color3.fromRGB(255, 96, 70)
 local GOLD = Color3.fromRGB(255, 206, 70)
 local SURGE = Color3.fromRGB(90, 220, 255)
-local FUNNEL_DARK = Color3.fromRGB(46, 42, 44)
-local FUNNEL_LIGHT = Color3.fromRGB(104, 96, 92)
+-- The rogue twister is earth and dust (brown to sand, with an amber hazard band): never the
+-- grey-violet of the storm clouds or the Titan's magenta, so it reads at a glance.
+local FUNNEL_DARK = Color3.fromRGB(78, 54, 36)
+local FUNNEL_LIGHT = Color3.fromRGB(176, 140, 96)
+local HAZARD = Color3.fromRGB(255, 176, 46)
 
 local state: any = nil
 local markerFolder: Folder
@@ -148,6 +151,15 @@ local function buildFunnel(): Model
 		ring:SetAttribute("Height", 1.6 + t * 34)
 		ring:SetAttribute("Index", i)
 	end
+	-- The hazard band: an amber ring round the lower funnel, its signature from across town.
+	local band = part(model, "Band", {
+		Shape = Enum.PartType.Cylinder,
+		Material = Enum.Material.Neon,
+		Color = HAZARD,
+		Transparency = 0.2,
+		Size = Vector3.new(1.4, 9.5, 9.5),
+	})
+	band:SetAttribute("Height", 9)
 	-- The base glows red during a wind-up and on a catch.
 	local base = part(model, "Base", {
 		Shape = Enum.PartType.Cylinder,
@@ -187,7 +199,7 @@ local function buildFunnel(): Model
 	emitter.Parent = dust
 	model.Parent = fxFolder
 	local sound = Instance.new("Sound")
-	sound.SoundId = Config.Sounds.Wind.Id
+	sound.SoundId = Config.Sounds.TwisterWhirl.Id -- its own whirl, not the storm's wind
 	sound.Looped = true
 	sound.Volume = 0
 	sound.RollOffMaxDistance = 140
@@ -259,6 +271,15 @@ local function stepFunnel(dt: number)
 			p.Transparency = if st == "Stunned" or st == "Forming" then 0.8 else 0.55
 		elseif p.Name == "Dust" then
 			p.CFrame = CFrame.new(shown + Vector3.new(0, 0.5, 0))
+		elseif p.Name == "Band" then
+			local height = 9 * scale
+			p.CFrame = CFrame.new(shown + lean * height + Vector3.new(0, height, 0))
+				* CFrame.Angles(0, -spin * 1.5, math.rad(90))
+			-- Flashes hard on a wind-up (a debris strike is coming), steady otherwise.
+			p.Transparency = if st == "WindUp" and not reduced
+				then 0.1 + 0.4 * (0.5 + 0.5 * math.sin(os.clock() * 24))
+				elseif st == "Stunned" then 0.7
+				else 0.2
 		elseif p.Name == "Base" then
 			p.CFrame = CFrame.new(shown + Vector3.new(0, 1, 0)) * CFrame.Angles(0, 0, math.rad(90))
 			local glow = st == "WindUp" or workspace:GetServerTimeNow() - caughtAt < 0.6

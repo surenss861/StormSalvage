@@ -240,16 +240,18 @@ local profiles: { [string]: Profile } = {
 				},
 				Clouds = { Cover = 1, Density = 0.95 },
 			},
-			-- Lightning: very dark violet; strikes are the main light.
+			-- Lightning: dark violet, strikes are the bright light, but never so dark that the
+			-- ground, the strike rings or other players are lost (V4 M6: brightness 0.7 and -0.3
+			-- exposure made the town nearly black in Studio captures).
 			Lightning = {
 				Lighting = {
 					ClockTime = 17.15,
-					Brightness = 0.7,
-					OutdoorAmbient = Color3.fromRGB(86, 76, 120),
+					Brightness = 1.15,
+					OutdoorAmbient = Color3.fromRGB(112, 102, 150),
 					ColorShift_Top = Color3.fromRGB(190, 170, 255),
-					ExposureCompensation = -0.3,
+					ExposureCompensation = 0,
 				},
-				Grade = { Saturation = -0.05, Contrast = 0.28, TintColor = Color3.fromRGB(205, 190, 255) },
+				Grade = { Saturation = -0.05, Contrast = 0.22, TintColor = Color3.fromRGB(212, 200, 255) },
 				Atmosphere = {
 					Density = 0.5,
 					Offset = 0.1,

@@ -299,8 +299,28 @@ local function onLightningWarning(position: Vector3, radius: number, delay: numb
 		CFrame = flat,
 		Material = Enum.Material.Neon,
 		Color = Color3.fromRGB(255, 70, 50),
-		Transparency = 0.7,
+		Transparency = 0.5,
 	})
+	-- A bright rim just outside the zone, so its edge (where it's safe) reads in the dark.
+	new("Part", {
+		Parent = zone,
+		Anchored = true,
+		CanCollide = false,
+		CanQuery = false,
+		CastShadow = false,
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.1, radius * 2 + 1.2, radius * 2 + 1.2),
+		CFrame = flat * CFrame.new(-0.04, 0, 0),
+		Material = Enum.Material.Neon,
+		Color = Color3.fromRGB(255, 240, 200),
+		Transparency = 0.15,
+	})
+	-- And its own light on the ground around it (the storm is dark).
+	local glow = Instance.new("PointLight")
+	glow.Color = Color3.fromRGB(255, 120, 80)
+	glow.Range = radius * 2
+	glow.Brightness = 2.5
+	glow.Parent = zone
 	local core = new("Part", {
 		Parent = effects,
 		Anchored = true,
