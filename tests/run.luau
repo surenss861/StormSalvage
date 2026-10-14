@@ -13,6 +13,8 @@ local specs = {
 	require("./titles.spec"),
 	require("./bigmoney.spec"),
 	require("./wallet.spec"),
+	require("./rollback.spec"),
+	require("./restore.spec"),
 }
 local passed, failed = 0, 0
 for _, spec in specs do

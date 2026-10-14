@@ -22,7 +22,8 @@ end
 local seed = 20261014
 local function rand(n: number): number
 	seed = (seed * 1103515245 + 12345) % 2147483648
-	return seed % n
+	-- High bits: an LCG's low bits cycle with a tiny period (bit 0 just alternates).
+	return math.floor(seed / 65536) % n
 end
 local function randomBig(maxDigits: number): string
 	local len = 1 + rand(maxDigits)

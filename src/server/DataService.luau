@@ -22,18 +22,26 @@ local LOCK_EXPIRY = Config.AutosaveSeconds * 3
 local SESSION_ID = game.JobId ~= "" and game.JobId or HttpService:GenerateGUID(false)
 
 local store: DataStore? = nil
+-- V4 money migration: the untouched pre-migration (schema 1) profile is copied here once, the
+-- first time this build migrates it, so it can be restored exactly (DataStore versions are kept
+-- only about hourly, so "the version just before the migration" may not exist).
+local backups: DataStore? = nil
 -- One line at startup so a staging or live server's log shows which data it's using.
 print(
-	("[Environment] %s (%s), place %d, store %s"):format(
+	-- PlaceVersion tells which published build this server runs (servers keep their version until
+	-- they shut down: a rehearsal checks this line, never assumes).
+	("[Environment] %s (%s), place %d version %d, store %s"):format(
 		tostring(Config.Environment),
 		tostring(Config.EnvironmentReason),
 		game.PlaceId,
+		game.PlaceVersion,
 		Config.DataStoreName or "NONE (nothing will save)"
 	)
 )
 if Config.DataStoreName then
 	pcall(function()
 		store = DataStoreService:GetDataStore(Config.DataStoreName :: string)
+		backups = DataStoreService:GetDataStore((Config.DataStoreName :: string) .. "_Backups")
 	end)
 else
 	warn("[DataService] unknown environment (place " .. game.PlaceId .. "): progress will not be saved")
@@ -161,8 +169,17 @@ function DataService.load(player: Player): (Data?, boolean)
 	for attempt = 1, 6 do
 		local locked = false
 		local result: Data? = nil
+		local preMigration: string? = nil
 		local ok, err = pcall(function()
 			(store :: DataStore):UpdateAsync(key(player.UserId), function(old)
+				-- A schema-1 profile about to be migrated: keep an exact copy (as JSON, taken before
+				-- reconcile touches it) for the backup written after this transaction.
+				preMigration = nil
+				if type(old) == "table" and old.Wallet == nil then
+					-- Never let the backup break a load (a value JSON can't hold just skips it).
+					local okJ, json = pcall(HttpService.JSONEncode, HttpService, old)
+					preMigration = if okJ then json else nil
+				end
 				local data = reconcile(old or DataService.default())
 				local now = os.time()
 				local lock = data.Lock
@@ -177,6 +194,24 @@ function DataService.load(player: Player): (Data?, boolean)
 		end)
 		if ok and result then
 			tokens[player] = token
+			if preMigration and backups then
+				-- Once only: never overwrite an existing backup. A failed backup write doesn't block
+				-- play (the profile is already safely migrated); it's logged for the operator.
+				local okB, errB = pcall(function()
+					(backups :: DataStore):UpdateAsync(
+						"premigration_" .. key(player.UserId),
+						function(existing)
+							if existing ~= nil then
+								return nil
+							end
+							return { Profile = HttpService:JSONDecode(preMigration :: string), At = os.time() }
+						end
+					)
+				end)
+				if not okB then
+					warn("[DataService] pre-migration backup failed for", player.Name, errB)
+				end
+			end
 			return result, true
 		end
 		if not ok then
@@ -322,6 +357,25 @@ function DataService.save(player: Player, data: Data, release: boolean): (boolea
 		return false, true
 	end
 	return ok, false
+end
+
+-- Studio QA only (rehearsal harness): point this copy of DataService at a disposable rehearsal
+-- store, so lock, shutdown and receipt tests never touch a real profile. A clone of this module
+-- required separately acts as a separate server (its own session id and lock tokens).
+function DataService.useStoreForTest(name: string)
+	assert(RunService:IsStudio(), "Studio only")
+	assert(name:match("^StormSalvage_v1_STUDIO_REHEARSAL") ~= nil, "rehearsal stores only")
+	store = DataStoreService:GetDataStore(name)
+	history = DataStoreService:GetDataStore(name .. "_Purchases")
+	backups = DataStoreService:GetDataStore(name .. "_Backups")
+end
+
+function DataService.storeNameForTest(): string?
+	return if store then (store :: DataStore).Name else nil
+end
+
+function DataService.lockExpiry(): number
+	return LOCK_EXPIRY
 end
 
 return DataService
