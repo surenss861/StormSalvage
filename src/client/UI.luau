@@ -10,6 +10,8 @@
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
+local ContextActionService = game:GetService("ContextActionService")
+local GuiService = game:GetService("GuiService")
 local UI = {}
 
 UI.Font = {
@@ -494,6 +496,38 @@ end
 
 -- A centred panel over a dimmed backdrop. Tapping the backdrop or X closes it, and only one
 -- modal is open at a time.
+-- The first visible, active button in `root` (reading order: top to bottom, left to right),
+-- skipping `except` (the close button), for controller focus.
+function UI.firstButton(root: Instance, except: Instance?): GuiObject?
+	local best: GuiButton? = nil
+	for _, d in root:GetDescendants() do
+		if d:IsA("GuiButton") and d ~= except and d.Visible and d.Active and d.AbsoluteSize.X > 0 then
+			local visible = true
+			local a = d.Parent
+			while a and a ~= root do
+				if a:IsA("GuiObject") and not a.Visible then
+					visible = false
+					break
+				end
+				a = a.Parent
+			end
+			if visible then
+				if
+					not best
+					or d.AbsolutePosition.Y < best.AbsolutePosition.Y - 4
+					or (
+						math.abs(d.AbsolutePosition.Y - best.AbsolutePosition.Y) <= 4
+						and d.AbsolutePosition.X < best.AbsolutePosition.X
+					)
+				then
+					best = d
+				end
+			end
+		end
+	end
+	return best
+end
+
 function UI.modal(parent: Instance, name: string, title: string, maxSize: Vector2): Modal
 	-- Oversized and centred so the dim reaches under the notch and the screen edges (the HUD
 	-- itself is laid out inside the safe area).
@@ -573,6 +607,24 @@ function UI.modal(parent: Instance, name: string, title: string, maxSize: Vector
 			backdrop.BackgroundTransparency = 1
 			UI.tween(backdrop, UI.Time.Enter, { BackgroundTransparency = 0.55 })
 			UI.pop(scale, 0.94)
+			-- Controller: focus the first button inside (tabs, then content), so the d-pad works
+			-- straight away; Roblox moves focus between neighbours by position. B closes.
+			if UserInputService.GamepadEnabled then
+				task.defer(function()
+					GuiService.SelectedObject = UI.firstButton(panel, close)
+				end)
+			end
+			ContextActionService:BindActionAtPriority("StormSalvageCloseModal", function(_, state)
+				if state == Enum.UserInputState.Begin then
+					setOpen(false)
+				end
+				return Enum.ContextActionResult.Sink
+			end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.ButtonB, Enum.KeyCode.Backspace)
+		else
+			ContextActionService:UnbindAction("StormSalvageCloseModal")
+			if GuiService.SelectedObject and GuiService.SelectedObject:IsDescendantOf(panel) then
+				GuiService.SelectedObject = nil
+			end
 		end
 		changed:Fire(open)
 	end

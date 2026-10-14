@@ -131,6 +131,19 @@ end
 local shopButton = Hud.ShopButton :: TextButton
 local settingsButton = Hud.SettingsButton :: TextButton
 shopButton.Activated:Connect(Shop.toggle)
+-- Keyboard: G opens the Gear Shop, J the Jobs board (once unlocked). Gamepad: Roblox's own
+-- Select button enters menu navigation, which reaches the rail buttons (A opens); B closes.
+game:GetService("ContextActionService"):BindAction("StormSalvageMenus", function(_, state, input)
+	if state ~= Enum.UserInputState.Begin then
+		return Enum.ContextActionResult.Pass
+	end
+	if input.KeyCode == Enum.KeyCode.G then
+		Shop.toggle()
+	elseif input.KeyCode == Enum.KeyCode.J and (Hud.JobsButton :: TextButton).Visible then
+		Jobs.toggle()
+	end
+	return Enum.ContextActionResult.Sink
+end, false, Enum.KeyCode.G, Enum.KeyCode.J)
 settingsButton.Activated:Connect(Settings.toggle);
 (Hud.JobsButton :: TextButton).Activated:Connect(Jobs.toggle)
 ProximityPromptService.PromptTriggered:Connect(function(prompt)
