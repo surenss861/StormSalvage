@@ -116,7 +116,7 @@ local function buildSlip(parent: Instance, i: number): Slip
 		Parent = frame,
 		Position = UDim2.fromOffset(10, 92),
 		Size = UDim2.new(1, -20, 0, 10),
-		BackgroundColor3 = Color3.fromRGB(220, 212, 194),
+		BackgroundColor3 = M.BarTrack,
 		BorderSizePixel = 0,
 		ZIndex = 23,
 	}, { UI.corner(3) })
@@ -134,7 +134,7 @@ local function buildSlip(parent: Instance, i: number): Slip
 		Position = UDim2.fromOffset(10, 108),
 		Size = UDim2.new(1, -20, 0, 18),
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = Color3.fromRGB(34, 120, 50),
+		TextColor3 = M.Reward,
 		Text = "",
 		ZIndex = 23,
 	})
@@ -232,7 +232,7 @@ local function buildJobs(parent: Instance): Frame
 		Parent = strip,
 		Position = UDim2.fromOffset(12, 36),
 		Size = UDim2.new(1, -24, 0, 12),
-		BackgroundColor3 = Color3.fromRGB(220, 212, 194),
+		BackgroundColor3 = M.BarTrack,
 		BorderSizePixel = 0,
 		ZIndex = 23,
 	}, { UI.corner(4) })
@@ -582,7 +582,7 @@ local function buildLog(parent: Instance): Frame
 			Position = UDim2.fromOffset(80, 38),
 			Size = UDim2.fromOffset(84, 15),
 			BackgroundColor3 = Config.RarityColors[def.Rarity] or M.Pencil,
-			TextColor3 = M.Marker,
+			TextColor3 = UI.inkOn(Config.RarityColors[def.Rarity] or M.Pencil),
 			Text = string.upper(def.Rarity),
 			ZIndex = 23,
 		})
@@ -993,7 +993,7 @@ function Jobs.init(root: Frame)
 	action = Remotes.get("ProgressAction")
 	modal = UI.modal(root, "Jobs", "JOBS", Vector2.new(660, 380))
 	local panel = modal.Panel
-	panel.BackgroundColor3 = Color3.fromRGB(176, 136, 92) -- corkboard
+	panel.BackgroundColor3 = M.Cork -- corkboard (dark plate in Arcade)
 	panel.BackgroundTransparency = 0
 	local stroke = panel:FindFirstChildOfClass("UIStroke")
 	if stroke then

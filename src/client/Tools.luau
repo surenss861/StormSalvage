@@ -171,7 +171,7 @@ function Tools.refresh()
 		tag.Price.BackgroundColor3 = if have
 			then Color3.fromRGB(80, 170, 90)
 			elseif BigMoney.gte(state.Coins, BigMoney.of(cost)) then M.Orange
-			else Color3.fromRGB(176, 166, 148)
+			else M.Muted
 		local active = id == selected
 		tag.Stroke.Color = if active then M.Orange else M.KraftEdge
 		tag.Stroke.Thickness = if active then 4 else 2

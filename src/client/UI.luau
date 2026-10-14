@@ -78,6 +78,62 @@ UI.Accent = Color3.fromRGB(206, 122, 34) -- primary action colour (Shop button, 
 --             the salvage yard. Marker lettering for titles only; every number (coins, prices,
 --             timers, counts) uses a bold plain face so it reads at a glance.
 local THEMES = {
+	-- V4 "Storm-Scarred Arcade" (owner's direction, docs/art/v4/HUD.md): the Workshop's paper and
+	-- wood become dark industrial plates; ink becomes light; amber marks hazard and action.
+	-- Remapping the Mat tokens re-skins every menu and card built on them at once.
+	Arcade = {
+		Font = {
+			Display = Enum.Font.Oswald,
+			Title = Enum.Font.Oswald,
+			Label = Enum.Font.GothamBold,
+			Body = Enum.Font.GothamMedium,
+			Mono = Enum.Font.GothamBlack,
+		},
+		Color = {
+			Plate = Color3.fromRGB(24, 25, 29),
+			PlateLight = Color3.fromRGB(36, 38, 43),
+			Outline = Color3.fromRGB(10, 10, 12),
+			Text = Color3.fromRGB(246, 246, 248),
+			TextDim = Color3.fromRGB(184, 186, 194),
+			TextMuted = Color3.fromRGB(130, 134, 144),
+			Slate = Color3.fromRGB(62, 64, 71),
+			Disabled = Color3.fromRGB(52, 54, 60),
+			Buy = Color3.fromRGB(56, 168, 84),
+		},
+		Mat = {
+			Kraft = Color3.fromRGB(36, 38, 43),
+			KraftEdge = Color3.fromRGB(62, 64, 71),
+			Manila = Color3.fromRGB(44, 46, 52),
+			Tape = Color3.fromRGB(56, 58, 66),
+			Marker = Color3.fromRGB(246, 246, 248),
+			Pencil = Color3.fromRGB(170, 172, 180),
+			RedPen = Color3.fromRGB(255, 104, 86),
+			Tin = Color3.fromRGB(70, 74, 82),
+			TinDark = Color3.fromRGB(52, 55, 61),
+			Wood = Color3.fromRGB(40, 42, 47),
+			WoodDark = Color3.fromRGB(28, 29, 33),
+			Peg = Color3.fromRGB(34, 36, 40),
+			PegHole = Color3.fromRGB(18, 19, 22),
+			Note = Color3.fromRGB(58, 50, 32),
+			Paper = Color3.fromRGB(40, 42, 48),
+			Rule = Color3.fromRGB(58, 62, 70),
+			Orange = Color3.fromRGB(255, 176, 46),
+			Tile = Color3.fromRGB(18, 19, 22),
+			Highlight = Color3.fromRGB(62, 52, 30),
+			Cork = Color3.fromRGB(30, 31, 35),
+			BarTrack = Color3.fromRGB(56, 58, 66),
+			Reward = Color3.fromRGB(110, 220, 130),
+			Muted = Color3.fromRGB(70, 72, 78),
+			Locked = Color3.fromRGB(56, 58, 64),
+			TrackOff = Color3.fromRGB(56, 58, 66),
+			StickerText = Color3.fromRGB(24, 25, 29),
+		},
+		Radius = { Chip = 4, Panel = 8, Modal = 10 },
+		PlateTransparency = 0.06,
+		StrokeTransparency = 0,
+		Accent = Color3.fromRGB(255, 176, 46),
+		TextSize = { Display = 30, Title = 22 },
+	},
 	Workshop = {
 		Font = {
 			Display = Enum.Font.PermanentMarker,
@@ -125,6 +181,14 @@ UI.Mat = {
 	Rule = Color3.fromRGB(170, 200, 230),
 	Orange = Color3.fromRGB(240, 128, 36),
 	Tile = Color3.fromRGB(34, 34, 36),
+	Highlight = Color3.fromRGB(252, 236, 196), -- the selected tag/tile
+	Cork = Color3.fromRGB(176, 136, 92), -- the Jobs corkboard
+	BarTrack = Color3.fromRGB(220, 212, 194), -- an empty progress bar
+	Reward = Color3.fromRGB(34, 120, 50), -- reward text on a job slip
+	Muted = Color3.fromRGB(176, 166, 148), -- a price you can't afford yet
+	Locked = Color3.fromRGB(120, 110, 96), -- licence-locked gear
+	TrackOff = Color3.fromRGB(226, 220, 204), -- an upgrade track's unbought steps
+	StickerText = Color3.new(1, 1, 1), -- text on an Orange sticker
 }
 
 function UI.useTheme(name: string?)
@@ -186,6 +250,12 @@ end
 ---------------------------------------------------------------------------- Builders
 
 function UI.new(className: string, props: { [string]: any }, children: { Instance }?): any
+	-- The Arcade theme's display font is Oswald; its Enum is the regular weight, so text set
+	-- in it gets the bold FontFace instead.
+	if props.Font == Enum.Font.Oswald then
+		props.Font = nil
+		props.FontFace = UI.Heading
+	end
 	local inst = Instance.new(className)
 	local parent = props.Parent
 	props.Parent = nil
@@ -367,7 +437,7 @@ function UI.button(props: ButtonProps): TextButton
 		b.BackgroundColor3 = if hover and not b:GetAttribute("Disabled")
 			then c:Lerp(Color3.new(1, 1, 1), 0.08)
 			else c
-		b.TextColor3 = if b:GetAttribute("Disabled") then UI.Color.TextMuted else UI.Color.Text
+		b.TextColor3 = if b:GetAttribute("Disabled") then UI.Color.TextMuted else UI.inkOn(c)
 	end
 	b:GetAttributeChangedSignal("Disabled"):Connect(function()
 		refresh(false)
@@ -392,6 +462,12 @@ function UI.button(props: ButtonProps): TextButton
 	end)
 	refresh(false)
 	return b
+end
+
+-- Readable text on `background`: dark ink on light colours (amber, gold, cream), else light.
+function UI.inkOn(background: Color3): Color3
+	local lum = 0.299 * background.R + 0.587 * background.G + 0.114 * background.B
+	return if lum > 0.6 then Color3.fromRGB(24, 25, 29) else UI.Color.Text
 end
 
 function UI.setButtonColor(b: GuiButton, color: Color3)

@@ -82,8 +82,33 @@ Screenshots in `docs/art/v4/hud/`:
 
 **Not verified:** a real phone. The phone frame only approximates the device.
 
+## Menus (Arcade theme)
+
+`UI.useTheme("Arcade")` is now the default. It remaps the Workshop's `UI.Mat` tokens:
+
+- paper and wood become dark plates;
+- ink becomes light;
+- tape and stickers become amber.
+
+The Gear Shop, Jobs, Salvage Log, Settings and the cards pick it up without per-screen rewrites.
+
+- **Hardcoded colours became tokens:** `Highlight`, `Muted`, `Locked`, `TrackOff`, `StickerText`, `Cork`, `BarTrack`, `Reward`.
+- **Readable buttons:** `UI.inkOn` picks dark text on light buttons (amber, gold).
+- **Bold headings:** Enum Oswald text gets the bold Oswald face.
+
+**Salvager ID:** the player card is rebuilt to the concept:
+
+- the earned title over the avatar portrait;
+- reputation (rank, band, XP bar);
+- lifetime and net worth in gold;
+- records;
+- three achieved badges (their best title in each category);
+- "earned in the storm, never bought".
+
+Screenshots: `menu-gear-shop.jpg`, `menu-salvage-log.jpg`, `menu-salvager-id.jpg`. In Studio the avatar thumbnail is a placeholder silhouette; check it on a live server.
+
 ## Still to do (M9)
 
-- The Gear Shop, Salvage Log, Jobs, Settings and the player card on the same tokens.
+- Richer per-screen layouts from the concepts: the Gear Shop's large gear preview and upgrade-track list, and the Salvage Log's detail panel.
 - The receipt and remaining cards (Clipboard, Note, Main's tags).
 - A custom E prompt.

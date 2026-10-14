@@ -423,8 +423,11 @@ function Notifications.applyLayout(isCompact: boolean)
 	-- Notices stack downwards from the top while a menu is open, upwards from the bottom otherwise.
 	local feedList = feedHolder:FindFirstChildOfClass("UIListLayout")
 	if feedList then
+		-- With a menu up, notices sit top centre (the objective strip steps aside for menus).
 		feedList.VerticalAlignment = Enum.VerticalAlignment.Top
-		feedList.HorizontalAlignment = Enum.HorizontalAlignment.Right
+		feedList.HorizontalAlignment = if suppress.Modal
+			then Enum.HorizontalAlignment.Center
+			else Enum.HorizontalAlignment.Right
 	end
 	if isCompact then
 		hintPlate.Parent = topStack
@@ -432,8 +435,8 @@ function Notifications.applyLayout(isCompact: boolean)
 		hintPlate.Rotation = 0
 		hintPlate.AnchorPoint = Vector2.zero
 		hintPlate.Position = UDim2.new()
-		feedHolder.AnchorPoint = Vector2.new(1, 0)
-		feedHolder.Position = if suppress.Modal then UDim2.new(1, -12, 0, 6) else UDim2.new(1, -10, 0, 142)
+		feedHolder.AnchorPoint = if suppress.Modal then Vector2.new(0.5, 0) else Vector2.new(1, 0)
+		feedHolder.Position = if suppress.Modal then UDim2.new(0.5, 0, 0, 6) else UDim2.new(1, -10, 0, 142)
 		feedHolder.Size = UDim2.new(0.4, 0, 0, 160)
 	else
 		hintPlate.Parent = root
@@ -442,8 +445,8 @@ function Notifications.applyLayout(isCompact: boolean)
 		hintPlate.Position = UDim2.fromOffset(14, 46)
 		-- V4: notices sit on the right, under the wallet and buttons, clear of the bag, the
 		-- controls and the middle of the screen.
-		feedHolder.AnchorPoint = Vector2.new(1, 0)
-		feedHolder.Position = if suppress.Modal then UDim2.new(1, -12, 0, 6) else UDim2.new(1, -14, 0, 150)
+		feedHolder.AnchorPoint = if suppress.Modal then Vector2.new(0.5, 0) else Vector2.new(1, 0)
+		feedHolder.Position = if suppress.Modal then UDim2.new(0.5, 0, 0, 8) else UDim2.new(1, -14, 0, 150)
 		feedHolder.Size = UDim2.new(0, 380, 0, 200)
 	end
 	if cardSlot.Visible then

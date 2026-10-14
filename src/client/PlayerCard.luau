@@ -4,7 +4,10 @@
 -- @see [[StatusService.luau]]
 -- @see [[V4-STATUS]]
 -- Tap or click another player (or MY CARD on the Jobs board's Titles tab) to see their Salvager
--- ID: rank, band, earned title, lifetime earnings, extraction records and Salvage Log progress.
+-- ID (V4 Storm-Scarred Arcade dossier, owner concept): the earned title over their avatar
+-- portrait; reputation (rank, band, XP to the next rank); lifetime earned and net worth in
+-- gold; extraction records; the Salvage Log; their three most prestigious title badges.
+-- Earned prestige only: nothing here can be bought.
 -- The client only asks (Inspect, with a user id); the server answers with public facts from its
 -- own records (InspectCard). Everything else stays on the card, not over people's heads.
 -- Tap detection ignores drags (camera swipes on phones) and taps on the HUD.
@@ -19,30 +22,43 @@ local PlateStyle = require(script.Parent:WaitForChild("PlateStyle"))
 local UI = require(script.Parent:WaitForChild("UI"))
 
 local PlayerCard = {}
-local M = UI.Mat
 
 local modal: UI.Modal
 local inspectRemote: RemoteEvent
 local nameLabel: TextLabel
 local handleLabel: TextLabel
 local rankLabel: TextLabel
-local bandBadge: TextLabel
-local titleChip: TextLabel
+local bandLabel: TextLabel
+local xpFill: Frame
+local xpText: TextLabel
+local titleBanner: TextLabel
+local portrait: ImageLabel
 local plateStrip: Frame
+local badgeSlots: { Frame } = {}
 local cells: { [string]: { Value: TextLabel, Sub: TextLabel } } = {}
+local A = UI.Arcade
+local CATEGORY_COLOR = {
+	Pursuit = Color3.fromRGB(255, 140, 60),
+	Discovery = Color3.fromRGB(90, 180, 240),
+	Career = Color3.fromRGB(170, 130, 240),
+	Wealth = Color3.fromRGB(255, 206, 74),
+}
 
 local HARDEST = { [0] = "-", [1] = "Easy", [2] = "Hard", [3] = "Hardest" }
 
-local CELLS = {
-	{ "Earned", "LIFETIME EARNED" },
-	{ "NetWorth", "NET WORTH" },
-	{ "Extractions", "EXTRACTIONS" },
-	{ "Best", "BEST EXTRACTION" },
-	{ "Streak", "BEST CLEAN STREAK" },
-	{ "Golden", "GOLDEN CORES OUT" },
-	{ "Hardest", "HARDEST EXTRACTION" },
+-- Big tiles (gold wealth, records) and the small stat row.
+local BIG = {
+	{ "Earned", "LIFETIME EARNED", true },
+	{ "NetWorth", "NET WORTH", true },
+	{ "Extractions", "EXTRACTIONS", false },
+	{ "Best", "BEST TIME HOME", false },
+}
+local SMALL = {
+	{ "Streak", "CLEAN STREAK" },
+	{ "Golden", "GOLDEN CORES" },
+	{ "Hardest", "HARDEST RUN" },
 	{ "Log", "SALVAGE LOG" },
-	{ "Titles", "TITLES EARNED" },
+	{ "Titles", "TITLES" },
 }
 
 function PlayerCard.request(userId: number)
@@ -53,13 +69,38 @@ function PlayerCard.show(card: any)
 	if type(card) ~= "table" then
 		return
 	end
-	nameLabel.Text = tostring(card.DisplayName or "?")
+	nameLabel.Text = string.upper(tostring(card.DisplayName or "?"))
 	handleLabel.Text = "@" .. tostring(card.Name or "")
+	if type(card.UserId) == "number" then
+		portrait.Image = ""
+		local userId = card.UserId
+		task.spawn(function()
+			local ok, image = pcall(function()
+				return Players:GetUserThumbnailAsync(
+					userId,
+					Enum.ThumbnailType.AvatarThumbnail,
+					Enum.ThumbnailSize.Size420x420
+				)
+			end)
+			if ok and type(image) == "string" then
+				portrait.Image = image
+			end
+		end)
+	end
 	rankLabel.Text = string.upper(tostring(card.Rank or ""))
-	bandBadge.Text = ("BAND %d · %s"):format(card.Band or 1, string.upper(tostring(card.BandName or "")))
-	bandBadge.BackgroundColor3 = if (card.Band or 1) >= 2 then Color3.fromRGB(240, 196, 70) else M.Tin
-	titleChip.Visible = type(card.Title) == "string"
-	titleChip.Text = if type(card.Title) == "string" then string.upper(card.Title) else ""
+	bandLabel.Text = ("BAND %d · %s"):format(card.Band or 1, string.upper(tostring(card.BandName or "")))
+	local xp, from, to = card.XP or 0, card.RankXP or 0, card.NextXP
+	if type(to) == "number" and to > from then
+		xpFill.Size = UDim2.fromScale(math.clamp((xp - from) / (to - from), 0, 1), 1)
+		xpText.Text = ("%s / %s XP"):format(BigMoney.full(math.floor(xp)), BigMoney.full(math.floor(to)))
+	else
+		xpFill.Size = UDim2.fromScale(1, 1)
+		xpText.Text = "MAX RANK"
+	end
+	local hasTitle = type(card.Title) == "string"
+	titleBanner.Text = if hasTitle then string.upper(card.Title) else "NO TITLE YET"
+	titleBanner.TextColor3 = if hasTitle then A.Plate else A.Dim
+	titleBanner.BackgroundColor3 = if hasTitle then A.Amber else A.Plate2
 	PlateStyle.apply(plateStrip, card.Plate, 2)
 	local function set(key: string, value: string, sub: string?)
 		cells[key].Value.Text = value
@@ -72,13 +113,32 @@ function PlayerCard.show(card: any)
 	end
 	wealth("Earned", card.LifetimeEarned)
 	wealth("NetWorth", card.NetWorth)
-	set("Extractions", tostring(card.Extractions or 0))
-	set("Best", if (card.BestExtract or 0) > 0 then ("%.1f s"):format(card.BestExtract) else "-")
-	set("Streak", tostring(card.BestStreak or 0), "in a row, never caught")
+	set("Extractions", tostring(card.Extractions or 0), "cores home")
+	set(
+		"Best",
+		if (card.BestExtract or 0) > 0 then ("%.1f s"):format(card.BestExtract) else "-",
+		"fastest extraction"
+	)
+	set("Streak", tostring(card.BestStreak or 0))
 	set("Golden", tostring(card.GoldenExtractions or 0))
-	set("Hardest", HARDEST[card.Hardest or 0] or "-", if (card.Hardest or 0) > 0 then "site" else "none yet")
-	set("Log", ("%d / %d"):format(card.Found or 0, card.FoundTotal or 0), "kinds found")
+	set("Hardest", HARDEST[card.Hardest or 0] or "-")
+	set("Log", ("%d / %d"):format(card.Found or 0, card.FoundTotal or 0))
 	set("Titles", ("%d / %d"):format(card.Titles or 0, card.TitlesTotal or 0))
+	local badges = if type(card.Badges) == "table" then card.Badges else {}
+	for i, slot in badgeSlots do
+		local b = badges[i]
+		slot.Visible = b ~= nil
+		if b then
+			local color = CATEGORY_COLOR[b.Category] or A.Amber
+			local medal = slot:FindFirstChild("Medal") :: Frame;
+			(medal:FindFirstChildOfClass("UIStroke") :: UIStroke).Color = color;
+			(medal:FindFirstChild("Letter") :: TextLabel).Text =
+				string.upper(string.sub(tostring(b.Name), 1, 1));
+			(medal:FindFirstChild("Letter") :: TextLabel).TextColor3 = color;
+			(slot:FindFirstChild("Name") :: TextLabel).Text = string.upper(tostring(b.Name));
+			(slot:FindFirstChild("How") :: TextLabel).Text = tostring(b.How or b.Category or "")
+		end
+	end
 	if not modal.IsOpen() then
 		modal.Open()
 	end
@@ -112,154 +172,289 @@ end
 
 function PlayerCard.init(root: Frame)
 	inspectRemote = Remotes.get("Inspect")
-	modal = UI.modal(root, "PlayerCard", "SALVAGER ID", Vector2.new(480, 330))
-	-- A kraft ID card, like the Jobs corkboard, so the dark marker text reads.
-	local panel = modal.Panel
-	panel.BackgroundColor3 = M.Kraft
-	panel.BackgroundTransparency = 0
-	local edge = panel:FindFirstChildOfClass("UIStroke")
-	if edge then
-		edge.Color = M.KraftEdge
-		edge.Thickness = 4
-	end
-	local heading = panel:FindFirstChild("Title") :: TextLabel?
-	if heading then
-		heading.TextColor3 = M.Marker
-	end
+	modal = UI.modal(root, "PlayerCard", "SALVAGER ID", Vector2.new(820, 460))
 	local content = modal.Content
-	-- ID badge header: name, handle, rank, band, the earned title, and their nameplate finish.
+	local function label(parent: Instance, props: { [string]: any }): TextLabel
+		props.Parent = parent
+		props.FontFace = props.FontFace or UI.Heading
+		props.TextXAlignment = props.TextXAlignment or Enum.TextXAlignment.Left
+		props.ZIndex = props.ZIndex or 23
+		return UI.text(props)
+	end
+	local function panel(parent: Instance, props: { [string]: any }): Frame
+		props.Parent = parent
+		props.BackgroundColor3 = props.BackgroundColor3 or A.Plate2
+		props.BackgroundTransparency = 0
+		props.ZIndex = props.ZIndex or 22
+		local f = UI.arcadePlate(props)
+		return f
+	end
+
+	-- Left: the earned title over the portrait, name and handle, the nameplate finish.
+	local left = UI.new("Frame", {
+		Name = "Left",
+		Parent = content,
+		Size = UDim2.new(0.27, -8, 1, 0),
+		BackgroundTransparency = 1,
+		ZIndex = 21,
+	})
+	titleBanner = label(left, {
+		Size = UDim2.new(1, 0, 0, 30),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextSize = 17,
+		Text = "",
+	})
+	titleBanner.BackgroundTransparency = 0
+	UI.corner(4).Parent = titleBanner
+	local frame = panel(
+		left,
+		{ Name = "Portrait", Position = UDim2.fromOffset(0, 36), Size = UDim2.new(1, 0, 1, -110) }
+	)
+	UI.stroke(A.Amber, 2).Parent = frame
+	portrait = UI.new("ImageLabel", {
+		Parent = frame,
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = 23,
+	})
+	nameLabel = label(left, {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 2, 1, -34),
+		Size = UDim2.new(1, -4, 0, 26),
+		TextSize = 22,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextColor3 = A.Text,
+		Text = "",
+	})
+	handleLabel = label(left, {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 2, 1, -18),
+		Size = UDim2.new(1, -4, 0, 14),
+		Font = UI.Font.Label,
+		FontFace = Font.fromEnum(UI.Font.Label),
+		TextSize = 12,
+		TextColor3 = A.Dim,
+		Text = "",
+	})
 	plateStrip = UI.new("Frame", {
 		Name = "Plate",
-		Parent = content,
-		Size = UDim2.new(1, 0, 0, 8),
+		Parent = left,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, 10),
 		BorderSizePixel = 0,
 		ZIndex = 22,
 	}, { UI.corner(3) })
-	nameLabel = UI.text({
+
+	-- Middle: reputation, wealth and records.
+	local mid = UI.new("Frame", {
+		Name = "Middle",
 		Parent = content,
-		Font = UI.Font.Title,
-		TextSize = 24,
-		Position = UDim2.fromOffset(4, 12),
-		Size = UDim2.new(0.6, 0, 0, 28),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextTruncate = Enum.TextTruncate.AtEnd,
-		TextColor3 = M.Marker,
-		Text = "",
-		ZIndex = 22,
+		Position = UDim2.fromScale(0.27, 0),
+		Size = UDim2.new(0.48, -8, 1, 0),
+		BackgroundTransparency = 1,
+		ZIndex = 21,
 	})
-	handleLabel = UI.text({
-		Parent = content,
-		Font = UI.Font.Label,
+	local rep = panel(mid, { Name = "Reputation", Size = UDim2.new(1, 0, 0, 92) })
+	label(rep, {
+		Position = UDim2.fromOffset(12, 6),
+		Size = UDim2.new(1, -24, 0, 14),
 		TextSize = 12,
-		Position = UDim2.fromOffset(4, 40),
-		Size = UDim2.new(0.6, 0, 0, 14),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = M.Pencil,
-		Text = "",
-		ZIndex = 22,
+		TextColor3 = A.Dim,
+		Text = "REPUTATION",
 	})
-	rankLabel = UI.text({
-		Parent = content,
-		Font = UI.Font.Mono,
-		TextSize = 13,
-		Position = UDim2.fromOffset(4, 56),
+	rankLabel = label(rep, {
+		Position = UDim2.fromOffset(12, 20),
+		Size = UDim2.new(1, -24, 0, 32),
+		TextSize = 30,
+		TextColor3 = A.Amber,
+		Text = "",
+	})
+	bandLabel = label(rep, {
+		Position = UDim2.fromOffset(12, 52),
 		Size = UDim2.new(0.6, 0, 0, 16),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = M.Marker,
-		Text = "",
-		ZIndex = 22,
-	})
-	bandBadge = UI.text({
-		Parent = content,
-		Font = UI.Font.Mono,
-		TextSize = 12,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -4, 0, 16),
-		Size = UDim2.fromOffset(150, 22),
-		TextColor3 = M.Marker,
-		Text = "",
-		ZIndex = 22,
-	})
-	bandBadge.BackgroundTransparency = 0
-	UI.corner(4).Parent = bandBadge
-	titleChip = UI.text({
-		Parent = content,
-		Font = UI.Font.Mono,
 		TextSize = 13,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -4, 0, 44),
-		Size = UDim2.fromOffset(150, 24),
-		Rotation = if UI.reduced() then 0 else -3,
-		TextColor3 = M.RedPen,
+		TextColor3 = A.Text,
 		Text = "",
-		Visible = false,
-		ZIndex = 23,
 	})
-	titleChip.BackgroundTransparency = 0
-	titleChip.BackgroundColor3 = M.Note
-	UI.stroke(M.RedPen, 2).Parent = titleChip
-	-- The record: a grid of manila cells.
-	local grid = UI.new("Frame", {
-		Name = "Record",
-		Parent = content,
-		Position = UDim2.fromOffset(0, 80),
-		Size = UDim2.new(1, 0, 1, -80),
+	xpText = label(rep, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 52),
+		Size = UDim2.new(0.4, 0, 0, 16),
+		TextSize = 13,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextColor3 = A.Dim,
+		Text = "",
+	})
+	local bar = UI.new("Frame", {
+		Parent = rep,
+		Position = UDim2.new(0, 12, 1, -16),
+		Size = UDim2.new(1, -24, 0, 8),
+		BackgroundColor3 = A.Plate,
+		BorderSizePixel = 0,
+		ZIndex = 23,
+	}, { UI.corner(4) })
+	xpFill = UI.new("Frame", {
+		Parent = bar,
+		Size = UDim2.fromScale(0, 1),
+		BackgroundColor3 = A.Amber,
+		BorderSizePixel = 0,
+		ZIndex = 24,
+	}, { UI.corner(4) })
+	local tiles = UI.new("Frame", {
+		Parent = mid,
+		Position = UDim2.fromOffset(0, 100),
+		Size = UDim2.new(1, 0, 1, -170),
 		BackgroundTransparency = 1,
 		ZIndex = 21,
 	}, {
 		UI.new("UIGridLayout", {
-			CellSize = UDim2.new(1 / 3, -6, 1 / 3, -6),
-			CellPadding = UDim2.fromOffset(6, 6),
+			CellSize = UDim2.new(0.5, -4, 0.5, -4),
+			CellPadding = UDim2.fromOffset(8, 8),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
-	for i, spec in CELLS do
-		local cell = UI.new("Frame", {
-			Name = spec[1],
-			Parent = grid,
-			LayoutOrder = i,
-			BackgroundColor3 = M.Manila,
-			BorderSizePixel = 0,
-			ZIndex = 22,
-		}, { UI.corner(5), UI.stroke(M.KraftEdge, 1.5) })
-		UI.text({
-			Parent = cell,
-			Font = UI.Font.Label,
-			TextSize = 10,
-			Position = UDim2.fromOffset(6, 4),
-			Size = UDim2.new(1, -12, 0, 12),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextColor3 = M.Pencil,
+	for i, spec in BIG do
+		local cell = panel(tiles, { Name = spec[1], LayoutOrder = i })
+		label(cell, {
+			Position = UDim2.fromOffset(10, 6),
+			Size = UDim2.new(1, -20, 0, 14),
+			TextSize = 12,
+			TextColor3 = A.Dim,
 			Text = spec[2],
-			ZIndex = 23,
 		})
-		local value = UI.text({
-			Parent = cell,
-			Font = UI.Font.Mono,
-			TextSize = 20,
-			TextScaled = false,
-			Position = UDim2.new(0, 6, 0.5, -12),
-			Size = UDim2.new(1, -12, 0, 24),
-			TextXAlignment = Enum.TextXAlignment.Left,
+		local value = label(cell, {
+			Position = UDim2.new(0, 10, 0.5, -14),
+			Size = UDim2.new(1, -20, 0, 30),
+			TextSize = 28,
 			TextTruncate = Enum.TextTruncate.AtEnd,
-			TextColor3 = M.Marker,
+			TextColor3 = if spec[3] then A.Gold else A.Text,
 			Text = "",
-			ZIndex = 23,
 		})
-		local sub = UI.text({
-			Parent = cell,
-			Font = UI.Font.Label,
-			TextSize = 10,
+		local sub = label(cell, {
 			AnchorPoint = Vector2.new(0, 1),
-			Position = UDim2.new(0, 6, 1, -4),
-			Size = UDim2.new(1, -12, 0, 12),
-			TextXAlignment = Enum.TextXAlignment.Left,
+			Position = UDim2.new(0, 10, 1, -6),
+			Size = UDim2.new(1, -20, 0, 12),
+			Font = UI.Font.Label,
+			FontFace = Font.fromEnum(UI.Font.Label),
+			TextSize = 10,
 			TextTruncate = Enum.TextTruncate.AtEnd,
-			TextColor3 = M.Pencil,
+			TextColor3 = A.Dim,
 			Text = "",
-			ZIndex = 23,
 		})
 		cells[spec[1]] = { Value = value, Sub = sub }
+	end
+	local row = UI.new("Frame", {
+		Parent = mid,
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, 62),
+		BackgroundTransparency = 1,
+		ZIndex = 21,
+	}, {
+		UI.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			Padding = UDim.new(0, 6),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+	for i, spec in SMALL do
+		local cell = panel(row, { Name = spec[1], LayoutOrder = i, Size = UDim2.new(1 / #SMALL, -5, 1, 0) })
+		label(cell, {
+			Position = UDim2.fromOffset(6, 6),
+			Size = UDim2.new(1, -12, 0, 12),
+			TextSize = 10,
+			TextColor3 = A.Dim,
+			Text = spec[2],
+		})
+		local value = label(cell, {
+			Position = UDim2.fromOffset(6, 24),
+			Size = UDim2.new(1, -12, 0, 24),
+			TextSize = 20,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			TextColor3 = A.Text,
+			Text = "",
+		})
+		local sub = label(cell, {
+			Position = UDim2.fromOffset(6, 48),
+			Size = UDim2.new(1, -12, 0, 10),
+			TextSize = 9,
+			TextColor3 = A.Dim,
+			Text = "",
+			Visible = false,
+		})
+		cells[spec[1]] = { Value = value, Sub = sub }
+	end
+
+	-- Right: the three most prestigious titles, as medals.
+	local right = panel(content, {
+		Name = "Badges",
+		Position = UDim2.fromScale(0.75, 0),
+		Size = UDim2.new(0.25, 0, 1, 0),
+	})
+	label(right, {
+		Position = UDim2.fromOffset(12, 8),
+		Size = UDim2.new(1, -24, 0, 18),
+		TextSize = 16,
+		TextColor3 = A.Text,
+		Text = "ACHIEVED BADGES",
+	})
+	label(right, {
+		Position = UDim2.fromOffset(12, 26),
+		Size = UDim2.new(1, -24, 0, 12),
+		TextSize = 10,
+		TextColor3 = A.Dim,
+		Text = "EARNED IN THE STORM, NEVER BOUGHT",
+	})
+	for i = 1, 3 do
+		local slot = UI.new("Frame", {
+			Name = "Badge" .. i,
+			Parent = right,
+			Position = UDim2.new(0, 10, 0, 46 + (i - 1) * 96),
+			Size = UDim2.new(1, -20, 0, 88),
+			BackgroundTransparency = 1,
+			Visible = false,
+			ZIndex = 23,
+		})
+		local medal = UI.new("Frame", {
+			Name = "Medal",
+			Parent = slot,
+			Size = UDim2.fromOffset(56, 56),
+			BackgroundColor3 = A.Plate,
+			BorderSizePixel = 0,
+			ZIndex = 24,
+		}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), UI.stroke(A.Amber, 3) })
+		label(medal, {
+			Name = "Letter",
+			Size = UDim2.fromScale(1, 1),
+			TextSize = 28,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Text = "",
+			ZIndex = 25,
+		})
+		label(slot, {
+			Name = "Name",
+			Position = UDim2.fromOffset(64, 4),
+			Size = UDim2.new(1, -64, 0, 20),
+			TextSize = 16,
+			TextWrapped = true,
+			TextColor3 = A.Text,
+			Text = "",
+		})
+		label(slot, {
+			Name = "How",
+			Position = UDim2.fromOffset(64, 26),
+			Size = UDim2.new(1, -64, 0, 40),
+			Font = UI.Font.Label,
+			FontFace = Font.fromEnum(UI.Font.Label),
+			TextSize = 11,
+			TextWrapped = true,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			TextColor3 = A.Dim,
+			Text = "",
+		})
+		table.insert(badgeSlots, slot)
 	end
 
 	Remotes.get("InspectCard").OnClientEvent:Connect(PlayerCard.show)

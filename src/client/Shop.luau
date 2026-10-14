@@ -176,7 +176,7 @@ local function makeTile(rack: Instance, id: string, order: number): Tile
 		Font = UI.Font.Mono,
 		TextSize = 16,
 		Size = UDim2.fromScale(1, 1),
-		TextColor3 = Color3.new(1, 1, 1),
+		TextColor3 = M.StickerText,
 		Text = "",
 		ZIndex = 24,
 	})
@@ -374,10 +374,10 @@ function Shop.refresh()
 		local cost = def.Costs[level + 1]
 		if locked(def) then
 			tile.PriceText.Text = "PRO"
-			tile.Price.BackgroundColor3 = Color3.fromRGB(120, 110, 96)
+			tile.Price.BackgroundColor3 = M.Locked
 		elseif cost then
 			tile.PriceText.Text = sticker(cost)
-			tile.Price.BackgroundColor3 = if affords(cost) then M.Orange else Color3.fromRGB(176, 166, 148)
+			tile.Price.BackgroundColor3 = if affords(cost) then M.Orange else M.Muted
 		else
 			tile.PriceText.Text = "MAX"
 			tile.Price.BackgroundColor3 = Color3.fromRGB(80, 170, 90)
@@ -386,7 +386,7 @@ function Shop.refresh()
 		tile.Stroke.Color = if active then M.Orange else M.KraftEdge
 		tile.Stroke.Thickness = if active then 4 else 2
 		tile.Frame.Rotation = if active or UI.reduced() then 0 else tile.Tilt
-		tile.Frame.BackgroundColor3 = if active then Color3.fromRGB(252, 236, 196) else M.Manila
+		tile.Frame.BackgroundColor3 = if active then M.Highlight else M.Manila
 	end
 
 	local def = Config.Upgrades[selected]
@@ -423,10 +423,7 @@ function Shop.refresh()
 			Parent = track,
 			LayoutOrder = i,
 			Size = UDim2.new(1 / steps, -4, 1, 0),
-			BackgroundColor3 = if i <= level
-				then M.Marker
-				elseif i == level + 1 then M.Orange
-				else Color3.fromRGB(226, 220, 204),
+			BackgroundColor3 = if i <= level then M.Marker elseif i == level + 1 then M.Orange else M.TrackOff,
 			BorderSizePixel = 0,
 			ZIndex = 22,
 		}, { UI.corner(2) })

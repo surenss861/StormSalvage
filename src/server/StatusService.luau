@@ -133,11 +133,37 @@ function StatusService.card(player: Player): { [string]: any }?
 	end
 	local shown = data.Titles.Shown and Titles.ById[data.Titles.Shown]
 	local band = Bands.bandOf(data.Licenses)
+	-- Badges: their most prestigious title in each category (later in the list = harder to
+	-- earn), the top three of those, so the badges show range rather than three wealth tiers.
+	local best: { [string]: number } = {}
+	for i, def in Titles.List do
+		if data.Titles.Owned[def.Id] then
+			best[def.Category] = i
+		end
+	end
+	local picks = {}
+	for _, i in best do
+		table.insert(picks, i)
+	end
+	table.sort(picks, function(a, b)
+		return a > b
+	end)
+	local badges = {}
+	for k = 1, math.min(3, #picks) do
+		local def = Titles.List[picks[k]]
+		table.insert(badges, { Name = def.Name, Category = def.Category, How = def.How })
+	end
+	local rank = Progression.rankFor(data.Rep.XP)
+	local nextRank = Progression.Ranks[rank.Index + 1]
 	return {
 		UserId = player.UserId,
 		DisplayName = player.DisplayName,
 		Name = player.Name,
-		Rank = Progression.rankFor(data.Rep.XP).Title,
+		Rank = rank.Title,
+		XP = data.Rep.XP,
+		RankXP = rank.XP,
+		NextXP = if nextRank then nextRank.XP else nil,
+		Badges = badges,
 		Band = band,
 		BandName = Bands.Names[band],
 		Title = if shown then shown.Name else nil,

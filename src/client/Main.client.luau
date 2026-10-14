@@ -58,7 +58,7 @@ local boostEndsAt = 0
 
 -- Interface theme (UI.useTheme): Workshop, the V3 direction. Studio QA can preview Classic
 -- with the ReplicatedStorage attribute "UITheme" set before players join.
-UI.useTheme(ReplicatedStorage:GetAttribute("UITheme") or "Workshop")
+UI.useTheme(ReplicatedStorage:GetAttribute("UITheme") or "Arcade")
 Audio.init()
 UI.setReducedMotion(StormEffects.isReduced)
 UI.setClickSound(function()
