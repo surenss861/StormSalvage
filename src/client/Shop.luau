@@ -53,6 +53,7 @@ local sheetNow: TextLabel
 local sheetArrow: TextLabel
 local sheetNext: TextLabel
 local track: Frame
+local ladder: ScrollingFrame
 local wallet: TextLabel
 local buy: TextButton
 local installed: Frame
@@ -306,6 +307,26 @@ local function buildSheet(parent: Instance)
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
+	-- Upgrade track: every level, what it gives and what it costs (installed, next, later).
+	ladder = UI.new("ScrollingFrame", {
+		Name = "Ladder",
+		Parent = sheet,
+		Position = UDim2.fromOffset(14, 166),
+		Size = UDim2.new(1, -28, 1, -256),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 4,
+		ScrollBarImageColor3 = M.Pencil,
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(),
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		ZIndex = 22,
+	}, {
+		UI.new("UIListLayout", {
+			Padding = UDim.new(0, 3),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
 	wallet = UI.text({
 		Name = "Wallet",
 		Parent = sheet,
@@ -428,6 +449,52 @@ function Shop.refresh()
 			ZIndex = 22,
 		}, { UI.corner(2) })
 	end
+
+	for _, c in ladder:GetChildren() do
+		if c:IsA("Frame") then
+			c:Destroy()
+		end
+	end
+	local gated = locked(def)
+	for i = 1, steps do
+		local done = i <= level
+		local nextUp = i == level + 1
+		local row = UI.new("Frame", {
+			Name = "Level" .. i,
+			Parent = ladder,
+			LayoutOrder = i,
+			Size = UDim2.new(1, -8, 0, 26),
+			BackgroundColor3 = if nextUp then M.Highlight else M.Manila,
+			BackgroundTransparency = if nextUp then 0 else 0.4,
+			BorderSizePixel = 0,
+			ZIndex = 22,
+		}, { UI.corner(4), if nextUp then UI.stroke(M.Orange, 2) else nil })
+		local ink = if done then Color3.fromRGB(80, 190, 100) elseif nextUp then M.Marker else M.Pencil
+		local function cell(text: string, x: number, w: number, align: Enum.TextXAlignment, font: Enum.Font?)
+			UI.text({
+				Parent = row,
+				Font = font or UI.Font.Mono,
+				TextSize = 14,
+				Position = UDim2.new(x, 8, 0, 0),
+				Size = UDim2.new(w, -16, 1, 0),
+				TextXAlignment = align,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				TextColor3 = ink,
+				Text = text,
+				ZIndex = 23,
+			})
+		end
+		cell(("LV %d"):format(i), 0, 0.18, Enum.TextXAlignment.Left)
+		cell(formatValue(selected, def.Values[i + 1]), 0.18, 0.5, Enum.TextXAlignment.Left, UI.Font.Label)
+		cell(
+			if done then "INSTALLED" elseif gated then "PRO LICENSE" else BigMoney.full(def.Costs[i]) .. " c",
+			0.68,
+			0.32,
+			Enum.TextXAlignment.Right
+		)
+	end
+	-- The next level is the first row (installed ones are above, a scroll away).
+	ladder.CanvasPosition = Vector2.new(0, math.min(level, steps - 1) * 29)
 
 	if celebrating then
 		return
