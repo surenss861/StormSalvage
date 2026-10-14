@@ -91,6 +91,5 @@ After lesson 7 the note shows the pinned job.
 **Observed, not changed:**
 - The bot missed several event races at first. Each cache disappears 25 s after it appears (`ClaimSeconds`), and events start right after a storm, when the player is up on the Scrapyard and ordinary Storm Cores are lying in town. Once it dropped everything and sprinted, it made the 375-stud race comfortably.
 - A human who knows to sprint at the beam should make it. Whether a new player does is a question for real playtests.
-- Three of the ~65 minutes were spent waiting on an Extraction event, since sites and kinds rotate.
 
 **Not verified:** a real new player's first session. Bots follow the guide perfectly; people don't.
