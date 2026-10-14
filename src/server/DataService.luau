@@ -51,7 +51,7 @@ export type Data = {
 	Version: number,
 	Coins: number, -- legacy mirror only: the exact balance is Wallet.Cash (Wallet.luau)
 	Upgrades: { [string]: number },
-	Stats: { TotalEarned: number, ItemsSold: number, StormsSurvived: number },
+	Stats: { TotalEarned: number, ItemsSold: number, StormsSurvived: number, StormsSeen: number },
 	ProcessedReceipts: { string },
 	BoostUntil: number,
 	-- Added in V3 (Contracts + Reputation). Older profiles get these from reconcile; older
@@ -78,7 +78,7 @@ function DataService.default(): Data
 		Version = 1,
 		Coins = Config.StartingCoins,
 		Upgrades = { Backpack = 0, Boots = 0, Armor = 0, Press = 0, Harness = 0 },
-		Stats = { TotalEarned = 0, ItemsSold = 0, StormsSurvived = 0 },
+		Stats = { TotalEarned = 0, ItemsSold = 0, StormsSurvived = 0, StormsSeen = 0 },
 		ProcessedReceipts = {},
 		BoostUntil = 0,
 		Rep = { XP = 0 },

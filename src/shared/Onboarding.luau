@@ -9,7 +9,7 @@
 -- something more urgent happens (a storm, an event, carrying a core). The seven lessons:
 --   1 Collect   grab glowing salvage                      (nothing sold yet, bag empty)
 --   2 Sell      sell your bag at the Scrap Buyer          (carrying, nothing sold yet)
---   3 Storm     a storm is coming: get under a roof / up the hill (first storms survived < 1)
+--   3 Storm     a storm is coming: get under a roof / up the hill (no storm seen yet)
 --   4 Event     an event is on: race for it                (no extraction yet, an event is live)
 --   5 Escape    carrying a core: get it to the Scrapyard   (any time a core is in the bag)
 --   6 Spend     you can afford gear: the Gear Shop          (no upgrade bought yet)
@@ -29,7 +29,7 @@ export type Progress = {
 	ItemsSold: number,
 	Carried: number,
 	Capacity: number,
-	StormsSurvived: number,
+	StormsSeen: number, -- storms lived through anywhere (sheltering counts)
 	Extractions: number,
 	RushFinds: number,
 	Upgrades: number, -- levels bought, all gear
@@ -50,7 +50,7 @@ function Onboarding.step(p: Progress, live: Live): Step?
 			Target = "Plateau",
 		}
 	end
-	if (live.Phase == "Warning" or live.Phase == "Storm") and p.StormsSurvived < 1 then
+	if (live.Phase == "Warning" or live.Phase == "Storm") and p.StormsSeen < 1 then
 		return {
 			Id = "Storm",
 			Index = 3,

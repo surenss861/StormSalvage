@@ -86,7 +86,7 @@ local function pickWeighted(pool: { { Id: string, Weight: number } }): string
 	return pool[1].Id
 end
 
-local STARTER_AT = Vector3.new(6, 0, -196) -- the bottom of the ramp from the Scrapyard
+local STARTER_AT = Vector3.new(6, 0, -128) -- on the main road just past the foot of the ramp
 
 local function groundY(position: Vector3): number
 	local params = RaycastParams.new()

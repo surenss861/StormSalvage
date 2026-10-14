@@ -463,6 +463,10 @@ local function rewardSurvivors(stormSeconds: number)
 	for _, player in Players:GetPlayers() do
 		local session = PlayerService.get(player)
 		local root = rootOf(player)
+		if session then
+			-- Every storm a player was here for (onboarding: the storm lesson is done after one).
+			session.Data.Stats.StormsSeen = (session.Data.Stats.StormsSeen or 0) + 1
+		end
 		if session and root and not inSafeZone(root.Position) and (townSeconds[player] or 0) >= needed then
 			session.Data.Stats.StormsSurvived += 1
 			StormStats.survived(player)

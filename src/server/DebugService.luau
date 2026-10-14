@@ -225,7 +225,7 @@ local commands: { [string]: (...any) -> any } = {
 		session.CanSave = false
 		session.QaNoSave = true
 		local d = session.Data
-		d.Stats.ItemsSold, d.Stats.StormsSurvived = 0, 0
+		d.Stats.ItemsSold, d.Stats.StormsSurvived, d.Stats.StormsSeen = 0, 0, 0
 		d.Records = {}
 		d.Licenses = {}
 		for id in d.Upgrades do

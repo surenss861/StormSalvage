@@ -15,7 +15,7 @@ local function fresh(): any
 		ItemsSold = 0,
 		Carried = 0,
 		Capacity = 3,
-		StormsSurvived = 0,
+		StormsSeen = 0,
 		Extractions = 0,
 		RushFinds = 0,
 		Upgrades = 0,
@@ -50,7 +50,7 @@ return {
 		eq((O.step(p, l) :: any).Id, "Storm", "warning")
 		l.Phase = "Storm"
 		eq((O.step(p, l) :: any).Id, "Storm", "storm")
-		p.StormsSurvived = 1
+		p.StormsSeen = 1
 		eq((O.step(p, l) :: any).Id, "Collect", "a veteran isn't nagged")
 	end,
 	["onboarding: carrying a core outranks everything, until the first extraction"] = function()

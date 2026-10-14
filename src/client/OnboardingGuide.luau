@@ -72,7 +72,7 @@ function OnboardingGuide.compute(s: any, phase: string, eventLive: boolean): Onb
 		ItemsSold = s.Stats and s.Stats.ItemsSold or 0,
 		Carried = #(s.Carried or {}),
 		Capacity = s.Capacity or 1,
-		StormsSurvived = s.Stats and s.Stats.StormsSurvived or 0,
+		StormsSeen = s.Stats and (s.Stats.StormsSeen or s.Stats.StormsSurvived) or 0,
 		Extractions = records.Extractions or 0,
 		RushFinds = records.RushFinds or 0,
 		Upgrades = levels,
@@ -103,6 +103,13 @@ local function nearestLoot(from: Vector3): Vector3?
 		local owner = item:GetAttribute("OwnerId")
 		local mine = owner == Players.LocalPlayer.UserId
 		local takeable = not item:GetAttribute("License") and (owner == nil or mine)
+		-- From the Scrapyard, point down the ramp into town: the yards beside the plateau are
+		-- below its cliffs (reachable only by the shortcuts), so "nearest" there misleads.
+		local onPlateau = from.Y > 25 and from.Z < -205
+		local inTown = item:IsA("BasePart") and (item :: BasePart).Position.Z > -205
+		if onPlateau and not inTown then
+			takeable = false
+		end
 		if item:IsA("BasePart") and takeable then
 			-- Your own find (the welcome Jukebox) wins over closer junk.
 			local d = (item.Position - from).Magnitude * (if mine then 0.25 else 1)
