@@ -206,6 +206,13 @@ local commands: { [string]: (...any) -> any } = {
 		assert(player and player:IsA("Player"), "no player")
 		return require(script.Parent.TitanService).qaSiphon(player, value)
 	end,
+	-- Write a player's leaderboard scores now and refresh the Scrapyard board.
+	leaderboard = function(playerName: string)
+		local player = Players:FindFirstChild(playerName)
+		assert(player and player:IsA("Player"), "no player")
+		require(script.Parent.LeaderboardService).qaFlush(player)
+		return true
+	end,
 	wreckstate = function()
 		return require(script.Parent.WreckService).state()
 	end,

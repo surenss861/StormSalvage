@@ -15,6 +15,7 @@ local specs = {
 	require("./wallet.spec"),
 	require("./rollback.spec"),
 	require("./restore.spec"),
+	require("./leaderboard.spec"),
 }
 local passed, failed = 0, 0
 for _, spec in specs do
