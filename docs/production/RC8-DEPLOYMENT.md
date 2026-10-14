@@ -55,3 +55,12 @@ The published versions are 133, 124, 122, 121 and 2 (`evidence/rc8-rollback-vers
 5. **Owner:** File → Publish to Roblox As… → **Storm Salvage** (existing) → place **Storm Salvage** (`99653875913460`) → Overwrite.
 6. **Me:** Version History shows a new published version, and the experience is still Private.
 7. **Owner:** join. **Me:** read the save to confirm the `_LIVETEST` writes and the new `Records` field. Then the two-player playtest (`V4-GAMEPLAY.md`, RC8 playtest checklist).
+
+## Published (2026-10-14 00:58 local, place version 142)
+
+- **Version 142** is published (`evidence/rc8-published-v142.jpg`), and the experience is still **Private** (Creator Hub overview).
+- **The owner published before the pre-publish window check.** Checked straight afterwards on the Studio window that did the publish: **all 56 scripts are byte-identical to the RC8 artifact**, and there are no QA attributes or scripts. So v142 is RC8.
+- **Real save:** still `…0175` (2026-10-13 02:22:47 UTC), untouched.
+- **RC7 Detector test: not done on RC7.** RC8 replaced RC7 before the purchase. The test profile still has the 3,313 coins and no detector, so the RC7-specific run is **recorded as unverified**.
+  - RC8 carries the **identical** detector code: `Detector`, `DetectorService`, `Tools` and `DetectorHud` have the same hashes as RC7.
+  - So the purchase test can be run on RC8 instead, and it now covers the same code.
