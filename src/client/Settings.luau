@@ -236,8 +236,9 @@ function Settings.init(root: Frame, h: Hooks)
 	slider(rowFrame(list, 1, "Master", "Everything you hear."), "Master")
 	slider(rowFrame(list, 2, "Effects", "Pickups, sales, warnings, buttons."), "Effects")
 	slider(rowFrame(list, 3, "Weather", "Rain, wind, flood water, thunder."), "Weather")
+	slider(rowFrame(list, 4, "Music", "The storm's tension music."), "Music")
 
-	local reducedRow = rowFrame(list, 4, "Reduced Effects", "No flashes, swaying or UI motion.")
+	local reducedRow = rowFrame(list, 5, "Reduced Effects", "No flashes, swaying or UI motion.")
 	local toggle = UI.button({
 		Name = "Toggle",
 		Parent = reducedRow,

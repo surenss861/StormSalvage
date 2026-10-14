@@ -6,6 +6,7 @@
 -- and dropping a player's bag where they die.
 
 local Players = game:GetService("Players")
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
@@ -171,15 +172,63 @@ local function createLoot(
 	dot.Parent = marker
 	marker.Parent = item
 
-	if def.Rarity ~= "Common" and def.Rarity ~= "Uncommon" then
+	-- Rare and up glow in their rarity colour; each tier above adds its own motion, so a Mythic
+	-- reads differently from a Legendary at a glance (client LootFx tones them down in Reduced
+	-- Effects). Rare: light. Epic: + drifting motes. Legendary: + a rising column. Mythic: +
+	-- a fast swirl and a stronger light.
+	local tier = ({ Rare = 1, Epic = 2, Legendary = 3, Mythic = 4 } :: { [string]: number })[def.Rarity]
+	if tier then
 		local light = Instance.new("PointLight")
 		light.Color = rarityColor
-		light.Range = 10
-		light.Brightness = 2
+		light.Range = 8 + tier * 3
+		light.Brightness = 1.5 + tier * 0.5
 		light.Parent = item
-		local sparkle = Instance.new("Sparkles")
-		sparkle.SparkleColor = rarityColor
-		sparkle.Parent = item
+		if tier >= 2 then
+			local motes = Instance.new("ParticleEmitter")
+			motes.Name = "Motes"
+			motes.Color = ColorSequence.new(rarityColor)
+			motes.LightEmission = 1
+			motes.Size = NumberSequence.new(0.25, 0)
+			motes.Lifetime = NumberRange.new(1.2, 2)
+			motes.Speed = NumberRange.new(0.5, 1.5)
+			motes.SpreadAngle = Vector2.new(180, 180)
+			motes.Rate = 4 * tier
+			motes:SetAttribute("BaseRate", motes.Rate)
+			motes.Parent = item
+			CollectionService:AddTag(motes, "LootFx")
+		end
+		if tier >= 3 then
+			local column = Instance.new("ParticleEmitter")
+			column.Name = "Column"
+			column.Color = ColorSequence.new(rarityColor)
+			column.LightEmission = 1
+			column.Size =
+				NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) })
+			column.Transparency = NumberSequence.new(0.2, 1)
+			column.Lifetime = NumberRange.new(1, 1.6)
+			column.Speed = NumberRange.new(4, 6)
+			column.EmissionDirection = Enum.NormalId.Top
+			column.SpreadAngle = Vector2.new(6, 6)
+			column.Rate = if tier >= 4 then 18 else 8
+			column:SetAttribute("BaseRate", column.Rate)
+			column.Parent = item
+			CollectionService:AddTag(column, "LootFx")
+		end
+		if tier >= 4 then
+			local swirl = Instance.new("ParticleEmitter")
+			swirl.Name = "Swirl"
+			swirl.Color = ColorSequence.new(rarityColor, Color3.new(1, 1, 1))
+			swirl.LightEmission = 1
+			swirl.Size = NumberSequence.new(0.35, 0)
+			swirl.Lifetime = NumberRange.new(0.8, 1.2)
+			swirl.Speed = NumberRange.new(3, 4)
+			swirl.RotSpeed = NumberRange.new(-360, 360)
+			swirl.SpreadAngle = Vector2.new(180, 30)
+			swirl.Rate = 24
+			swirl:SetAttribute("BaseRate", swirl.Rate)
+			swirl.Parent = item
+			CollectionService:AddTag(swirl, "LootFx")
+		end
 	end
 
 	local prompt = Instance.new("ProximityPrompt")

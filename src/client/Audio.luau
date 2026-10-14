@@ -1,4 +1,4 @@
--- @file Client audio routing through Effects and Weather groups
+-- @file Client audio routing through Effects, Weather and Music groups
 -- @domain world
 -- @status stable
 -- Client audio: every cue in Config.Sounds routed through two SoundGroups (Effects and Weather)
@@ -14,7 +14,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 
 local Audio = {}
 
-local volumes = { Master = 1, Effects = 1, Weather = 1 }
+local volumes = { Master = 1, Effects = 1, Weather = 1, Music = 0.7 }
 local groups: { [string]: SoundGroup } = {}
 local pools: { [string]: { Sound } } = {}
 local nextIndex: { [string]: number } = {}
@@ -27,7 +27,7 @@ local function applyVolumes()
 end
 
 function Audio.init()
-	for _, name in { "Effects", "Weather" } do
+	for _, name in { "Effects", "Weather", "Music" } do
 		local group = Instance.new("SoundGroup")
 		group.Name = "StormSalvage" .. name
 		group.Parent = SoundService
@@ -102,6 +102,25 @@ function Audio.playAt(name: string, position: Vector3, volumeScale: number?, pit
 	sound.Parent = attachment
 	sound:Play()
 	Debris:AddItem(attachment, math.max(sound.TimeLength, 2) / sound.PlaybackSpeed + 0.5)
+end
+
+-- A looping cue attached to `parent` (a part or attachment), so it sits in the world: louder as
+-- you get closer, panned by direction. The caller destroys it (or its parent) when done.
+function Audio.attach(name: string, parent: Instance, volumeScale: number?, maxDistance: number?): Sound?
+	local pool = pools[name]
+	if not pool then
+		return nil
+	end
+	local def = Config.Sounds[name]
+	local sound = pool[1]:Clone()
+	sound.Looped = true
+	sound.Volume = def.Volume * (volumeScale or 1)
+	sound.RollOffMode = Enum.RollOffMode.InverseTapered
+	sound.RollOffMinDistance = 20
+	sound.RollOffMaxDistance = maxDistance or 400
+	sound.Parent = parent
+	sound:Play()
+	return sound
 end
 
 -- Fades a playing cue out over `seconds`.

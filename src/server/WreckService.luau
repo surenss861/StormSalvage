@@ -26,6 +26,7 @@
 -- It runs when someone in the server holds the Heavy licence, and ends before the storm warning.
 -- Server-authoritative: progress, hits and drops are all decided here; clients draw WreckState.
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -262,6 +263,7 @@ local function cutLock(w: Wreck, lock: Lock)
 	end
 	local light = w.Model:FindFirstChild("Light" .. string.sub(lock.Part.Name, -1))
 	if light and light:IsA("BasePart") then
+		CollectionService:RemoveTag(light, "Blink")
 		light.Color = Color3.fromRGB(80, 255, 120)
 	end
 	-- The strongbox is thrown clear, in front of the cab: away from every lock (a "Grab" prompt
@@ -473,6 +475,12 @@ function WreckService.start(siteId: string?, force: boolean?, seconds: number?):
 			local lock: Lock = { Part = part, Progress = 0, Cut = false, Cutters = {}, Work = {} }
 			makeBar(lock)
 			makePrompt(w, lock)
+			-- The lock's red armed light blinks (client WorldMotion) until it's cut.
+			local light = clone:FindFirstChild("Light" .. i)
+			if light then
+				light:SetAttribute("BlinkPhase", i % 2)
+				CollectionService:AddTag(light, "Blink")
+			end
 			table.insert(w.Locks, lock)
 		end
 	end

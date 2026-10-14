@@ -68,6 +68,12 @@ function WorldMotion.init()
 		blinkers[p :: BasePart] = nil
 	end)
 	local lastBlink = -1
+	local lastReduced: boolean? = nil
+	CollectionService:GetInstanceAddedSignal("LootFx"):Connect(function(e)
+		if e:IsA("ParticleEmitter") and UI.reduced() then
+			e.Rate = ((e:GetAttribute("BaseRate") :: number?) or e.Rate) * 0.25
+		end
+	end)
 	RunService.RenderStepped:Connect(function()
 		local camera = workspace.CurrentCamera
 		if not camera then
@@ -89,6 +95,15 @@ function WorldMotion.init()
 			local d = ((p.Position - eye) * Vector3.new(1, 0, 1)).Magnitude
 			local k = math.clamp((d - BEACON_CLEAR) / (BEACON_FULL - BEACON_CLEAR), 0, 1)
 			p.Transparency = 1 - (1 - base) * k
+		end
+		if reduced ~= lastReduced then
+			lastReduced = reduced
+			for _, e in CollectionService:GetTagged("LootFx") do
+				if e:IsA("ParticleEmitter") then
+					e.Rate = ((e:GetAttribute("BaseRate") :: number?) or e.Rate)
+						* (if reduced then 0.25 else 1)
+				end
+			end
 		end
 		local beat = math.floor(now * (if reduced then 0.5 else 1))
 		if beat ~= lastBlink then

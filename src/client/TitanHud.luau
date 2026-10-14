@@ -55,6 +55,8 @@ local node = { Angle = 0, Dir = 1, SentAt = 0 }
 local inhaleAt = math.huge
 local warned = 0
 local nextArc = 0
+local escape: Model? = nil -- the inhale's escape arrow at your feet
+local nodeRing: BasePart? = nil -- around you while you're in the charge node
 
 local function anchoredPart(name: string): Part
 	local p = Instance.new("Part")
@@ -75,6 +77,14 @@ local function clear()
 	rings = {}
 	debris = {}
 	core, stream, nodeDisc, dust = nil, nil, nil, nil
+	if escape then
+		escape:Destroy()
+		escape = nil
+	end
+	if nodeRing then
+		nodeRing:Destroy()
+		nodeRing = nil
+	end
 	inhaleAt = math.huge
 	siphonRing, innerRing = nil, nil
 	target, shown = nil, nil
@@ -174,6 +184,34 @@ local function build(center: Vector3)
 	light.Parent = disc
 	disc.Parent = model
 	nodeDisc = disc
+	-- Sound in the world: the roar from the funnel, the hum from the node (louder as you close in).
+	Audio.attach("TitanRoar", c, 1, 500)
+	Audio.attach("TitanHum", disc, 1, 90)
+	-- The escape arrow (hidden until an inhale is coming) and the in-node ring.
+	local arrow = Instance.new("Model")
+	arrow.Name = "EscapeArrow"
+	local shaft = anchoredPart("Shaft")
+	shaft.Material = Enum.Material.Neon
+	shaft.Color = Color3.fromRGB(255, 240, 120)
+	shaft.Size = Vector3.new(1.2, 0.2, 6)
+	shaft.Parent = arrow
+	for _, side in { "Left", "Right" } do -- a chevron head: two bars meeting at the tip
+		local bar = anchoredPart("Head" .. side)
+		bar.Material = Enum.Material.Neon
+		bar.Color = shaft.Color
+		bar.Size = Vector3.new(1.2, 0.2, 3.4)
+		bar.Parent = arrow
+	end
+	arrow.Parent = folder
+	escape = arrow
+	local ring = anchoredPart("InNodeRing")
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Material = Enum.Material.Neon
+	ring.Color = MAGENTA
+	ring.Transparency = 1
+	ring.Size = Vector3.new(0.2, 7, 7)
+	ring.Parent = folder
+	nodeRing = ring
 	model.Parent = folder
 	funnel = model
 	shown = center
@@ -278,7 +316,7 @@ local function step(dt: number)
 	end
 	if warning and warned ~= inhaleAt then
 		warned = inhaleAt
-		Audio.play("WarnWind", 1, 0.7)
+		Audio.play("TitanInhale", 1, 0.8)
 	end
 	local flat = CFrame.new(c.X, c.Y + 0.3, c.Z) * CFrame.Angles(0, 0, math.pi / 2)
 	if siphonRing then
@@ -333,6 +371,36 @@ local function step(dt: number)
 		f.Enabled = true
 	else
 		f.Enabled = false
+	end
+
+	-- Escape feedback: during the warning and the inhale, an arrow at your feet points straight
+	-- away from the core (the way out); it pulses, and it's shown in Reduced Effects too.
+	local near = d <= T.OuterRadius * 1.3
+	if escape then
+		local show = (warning or inhaling) and near and d > 0.5
+		local out = if d > 0.5 then -offset.Unit else Vector3.new(1, 0, 0)
+		local base = root.Position - Vector3.new(0, 2.8, 0) + out * 4
+		local cf = CFrame.lookAt(base, base + out)
+		local tip = cf * CFrame.new(0, 0, -3.4)
+		local pulse = if UI.reduced() then 0 else 0.3 * (0.5 + 0.5 * math.sin(os.clock() * 12))
+		for _, child in escape:GetChildren() do
+			local p = child :: BasePart
+			if p.Name == "Shaft" then
+				p.CFrame = cf
+			elseif p.Name == "HeadLeft" then
+				p.CFrame = tip * CFrame.Angles(0, math.rad(40), 0) * CFrame.new(0, 0, 1.5)
+			elseif p.Name == "HeadRight" then
+				p.CFrame = tip * CFrame.Angles(0, math.rad(-40), 0) * CFrame.new(0, 0, 1.5)
+			end
+			p.Transparency = if show then pulse else 1
+		end
+	end
+	-- Charge-node feedback: a magenta ring at your feet while you're in it.
+	if nodeRing then
+		local inNodeNow = Players.LocalPlayer:GetAttribute("TitanInNode") == true
+		nodeRing.CFrame = CFrame.new(root.Position - Vector3.new(0, 2.9, 0))
+			* CFrame.Angles(0, 0, math.pi / 2)
+		nodeRing.Transparency = if inNodeNow then 0.35 + 0.15 * math.sin(os.clock() * 10) else 1
 	end
 
 	if not isLegend() then

@@ -10,7 +10,8 @@
 --   EventStrip.clear(key)
 -- The highest priority entry gets the strip: accent stripe, title, one short line, a countdown
 -- on the right and an optional progress bar. Up to two others shrink to pills beneath it, so
--- the top of the screen never holds more than one strip and one row of pills.
+-- the top of the screen never holds more than one strip and one row of pills. Under immediate
+-- danger (priority 95+: lightning on you, the Titan's core or inhale) the pills hide too.
 -- Priorities (higher wins): personal danger 100; your own active objective 80-90 (carrying a
 -- core, cutting, siphoning, inside the Eye with the Heart); events 55-70; the storm 45-50;
 -- a district title 35; calm 20. A menu hides everything but personal danger.
@@ -198,7 +199,8 @@ local function step()
 			(f:FindFirstChild("Text") :: TextLabel).Text = string.upper(text)
 		end
 	end
-	pills.Visible = list[2] ~= nil
+	-- Immediate danger gets the player's whole attention: no pills under it.
+	pills.Visible = list[2] ~= nil and top.Priority < 95
 end
 
 function EventStrip.setCompact(on: boolean)

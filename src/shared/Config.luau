@@ -635,7 +635,8 @@ Config.ToolOrder = { "Detector" }
 -- Sound effects. All from Roblox's licensed libraries (ProSoundEffects / APM Music uploads,
 -- published by those accounts on the Creator Store), which any experience may use. Set an id
 -- to "" to mute that cue.
---   Group: "Effects" (UI, pickups, sales, warnings) or "Weather" (rain, flood, wind, thunder);
+--   Group: "Effects" (UI, pickups, sales, warnings), "Weather" (rain, flood, wind, thunder) or
+--          "Music" (the storm's tension bed);
 --          the Settings volumes act on these groups.
 --   MinInterval: a repeat inside this many seconds is dropped, so fast collecting or many
 --          strikes don't pile up. Pool: copies that can overlap. Pitch: default playback speed.
@@ -690,6 +691,12 @@ Config.Sounds = {
 	Rain = { Id = "rbxassetid://9112793871", Volume = 0.45, Group = "Weather", Loop = true }, -- Heavy Rain 2
 	Flood = { Id = "rbxassetid://9114492638", Volume = 0.35, Group = "Weather", Loop = true }, -- Flood Massive Flowing Water 1
 	Wind = { Id = "rbxassetid://9125742262", Volume = 0.5, Group = "Weather", Loop = true }, -- Constant Airy Whooshing Windy
+	-- V4 M6 (Creator Store search, ProSoundEffects / APMOfficial accounts, 2026-10-14)
+	TitanRoar = { Id = "rbxassetid://9125443744", Volume = 0.9, Group = "Weather", Loop = true }, -- Clouds Swirl Swirling Steamy Rumble Churning 1 (PSE)
+	TitanHum = { Id = "rbxassetid://9125674129", Volume = 0.7, Group = "Effects", Loop = true }, -- Metallic Glow Constant Deep Ticking Bassy Hum 1 (PSE)
+	TitanInhale = { Id = "rbxassetid://9119705908", Volume = 0.9, Group = "Effects", MinInterval = 2 }, -- Swish Spin 5 (PSE)
+	WreckAlarm = { Id = "rbxassetid://9125544264", Volume = 0.45, Group = "Effects", Loop = true }, -- Elevator Alarm Bell Emergency Several Rings 1 (PSE)
+	StormMusic = { Id = "rbxassetid://1840085313", Volume = 0.35, Group = "Music", Loop = true }, -- "Your Final Answer", dark low tension bed (APM)
 } :: { [string]: SoundDef }
 
 -- Monetization. Set IDs after creating products on the Creator Dashboard; 0 disables.

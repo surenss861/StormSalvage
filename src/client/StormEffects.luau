@@ -400,6 +400,8 @@ function StormEffects.step(now: number)
 	local streakRate = if gust == "gust" then 340 elseif gust == "warn" then 200 else 80
 	windStreaks.Rate = if reduced then streakRate * 0.5 else streakRate
 	Audio.setAmbience("Wind", stormActive and storm == "Wind", if gust == "gust" then 1 else 0.55)
+	-- Musical tension: the bed rises with the warning and holds through the storm.
+	Audio.setAmbience("StormMusic", stormActive or state.Phase == "Warning", if stormActive then 1 else 0.6)
 
 	if camera then
 		local camPos = camera.CFrame.Position

@@ -151,9 +151,68 @@ local function sparkLocks()
 	end
 end
 
+local alarm: Sound? = nil
+local burstFor: number? = nil
+
+-- The vault opening: a gold burst at the rear doors and the delivery sting (once per wreck).
+local function vaultBurst()
+	local wreck = workspace:FindFirstChild("ArmoredWreck")
+	if not wreck or not state or burstFor == state.Id then
+		return
+	end
+	burstFor = state.Id
+	local at = (wreck :: Model):GetPivot() * CFrame.new(-10, 3, 0)
+	local holder = Instance.new("Part")
+	holder.Anchored, holder.CanCollide, holder.CanQuery, holder.CanTouch = true, false, false, false
+	holder.Transparency = 1
+	holder.Size = Vector3.new(1, 1, 1)
+	holder.CFrame = at
+	holder.Parent = folder
+	local e = Instance.new("ParticleEmitter")
+	e.Color = ColorSequence.new(Color3.fromRGB(255, 220, 90), Color3.fromRGB(255, 160, 40))
+	e.LightEmission = 1
+	e.Size = NumberSequence.new(0.6, 0)
+	e.Speed = NumberRange.new(14, 24)
+	e.SpreadAngle = Vector2.new(70, 70)
+	e.Lifetime = NumberRange.new(0.8, 1.4)
+	e.Acceleration = Vector3.new(0, -25, 0)
+	e.Rate = 0
+	e.Parent = holder
+	e:Emit(if UI.reduced() then 20 else 90)
+	Audio.playAt("CoreDelivered", at.Position, 1)
+	game:GetService("Debris"):AddItem(holder, 3)
+end
+
 local function step()
 	if not state then
+		if alarm then
+			alarm:Destroy()
+			alarm = nil
+		end
 		return
+	end
+	-- The security alarm rings from the wreck while anyone is cutting.
+	local anyCutting = false
+	for _, lock in state.Locks do
+		if (lock.Cutters or 0) > 0 then
+			anyCutting = true
+		end
+	end
+	local wreck = workspace:FindFirstChild("ArmoredWreck")
+	if anyCutting and not state.Opened and wreck and not alarm then
+		local cab = wreck:FindFirstChild("Beacon")
+		alarm = Audio.attach(
+			"WreckAlarm",
+			cab or (wreck :: Model).PrimaryPart or wreck:FindFirstChildWhichIsA("BasePart") :: any,
+			1,
+			160
+		)
+	elseif (not anyCutting or state.Opened) and alarm then
+		alarm:Destroy()
+		alarm = nil
+	end
+	if state.Opened then
+		vaultBurst()
 	end
 	local cutting = Players.LocalPlayer:GetAttribute("WreckCutting")
 	sparkLocks()
