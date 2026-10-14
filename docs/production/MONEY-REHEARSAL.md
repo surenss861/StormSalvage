@@ -187,3 +187,17 @@ RC12 = RC11 + the Stage A changes (§2).
 - BigMoney (303 digits), Wallet schema 2; no script uses the old `Money`.
 - **Present:** the pre-migration backup write, the place-version log line, and the Studio-gated test hook.
 - All 151 asset pivots match.
+
+## 6. Stage B log (owner confirmed 2026-10-14)
+
+**Owner's choices:**
+- rehearse **RC12**
+- use an **alt account** for the restore step
+- afterwards, return to **RC8 v142**
+
+### B0, pre-publish checks: PASS
+
+- **LIVETEST** `player_8482925865`: version `08DF295925AFC591.0000000025.08DF29AF3FCD58F2.01` (the snapshot's). 3,313 / 1,188, schema 1, no lock, no receipts; no pre-migration backup yet.
+- **Production:** version `08DF2633FC1D5556.0000000175.08DF28D0DF8E075C.01` (untouched).
+- **RC12 on the Desktop:** `622fcfc1627f76350d053f55f49e9280a7ec5972ac5d95c5ecef52ad7478f55f` (matches CI).
+- **To confirm in B1:** RC8 = place version 142 in Version History.
