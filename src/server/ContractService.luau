@@ -45,7 +45,13 @@ local function publish(player: Player, data: any)
 	local rank = Progression.rankFor(data.Rep.XP)
 	player:SetAttribute("RankIndex", rank.Index)
 	player:SetAttribute("RankTitle", rank.Title)
-	player:SetAttribute("Plate", data.Cosmetics.Plate)
+	-- A supporter finish shows only while this session has its pass (Roblox's record).
+	local premium = Progression.premiumFinish(data.Cosmetics.Plate)
+	local session = PlayerService.get(player)
+	local shown = if premium and not (session and (session.Passes or {})[premium.Pass])
+		then "Cardboard"
+		else data.Cosmetics.Plate
+	player:SetAttribute("Plate", shown)
 end
 
 -- Keeps three valid jobs. Repairs anything malformed from an older or damaged profile.
@@ -287,7 +293,9 @@ local function onAction(player: Player, action: unknown, arg: unknown)
 		PlayerService.notify(player, ("%s nameplate unlocked!"):format(f.Name), Color3.fromRGB(255, 220, 90))
 	elseif action == "equipFinish" then
 		local f = Progression.finish(arg)
-		if f and data.Cosmetics.Owned[f.Id] then
+		local premium = Progression.premiumFinish(arg)
+		local paidFor = premium ~= nil and ((session :: any).Passes or {})[premium.Pass] == true
+		if f and (data.Cosmetics.Owned[f.Id] or paidFor) then
 			data.Cosmetics.Plate = f.Id
 			publish(player, data)
 			PlayerService.pushState(player)
@@ -402,9 +410,12 @@ function ContractService.init()
 	PlayerService.onSold(sold)
 	PlayerService.onLoaded(function(player, session)
 		fill(session.Data)
+		-- A supporter finish stays equipped across sessions; it only shows while Roblox confirms
+		-- the pass (refreshPasses runs on load), otherwise the card shows Cardboard.
+		local plate = session.Data.Cosmetics.Plate
 		if
-			not Progression.finish(session.Data.Cosmetics.Plate)
-			or not session.Data.Cosmetics.Owned[session.Data.Cosmetics.Plate]
+			not Progression.finish(plate)
+			or (not session.Data.Cosmetics.Owned[plate] and not Progression.premiumFinish(plate))
 		then
 			session.Data.Cosmetics.Plate = "Cardboard"
 		end

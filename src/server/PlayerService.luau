@@ -24,6 +24,8 @@ local PlayerService = {}
 export type Session = {
 	Data: DataService.Data,
 	CanSave: boolean,
+	QaNoSave: boolean?, -- Studio QA: never save, release the lock on leave
+	Passes: { [string]: boolean }?, -- supporter-finish passes owned (Roblox's record, per session)
 	Carried: { string }, -- loot ids
 	OwnsHeavyDuty: boolean, -- Heavy-Duty Pack pass, verified with Roblox (never saved, never stacks)
 	LastDamage: number,
@@ -223,6 +225,7 @@ function PlayerService.pushState(player: Player)
 		Records = session.Data.Records,
 		Collection = session.Data.Collection,
 		Licenses = session.Data.Licenses,
+		Passes = session.Passes or {},
 		Band = band,
 		Titles = session.Data.Titles,
 	})
@@ -732,7 +735,12 @@ local function onPlayerRemoving(player: Player)
 	if not session then
 		return
 	end
-	PlayerService.save(player, true)
+	if session.QaNoSave then
+		-- Studio QA session: never write its data, but don't leave the profile locked either.
+		DataService.releaseOnly(player)
+	else
+		PlayerService.save(player, true)
+	end
 	-- Released: nothing may write this profile from here again (an autosave or BindToClose
 	-- already in flight is refused by DataService because the lock is gone).
 	session.CanSave = false

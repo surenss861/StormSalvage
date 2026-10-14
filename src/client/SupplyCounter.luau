@@ -15,6 +15,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local BigMoney = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BigMoney"))
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local UI = require(script.Parent:WaitForChild("UI"))
@@ -30,6 +31,7 @@ type Item = {
 	Key: string,
 	Kind: "Product" | "Pass",
 	Def: any,
+	Frame: Frame,
 	Button: TextButton,
 	Price: TextLabel,
 	PriceNote: TextLabel,
@@ -67,7 +69,9 @@ local function render(item: Item)
 	elseif s == "slow" then
 		text, color, disabled = "STILL PROCESSING: IT WILL ARRIVE", UI.Color.Slate, true
 	elseif s == "delivered" then
-		text = if item.Kind == "Pass" then "UNLOCKED!" else ("DELIVERED +%s"):format(UI.comma(item.Def.Coins))
+		text = if item.Kind == "Pass"
+			then "UNLOCKED!"
+			else ("DELIVERED +%s"):format(BigMoney.tag(item.Def.Coins))
 		color, disabled = GREEN, true
 	elseif s == "cancelled" then
 		text, color, disabled = "CANCELLED", UI.Color.Slate, true
@@ -106,7 +110,7 @@ local function ticket(parent: Instance, order: number, key: string, kind: "Produ
 		Name = key,
 		Parent = parent,
 		LayoutOrder = order,
-		Size = UDim2.new(0.25, -6, 1, 0),
+		Size = UDim2.new(0, 190, 1, -10),
 		BackgroundColor3 = M.Manila,
 		BorderSizePixel = 0,
 		ZIndex = 22,
@@ -164,7 +168,9 @@ local function ticket(parent: Instance, order: number, key: string, kind: "Produ
 		Position = UDim2.fromOffset(0, 96),
 		Size = UDim2.new(1, 0, 0, 32),
 		TextColor3 = M.Marker,
-		Text = if kind == "Pass" then ("+%d"):format(def.BonusCapacity) else UI.comma(def.Coins),
+		Text = if kind == "Pass"
+			then (if def.Finish then "PLATE" else ("+%d"):format(def.BonusCapacity))
+			else BigMoney.tag(def.Coins),
 		ZIndex = 23,
 	})
 	UI.text({
@@ -233,6 +239,7 @@ local function ticket(parent: Instance, order: number, key: string, kind: "Produ
 		Key = key,
 		Kind = kind,
 		Def = def,
+		Frame = card,
 		Button = button,
 		Price = price,
 		PriceNote = priceNote,
@@ -284,9 +291,22 @@ local function buy(item: Item, hooks: Hooks)
 	end
 end
 
+-- Which tickets this player sees: the three small packs and the passes always; a high-scale
+-- pack only from its band (MinBand), and only the top one or two that fit, so the counter never
+-- turns into a wall of offers.
+local function shownFor(def: any, band: number): boolean
+	local min = def.MinBand
+	if not min then
+		return true
+	end
+	return min <= band and min >= band - 1
+end
+
 function SupplyCounter.setState(s: any)
 	state = s
+	local band = (s and tonumber(s.Band)) or 1
 	for _, item in items do
+		item.Frame.Visible = shownFor(item.Def, band)
 		render(item)
 	end
 end
@@ -300,11 +320,16 @@ function SupplyCounter.build(parent: Instance, hooks: Hooks): Frame
 		Visible = false,
 		ZIndex = 21,
 	})
-	local row = UI.new("Frame", {
+	local row = UI.new("ScrollingFrame", {
 		Name = "Tickets",
 		Parent = view,
 		Size = UDim2.new(1, 0, 1, -28),
 		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 6,
+		ScrollingDirection = Enum.ScrollingDirection.X,
+		AutomaticCanvasSize = Enum.AutomaticSize.X,
+		CanvasSize = UDim2.new(),
 		ZIndex = 21,
 	}, {
 		UI.new("UIListLayout", {
@@ -324,6 +349,9 @@ function SupplyCounter.build(parent: Instance, hooks: Hooks): Frame
 		items[entry[1]] = ticket(row, i, entry[1], "Product", entry[2])
 	end
 	items.HeavyDuty = ticket(row, 10, "HeavyDuty", "Pass", Config.GamePasses.HeavyDuty)
+	-- Supporter finishes: cosmetic nameplates (earned prestige is never for sale).
+	items.NeonStorm = ticket(row, 11, "NeonStorm", "Pass", Config.GamePasses.NeonStorm)
+	items.GildedWreck = ticket(row, 12, "GildedWreck", "Pass", Config.GamePasses.GildedWreck)
 	UI.text({
 		Name = "Footnote",
 		Parent = view,

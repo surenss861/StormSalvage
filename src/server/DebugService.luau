@@ -216,6 +216,27 @@ local commands: { [string]: (...any) -> any } = {
 	wreckwork = function(userId: number, amount: number)
 		return require(script.Parent.WreckService).qaWork(userId, amount)
 	end,
+	-- Onboarding QA: this session plays as a brand-new salvager. Saving is switched OFF first, so
+	-- the profile on disk is never changed; leave and rejoin to get it back.
+	freshplayer = function(playerName: string)
+		local player = Players:FindFirstChild(playerName)
+		local session = player and player:IsA("Player") and PlayerService.get(player)
+		assert(session, "no session")
+		session.CanSave = false
+		session.QaNoSave = true
+		local d = session.Data
+		d.Stats.ItemsSold, d.Stats.StormsSurvived = 0, 0
+		d.Records = {}
+		d.Licenses = {}
+		for id in d.Upgrades do
+			d.Upgrades[id] = 0
+		end
+		session.Carried = {}
+		Wallet.setCashForTest(d, "0")
+		PlayerService.applyCharacterStats(player :: Player)
+		PlayerService.pushState(player :: Player)
+		return "fresh (not saving)"
+	end,
 	wreckstate = function()
 		return require(script.Parent.WreckService).state()
 	end,

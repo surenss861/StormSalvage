@@ -359,6 +359,27 @@ function DataService.save(player: Player, data: Data, release: boolean): (boolea
 	return ok, false
 end
 
+-- Releases this session's lock WITHOUT writing any of its data (the stored profile is left as
+-- it was, lock cleared). Used for a session that must never save (Studio QA's fresh player).
+function DataService.releaseOnly(player: Player): boolean
+	if not store then
+		return false
+	end
+	local token = tokens[player]
+	tokens[player] = nil
+	local ok = pcall(function()
+		(store :: DataStore):UpdateAsync(key(player.UserId), function(old)
+			if not ownedBy(old, token) then
+				return nil
+			end
+			local copy = table.clone(old)
+			copy.Lock = nil
+			return copy
+		end)
+	end)
+	return ok
+end
+
 -- Studio QA only (rehearsal harness): point this copy of DataService at a disposable rehearsal
 -- store, so lock, shutdown and receipt tests never touch a real profile. A clone of this module
 -- required separately acts as a separate server (its own session id and lock tokens).

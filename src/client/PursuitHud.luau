@@ -538,6 +538,20 @@ local function onState(msg: any)
 	end
 end
 
+-- Is an event live (race, chase, rush)? And where to go for it (the cache, the dropped core,
+-- the rush site; nil while you carry it: then it's the Scrapyard).
+function PursuitHud.active(): boolean
+	return state ~= nil and state.Phase ~= "Done"
+end
+
+function PursuitHud.target(): Vector3?
+	if not state or state.Phase == "Done" then
+		return nil
+	end
+	local t = state.Target or state.CachePosition or state.Position
+	return if typeof(t) == "Vector3" then t else nil
+end
+
 function PursuitHud.init(_topStack: Frame)
 	markerFolder = Instance.new("Folder")
 	markerFolder.Name = "PursuitMarkers"

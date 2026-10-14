@@ -29,6 +29,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local RunService = game:GetService("RunService")
 
+local BigMoney = require(ReplicatedStorage.Shared.BigMoney)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Wallet = require(ReplicatedStorage.Shared.Wallet)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -64,16 +65,58 @@ local function grantHeavyDuty(player: Player, announce: boolean)
 	end
 end
 
-local function refreshPasses(player: Player, attempt: number?)
-	local pass = Config.GamePasses.HeavyDuty
-	if pass.Id == 0 or not player.Parent then
+-- A supporter finish pass: a session entitlement (Roblox is the record), never saved as earned.
+local function grantFinishPass(player: Player, key: string, announce: boolean)
+	local session = PlayerService.get(player)
+	if not session then
 		return
 	end
-	local ok, owns =
-		pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, pass.Id)
-	if ok and owns == true then
-		grantHeavyDuty(player, false)
-	elseif not ok and (attempt or 1) < 10 then
+	session.Passes = session.Passes or {}
+	if session.Passes[key] then
+		return
+	end
+	session.Passes[key] = true
+	-- If it's the equipped finish (from an earlier session), show it now that Roblox confirms it.
+	if session.Data.Cosmetics.Plate == Config.GamePasses[key].Finish then
+		player:SetAttribute("Plate", session.Data.Cosmetics.Plate)
+	end
+	PlayerService.pushState(player)
+	if announce then
+		PlayerService.notify(
+			player,
+			("%s unlocked! Equip it on the Jobs board's Nameplate tab."):format(
+				Config.GamePasses[key].DisplayName
+			),
+			Color3.fromRGB(255, 220, 90)
+		)
+	end
+end
+
+local function grantPass(player: Player, key: string, announce: boolean)
+	if key == "HeavyDuty" then
+		grantHeavyDuty(player, announce)
+	elseif Config.GamePasses[key] and Config.GamePasses[key].Finish then
+		grantFinishPass(player, key, announce)
+	end
+end
+
+local function refreshPasses(player: Player, attempt: number?)
+	if not player.Parent then
+		return
+	end
+	local retry = false
+	for key, pass in Config.GamePasses do
+		if pass.Id ~= 0 then
+			local ok, owns =
+				pcall(MarketplaceService.UserOwnsGamePassAsync, MarketplaceService, player.UserId, pass.Id)
+			if ok and owns == true then
+				grantPass(player, key, false)
+			elseif not ok then
+				retry = true
+			end
+		end
+	end
+	if retry and (attempt or 1) < 10 then
 		task.delay(30, refreshPasses, player, (attempt or 1) + 1)
 	end
 end
@@ -95,7 +138,7 @@ local function coinPack(key: string, coins: number): Product
 			-- earnings, so they never count toward wealth titles.
 			Wallet.deposit(data, coins)
 		end,
-		message = ("+%s coins delivered. Thanks for the support!"):format(tostring(coins)),
+		message = ("+%s coins delivered. Thanks for the support!"):format(BigMoney.full(coins)),
 	}
 end
 
@@ -220,9 +263,9 @@ function MonetizationService.simulateReceipt(
 end
 
 -- Studio QA only: what Roblox's PromptGamePassPurchaseFinished(purchased = true) does.
-function MonetizationService.simulatePassPurchase(player: Player)
+function MonetizationService.simulatePassPurchase(player: Player, key: string?)
 	assert(RunService:IsStudio(), "Studio only")
-	grantHeavyDuty(player, true)
+	grantPass(player, key or "HeavyDuty", true)
 end
 
 function MonetizationService.init()
@@ -235,9 +278,13 @@ function MonetizationService.init()
 
 	-- Fired on the server by Roblox (not by the client) when a pass purchase completes.
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
-		local pass = Config.GamePasses.HeavyDuty
-		if purchased and pass.Id ~= 0 and passId == pass.Id then
-			grantHeavyDuty(player, true)
+		if not purchased then
+			return
+		end
+		for key, pass in Config.GamePasses do
+			if pass.Id ~= 0 and passId == pass.Id then
+				grantPass(player, key, true)
+			end
 		end
 	end)
 

@@ -35,8 +35,8 @@ local WreckHud = require(script.Parent:WaitForChild("WreckHud"))
 local TitanHud = require(script.Parent:WaitForChild("TitanHud"))
 local WorldMotion = require(script.Parent:WaitForChild("WorldMotion"))
 local ProceduralAnims = require(script.Parent:WaitForChild("ProceduralAnims"))
+local OnboardingGuide = require(script.Parent:WaitForChild("OnboardingGuide"))
 local EventStrip = require(script.Parent:WaitForChild("EventStrip"))
-local BigMoney = require(ReplicatedStorage.Shared:WaitForChild("BigMoney"))
 local PursuitHud = require(script.Parent:WaitForChild("PursuitHud"))
 local Nameplates = require(script.Parent:WaitForChild("Nameplates"))
 local Notifications = require(script.Parent:WaitForChild("Notifications"))
@@ -113,6 +113,8 @@ WreckHud.init(topStack)
 TitanHud.init(topStack)
 CharacterAnims.init()
 ProceduralAnims.init()
+OnboardingGuide.init()
+OnboardingGuide.setEventTarget(PursuitHud.target)
 Dodge.init()
 Nameplates.init()
 for _, modal in { Shop.modal(), Settings.modal(), Jobs.modal(), PlayerCard.modal() } do
@@ -151,50 +153,29 @@ PerfProbe.init() -- staging and Studio only
 
 ---------------------------------------------------------------------------- Tutorial hint
 
--- Guidance only while it's useful: until the first sale, and never during a storm.
--- The first expedition as a short chain of objectives; it fades out after the first upgrade.
-local function cheapestUpgrade(s: any): number?
-	local best: number? = nil
-	for id, def in Config.Upgrades do
-		local cost = def.Costs[(s.Upgrades[id] or 0) + 1]
-		if cost and (best == nil or cost < best) then
-			best = cost
-		end
-	end
-	return best
-end
-
+-- Guidance only while it's useful: the seven first-session lessons (Onboarding.luau), each
+-- pointing at where to go; then the pinned job.
 local function updateHint()
 	local s = playerState
-	local upgraded = 0
-	if s then
-		for _, level in s.Upgrades do
-			upgraded += level
-		end
-	end
-	if not s or (s.Stats.ItemsSold > 0 and upgraded > 0) then
-		-- After the first-session chain, the note shows the pinned job.
-		Notifications.setHint(Jobs.pinnedLine(s))
-	elseif s.Stats.ItemsSold > 0 then
-		local cost = cheapestUpgrade(s)
-		if cost and BigMoney.gte(s.Coins, BigMoney.of(cost)) then
-			Notifications.setHint("You can afford gear! Visit the Gear Shop in the Scrapyard")
-		elseif #s.Carried == 0 then
-			Notifications.setHint(
-				("Salvage more: next upgrade costs %s coins"):format(BigMoney.full(cost or 0))
-			)
-		else
-			Notifications.setHint(Jobs.pinnedLine(s))
-		end
-	elseif #s.Carried == 0 then
-		Notifications.setHint("Head down into town and grab glowing salvage!")
-	elseif #s.Carried >= s.Capacity then
-		Notifications.setHint("Bag full! Sell at the Scrap Buyer on the hill")
+	-- First-session lessons follow play (Onboarding); after them, the pinned job.
+	local lesson = OnboardingGuide.compute(s, stormState.Phase, PursuitHud.active())
+	OnboardingGuide.set(lesson)
+	if lesson then
+		Notifications.setHint(lesson.Text)
 	else
-		Notifications.setHint("Grab more, or sell at the Scrap Buyer on the hill")
+		Notifications.setHint(if s then Jobs.pinnedLine(s) else nil)
 	end
-	Notifications.setStormy(stormState.Phase == "Warning" or stormState.Phase == "Storm")
+	-- Lessons stay up in a storm (they're about the storm); the pinned job steps aside.
+	Notifications.setStormy(lesson == nil and (stormState.Phase == "Warning" or stormState.Phase == "Storm"))
 end
+
+-- Events and the bag change between server pushes: keep the lesson current.
+task.spawn(function()
+	while true do
+		task.wait(0.5)
+		updateHint()
+	end
+end)
 
 ---------------------------------------------------------------------------- Server state
 

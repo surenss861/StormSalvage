@@ -317,7 +317,11 @@ local function buildLocker(parent: Instance): Frame
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
-	for i, f in Progression.Finishes do
+	local all: { any } = table.clone(Progression.Finishes)
+	for _, f in Progression.PremiumFinishes do
+		table.insert(all, f)
+	end
+	for i, f in all do
 		local cell = UI.new("Frame", {
 			Name = f.Id,
 			Parent = view,
@@ -354,9 +358,10 @@ local function buildLocker(parent: Instance): Frame
 			if not state then
 				return
 			end
-			if state.Cosmetics.Owned[f.Id] then
+			local paid = (f :: any).Paid == true
+			if state.Cosmetics.Owned[f.Id] or (paid and (state.Passes or {})[(f :: any).Pass]) then
 				action:FireServer("equipFinish", f.Id)
-			else
+			elseif not paid then
 				action:FireServer("buyFinish", f.Id)
 			end
 		end)
@@ -911,10 +916,17 @@ function Jobs.refresh()
 	end
 	for _, row in finishRows do
 		local f = row.Finish
-		local owned = state.Cosmetics.Owned[f.Id]
-		local equipped = state.Cosmetics.Plate == f.Id
+		local paid = (f :: any).Paid == true
+		local owned = state.Cosmetics.Owned[f.Id] or (paid and (state.Passes or {})[(f :: any).Pass] == true)
+		local equipped = state.Cosmetics.Plate == f.Id and owned
 		local text, color, disabled, note
-		if equipped then
+		if paid and not owned then
+			-- Supporter finishes: Robux only, and only once the catalogue is switched on.
+			local pass = Config.GamePasses[(f :: any).Pass]
+			local onSale = Config.PurchasesEnabled and pass and pass.Id ~= 0
+			text, color, disabled = if onSale then "SUPPORTER" else "NOT ON SALE YET", UI.Color.Disabled, true
+			note = "Supporter finish · cosmetic only"
+		elseif equipped then
 			text, color, disabled, note = "EQUIPPED", Color3.fromRGB(58, 150, 72), true, "On your nameplate"
 		elseif owned then
 			text, color, disabled, note = "EQUIP", UI.Color.Slate, false, "Owned"

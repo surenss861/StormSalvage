@@ -708,21 +708,9 @@ Config.Sounds = {
 --   (MarketplaceService:GetProductInfo); the Creator Hub price is the one players pay.
 --   PurchasesEnabled is the master switch for Buy buttons. Receipts for configured products are
 --   always honoured, so a purchase made before a switch-off is still delivered.
-Config.PurchasesEnabled = false
-Config.GamePasses = {
-	HeavyDuty = {
-		Id = 0,
-		DisplayName = "Heavy-Duty Pack",
-		-- +2 (owner decision 2026-10-13): +4 gave +54% income in a matched 15-min test.
-		Description = "+2 bag slots on top of your Backpack upgrades. Permanent.",
-		BonusCapacity = 2,
-		RobuxPrice = 149,
-	},
-}
-Config.DevProducts = {
-	CoinsSmall = { Id = 0, DisplayName = "Pocket Change", Coins = 300, RobuxPrice = 29, Order = 1 },
-	CoinsMedium = { Id = 0, DisplayName = "Scrap Bundle", Coins = 1200, RobuxPrice = 99, Order = 2 },
-	CoinsLarge = { Id = 0, DisplayName = "Salvage Haul", Coins = 3000, RobuxPrice = 199, Order = 3 },
-}
+local Catalog = require(script.Parent.Catalog)
+Config.PurchasesEnabled = Catalog.PurchasesEnabled
+Config.GamePasses = Catalog.GamePasses
+Config.DevProducts = Catalog.DevProducts
 
 return Config

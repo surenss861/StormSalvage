@@ -86,6 +86,8 @@ local function pickWeighted(pool: { { Id: string, Weight: number } }): string
 	return pool[1].Id
 end
 
+local STARTER_AT = Vector3.new(6, 0, -196) -- the bottom of the ramp from the Scrapyard
+
 local function groundY(position: Vector3): number
 	local params = RaycastParams.new()
 	local exclude = { folder }
@@ -279,7 +281,11 @@ local function createLoot(
 		if owner and player ~= owner and item:GetAttribute("Share") then
 			PlayerService.notify(
 				player,
-				("That's %s's share. Earn your own: help with the work."):format(owner.DisplayName),
+				if item:GetAttribute("Share") == "Starter"
+					then ("That's %s's welcome find."):format(owner.DisplayName)
+					else ("That's %s's share. Earn your own: help with the work."):format(
+						owner.DisplayName
+					),
 				Color3.fromRGB(255, 200, 120)
 			)
 			return
@@ -507,7 +513,8 @@ function LootService.spawnFor(
 	lootId: string,
 	position: Vector3,
 	lifetime: number,
-	onTaken: (Player?) -> ()
+	onTaken: (Player?) -> (),
+	kind: string?
 ): Part
 	local item = createLoot(
 		lootId,
@@ -517,7 +524,7 @@ function LootService.spawnFor(
 		owner,
 		os.clock() + lifetime
 	)
-	item:SetAttribute("Share", true)
+	item:SetAttribute("Share", kind or "Coop")
 	return item
 end
 
@@ -589,6 +596,19 @@ function LootService.init(map)
 	LootService.refillAll()
 
 	PlayerService.onDied(dropBag)
+	-- The first meaningful reward arrives fast: a brand-new player (nothing sold yet) finds a
+	-- glowing Jukebox (140 coins) for them alone at the foot of the ramp, a few seconds' walk from
+	-- spawn, enough for their first gear once sold. Once per session, only until the first sale.
+	PlayerService.onLoaded(function(player, session)
+		if (session.Data.Stats.ItemsSold or 0) > 0 then
+			return
+		end
+		task.delay(3, function()
+			if player.Parent then
+				LootService.spawnFor(player, "Jukebox", STARTER_AT, 600, function() end, "Starter")
+			end
+		end)
+	end)
 
 	task.spawn(function()
 		while true do

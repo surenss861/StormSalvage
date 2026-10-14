@@ -17,6 +17,8 @@ local specs = {
 	require("./restore.spec"),
 	require("./leaderboard.spec"),
 	require("./coop.spec"),
+	require("./onboarding.spec"),
+	require("./catalog.spec"),
 }
 local passed, failed = 0, 0
 for _, spec in specs do

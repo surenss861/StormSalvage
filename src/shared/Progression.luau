@@ -275,8 +275,54 @@ Progression.Finishes = {
 	},
 } :: { Finish }
 
+-- Supporter finishes (V4 M8): bought with Robux as game passes (Config.GamePasses, Finish =
+-- this id), never with coins and never earned. Ownership is Roblox's record (checked each
+-- session, like the Heavy-Duty Pack), never saved in Cosmetics.Owned, so a paid finish can't be
+-- mistaken for an earned one; the Salvager ID marks it SUPPORTER. Cost is 0 (they add nothing
+-- to net worth) and Rank 1 (no progression gate: they're thanks, not power).
+export type PremiumFinish = Finish & { Paid: boolean, Pass: string }
+Progression.PremiumFinishes = {
+	{
+		Id = "NeonStorm",
+		Name = "Neon Storm",
+		Cost = 0,
+		Rank = 1,
+		Paid = true,
+		Pass = "NeonStorm",
+		Plate = { 28, 22, 48 },
+		Edge = { 255, 90, 200 },
+		Text = { 255, 230, 250 },
+	},
+	{
+		Id = "GildedWreck",
+		Name = "Gilded Wreck",
+		Cost = 0,
+		Rank = 1,
+		Paid = true,
+		Pass = "GildedWreck",
+		Plate = { 36, 30, 22 },
+		Edge = { 255, 200, 70 },
+		Text = { 255, 220, 120 },
+	},
+} :: { PremiumFinish }
+
 function Progression.finish(id: unknown): Finish?
 	for _, f in Progression.Finishes do
+		if f.Id == id then
+			return f
+		end
+	end
+	for _, f in Progression.PremiumFinishes do
+		if f.Id == id then
+			return f
+		end
+	end
+	return nil
+end
+
+-- The supporter finish with this id, if it is one.
+function Progression.premiumFinish(id: unknown): PremiumFinish?
+	for _, f in Progression.PremiumFinishes do
 		if f.Id == id then
 			return f
 		end
@@ -293,8 +339,8 @@ function Progression.canBuyFinish(
 	owned: { [string]: boolean }
 ): (boolean, string?)
 	local f = Progression.finish(id)
-	if not f then
-		return false, "unknown"
+	if not f or Progression.premiumFinish(id) then
+		return false, "unknown" -- supporter finishes are never sold for coins
 	end
 	if owned[f.Id] then
 		return false, "owned"
