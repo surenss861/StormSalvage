@@ -43,14 +43,23 @@ Core experience → gameplay systems → world and content → reliability → p
 | I | UI/UX, onboarding, full polish | All gameplay phases | Ongoing per feature, final pass planned |
 | J | Multiplayer, performance, release (real servers, devices, security, observability) | Every milestone | Ongoing. Device and real-server runs need the owner's hands. |
 
-## Milestones (each ends with a private RC candidate and a report)
+## Milestones (owner's order, 2026-10-14: finish the game first, then deploy)
 
-1. **M1: Controls and the pursuit system.** A fixes, B1–B5, B7. **Done (Studio), 2026-10-14**; B6 needs real clients.
-2. **M2: Rewards worth chasing.** C, plus the A3 evasive action. **Done in Studio, 2026-10-14**; candidate RC9 (`rc-20261014-9`), not deployed. Owner items: animation uploads, device and controller checks.
-3. **M3: Large-scale economy and status** (re-ordered by the M2 and RC9 reviews). F and G first slices. **Built in Studio, 2026-10-14**; candidate RC10, not deployed (`V4-M3.md`).
-4. **M4: Gale Hollow alive.** D1, D2, D5, plus E for pursuits and storms; more bands (3+) with their own content and sinks.
-5. **M5: Shop and polish.** H review (the Robux catalogue against the new bands: an owner gate), I pass, and E quality tiers.
-6. **M6: Release readiness.** J on real servers and devices.
+Each major feature ships complete: mechanics → models → animation → VFX/audio → UI → tests. Persistence, security and performance are tested in Studio in every milestone. No publishing until M11.
+
+| # | Milestone | Status |
+| --- | --- | --- |
+| M1 | Controls and the pursuit system | Done (Studio); RC8 published v142 |
+| M2 | Rewards worth chasing, the dodge, animations authored | Done (Studio); RC9 |
+| M3 | Economy and status first slice; exact 303-digit money | Done (Studio); RC10–RC12 |
+| **M4** | **Bands 3–5: new salvage, signature events, band equipment, licences, sinks** | **In progress** |
+| M5 | World: district polish, Rail Yard, Flood Control Works, traversal | Planned |
+| M6 | Animation, twister, storm VFX, lighting, audio | Planned (and per feature as it ships) |
+| M7 | Prestige, leaderboards, collectibles, wealth milestones | Planned |
+| M8 | Equipment shop, Supply Counter, Robux catalogue (off until activation) | Planned |
+| M9 | HUD, menus, mobile/gamepad, onboarding, polish | Planned |
+| M10 | Real servers, real phones, purchases, the migration rehearsal (paused at B0), final QA | Needs owner hardware and deploy approval |
+| M11 | Private release validation, monetization activation, launch | Owner gates |
 
 ## Blockers needing the owner (tracked, not worked around)
 

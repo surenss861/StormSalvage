@@ -201,3 +201,10 @@ RC12 = RC11 + the Stage A changes (§2).
 - **Production:** version `08DF2633FC1D5556.0000000175.08DF28D0DF8E075C.01` (untouched).
 - **RC12 on the Desktop:** `622fcfc1627f76350d053f55f49e9280a7ec5972ac5d95c5ecef52ad7478f55f` (matches CI).
 - **To confirm in B1:** RC8 = place version 142 in Version History.
+
+### Paused (owner decision, 2026-10-14)
+
+B1–B6 are **paused** until the rest of V4 is built: no publishing, version checks or rollbacks meanwhile.
+- **Kept:** B0's evidence, the LIVETEST snapshot (`.tools/snapshots/`), RC9–RC12 artifacts (`.tools/rc/`, Desktop) and this procedure.
+- **When it resumes:** the live rehearsal is completed during final release validation (M10/M11), on whichever candidate is current then; B0 is re-run first.
+- **Meanwhile:** persistence, security and performance stay tested in Studio during each milestone.
