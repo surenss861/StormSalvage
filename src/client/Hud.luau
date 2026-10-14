@@ -21,7 +21,7 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local UI = require(script.Parent:WaitForChild("UI"))
-local Money = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Money"))
+local BigMoney = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("BigMoney"))
 
 local Hud = {}
 local M = UI.Mat
@@ -759,7 +759,7 @@ end
 
 ---------------------------------------------------------------------------- Player state
 
-local shownCoins: number? = nil
+local shownCoins: string? = nil
 local cancelCount: (() -> ())? = nil
 
 -- "+120" drifting up beside the cash tag.
@@ -787,8 +787,10 @@ local function floatDelta(text: string, color: Color3)
 	end)
 end
 
--- Coins changed: count up to the new balance (gains) or drop straight to it (spending).
-local function showCoins(coins: number)
+-- Coins changed (exact BigMoney strings): count up to the new balance (gains) or drop straight to
+-- it (spending). The count-up animation runs through plain numbers, so only while both values
+-- have at most 15 digits (exact as numbers); bigger balances just pop to the exact new value.
+local function showCoins(coins: string)
 	if cancelCount then
 		cancelCount()
 		cancelCount = nil
@@ -796,23 +798,31 @@ local function showCoins(coins: number)
 	local previous = shownCoins
 	shownCoins = coins
 	if previous == nil or coins == previous then
-		cashLabel.Text = Money.tag(coins)
+		cashLabel.Text = BigMoney.tag(coins)
 		return
 	end
-	if coins > previous then
-		local from = previous
-		cancelCount =
-			UI.countUp(cashLabel, from, coins, if UI.reduced() then 0.01 else UI.Time.Count, Money.tag)
+	if BigMoney.cmp(coins, previous) > 0 then
+		local gain = BigMoney.sub(coins, previous) :: string
+		if #coins <= 15 then
+			cancelCount = UI.countUp(
+				cashLabel,
+				tonumber(previous) :: number,
+				tonumber(coins) :: number,
+				if UI.reduced() then 0.01 else UI.Time.Count,
+				BigMoney.tag
+			)
+		end
+		cashLabel.Text = BigMoney.tag(if #coins <= 15 then previous else coins)
 		task.delay(UI.Time.Count + 0.05, function()
 			if shownCoins == coins then
-				cashLabel.Text = Money.tag(coins)
+				cashLabel.Text = BigMoney.tag(coins)
 			end
 		end)
 		UI.pop(cashScale, 1.1, 0.35)
-		task.spawn(floatDelta, "+" .. Money.tag(coins - from), Color3.fromRGB(255, 214, 80))
+		task.spawn(floatDelta, "+" .. BigMoney.tag(gain), Color3.fromRGB(255, 214, 80))
 	else
-		cashLabel.Text = Money.tag(coins)
-		task.spawn(floatDelta, "-" .. Money.tag(previous - coins), UI.Color.TextDim)
+		cashLabel.Text = BigMoney.tag(coins)
+		task.spawn(floatDelta, "-" .. BigMoney.tag(BigMoney.sub(previous, coins) :: string), UI.Color.TextDim)
 	end
 end
 
@@ -827,7 +837,7 @@ function Hud.setPlayer(s: any)
 	crateCount.TextColor3 = if full then M.RedPen else M.Marker
 	crateLabel.BackgroundColor3 = if full then Color3.fromRGB(255, 214, 200) else M.Tape
 	crateWorth.Text = if carried > 0
-		then ("SELLS FOR %s"):format(Money.tag(s.CarriedValue))
+		then ("SELLS FOR %s"):format(BigMoney.tag(s.CarriedValue))
 		else "EMPTY CRATE"
 
 	local key = table.concat(s.Carried, ",") .. "/" .. s.Capacity .. (if compact then "c" else "d")

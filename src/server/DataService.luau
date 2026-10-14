@@ -13,7 +13,7 @@ local RunService = game:GetService("RunService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local SalvageLog = require(game:GetService("ReplicatedStorage").Shared.SalvageLog)
-local Money = require(game:GetService("ReplicatedStorage").Shared.Money)
+local Wallet = require(game:GetService("ReplicatedStorage").Shared.Wallet)
 local Titles = require(game:GetService("ReplicatedStorage").Shared.Titles)
 
 local DataService = {}
@@ -41,7 +41,7 @@ end
 
 export type Data = {
 	Version: number,
-	Coins: number,
+	Coins: number, -- legacy mirror only: the exact balance is Wallet.Cash (Wallet.luau)
 	Upgrades: { [string]: number },
 	Stats: { TotalEarned: number, ItemsSold: number, StormsSurvived: number },
 	ProcessedReceipts: { string },
@@ -60,6 +60,8 @@ export type Data = {
 	-- V4 M3 (economy and status): licences held (the band follows from them) and earned titles.
 	Licenses: { [string]: boolean },
 	Titles: { Owned: { [string]: boolean }, Shown: string? },
+	-- V4 big numbers (schema 2): exact cash and lifetime earnings, plus the legacy mirror record.
+	Wallet: any,
 	Lock: { Session: string, Time: number }?,
 }
 
@@ -98,14 +100,25 @@ local function reconcile(data: any): Data
 	end
 	-- Salvage Log counts arrived in V4: kinds already found count as found once. Additive only.
 	data.Collection = SalvageLog.reconcile(data.Collection)
-	-- V4 M3: titles must be real and owned; coins must be a whole number in range (a valid
-	-- balance is left exactly as it is; only a corrupt one is repaired).
+	-- V4 M3: titles must be real and owned.
 	data.Titles = Titles.reconcile(data.Titles)
-	if not Money.valid(data.Coins) then
-		data.Coins = Money.clamp(data.Coins)
+	-- V4 big numbers: money lives in data.Wallet as exact strings (schema 2). Converts a schema-1
+	-- profile exactly, folds in anything an older build did to the numeric mirror, and keeps
+	-- Coins / Stats.TotalEarned as that mirror for older builds (Wallet.luau). Idempotent, so it
+	-- is safe inside UpdateAsync transforms that may retry.
+	local report = Wallet.load(data)
+	if #report.Repaired > 0 then
+		warn(
+			"[DataService] corrupt legacy money kept in Wallet.Repaired:",
+			table.concat(report.Repaired, ", ")
+		)
 	end
-	if not Money.valid(data.Stats.TotalEarned) then
-		data.Stats.TotalEarned = Money.clamp(data.Stats.TotalEarned)
+	if report.AppliedCash or report.AppliedLifetime then
+		print(
+			"[DataService] applied an older build's money changes:",
+			report.AppliedCash or "",
+			report.AppliedLifetime or ""
+		)
 	end
 	if type(data.Licenses) ~= "table" then
 		data.Licenses = {}

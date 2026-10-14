@@ -15,6 +15,9 @@
 --     from multiplying every price.
 -- Paying Robux never buys a licence or skips a requirement (and purchases stay off).
 
+-- Roblox resolves the sibling ModuleScript; Lune (unit tests) resolves the file path.
+local BigMoney = if script then require(script.Parent.BigMoney) else (require :: any)("./BigMoney")
+
 local Bands = {}
 
 export type Requirement = { Kind: "Rank" | "Extractions", Value: number, Text: string }
@@ -94,7 +97,7 @@ function Bands.eventBonus(band: number, kind: string, golden: boolean): number
 	return base * (if golden then row.GoldenFactor else 1)
 end
 
-export type Progress = { Rank: number, Extractions: number, Coins: number, Owned: boolean }
+export type Progress = { Rank: number, Extractions: number, Coins: number | string, Owned: boolean }
 export type LicenseCheck = {
 	Ok: boolean,
 	Reason: ("owned" | "requirements" | "short" | "invalid")?,
@@ -120,7 +123,8 @@ function Bands.checkLicense(id: unknown, p: Progress): LicenseCheck
 	if #missing > 0 then
 		return { Ok = false, Reason = "requirements", Missing = missing }
 	end
-	if type(p.Coins) ~= "number" or p.Coins ~= p.Coins or p.Coins < def.Cost then
+	local coins = BigMoney.parse(p.Coins)
+	if not coins or BigMoney.lt(coins, BigMoney.of(def.Cost)) then
 		return { Ok = false, Reason = "short", Missing = {} }
 	end
 	return { Ok = true, Missing = {} }
@@ -129,13 +133,8 @@ end
 -- The Press level a player can buy next, or why not.
 export type PressCheck = { Ok: boolean, Reason: ("license" | "maxed" | "short" | "invalid")?, Cost: number? }
 function Bands.checkPress(level: unknown, licensed: boolean, coins: unknown): PressCheck
-	if
-		type(level) ~= "number"
-		or level % 1 ~= 0
-		or level < 0
-		or type(coins) ~= "number"
-		or coins ~= coins
-	then
+	local have = BigMoney.parse(coins)
+	if type(level) ~= "number" or level % 1 ~= 0 or level < 0 or not have then
 		return { Ok = false, Reason = "invalid" }
 	end
 	if not licensed then
@@ -145,7 +144,7 @@ function Bands.checkPress(level: unknown, licensed: boolean, coins: unknown): Pr
 	if not cost then
 		return { Ok = false, Reason = "maxed" }
 	end
-	if coins < cost then
+	if BigMoney.lt(have, BigMoney.of(cost)) then
 		return { Ok = false, Reason = "short", Cost = cost }
 	end
 	return { Ok = true, Cost = cost }

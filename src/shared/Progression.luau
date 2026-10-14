@@ -16,6 +16,9 @@
 --               sink after equipment is maxed. Purely cosmetic.
 -- No Roblox APIs here.
 
+-- Roblox resolves the sibling ModuleScript; Lune (unit tests) resolves the file path.
+local BigMoney = if script then require(script.Parent.BigMoney) else (require :: any)("./BigMoney")
+
 local Progression = {}
 
 ---------------------------------------------------------------------------- Ranks
@@ -270,7 +273,7 @@ end
 -- "rank", "short".
 function Progression.canBuyFinish(
 	id: unknown,
-	coins: number,
+	coins: number | string,
 	xp: number,
 	owned: { [string]: boolean }
 ): (boolean, string?)
@@ -284,7 +287,8 @@ function Progression.canBuyFinish(
 	if Progression.rankFor(xp).Index < f.Rank then
 		return false, "rank"
 	end
-	if coins < f.Cost then
+	local have = BigMoney.parse(coins)
+	if not have or BigMoney.lt(have, BigMoney.of(f.Cost)) then
 		return false, "short"
 	end
 	return true, nil

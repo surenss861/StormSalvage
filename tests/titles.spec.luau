@@ -55,6 +55,17 @@ return {
 		eq(has(Titles.earned(view(nil, { TurbineRotor = true })), "TurbineHunter"), true, "turbine")
 		eq(has(Titles.earned(view(nil, nil, 999999)), "FirstFortune"), false, "999,999")
 		eq(has(Titles.earned(view(nil, nil, 1000000)), "FirstFortune"), true, "1M")
+		eq(has(Titles.earned(view(nil, nil, "1000000")), "FirstFortune"), true, "1M as a string")
+		local q = Titles.earned(view(nil, nil, "1000000000000000000"))
+		for _, id in { "FirstFortune", "Billionaire", "Trillionaire", "Quadrillionaire", "Quintillionaire" } do
+			assert(has(q, id), id .. " at 1 Qi")
+		end
+		eq(
+			has(Titles.earned(view(nil, nil, "999999999999999999")), "Quintillionaire"),
+			false,
+			"one under 1 Qi"
+		)
+		eq(has(Titles.earned(view(nil, nil, "1e18")), "Billionaire"), false, "garbage earns nothing")
 		eq(has(Titles.earned(view(nil, nil, 0, { Pro = true })), "Professional"), true, "licence")
 	end,
 	["titles: bad records never grant"] = function()

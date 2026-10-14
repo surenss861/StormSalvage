@@ -10,7 +10,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Bands = require(ReplicatedStorage.Shared.Bands)
 local Economy = require(ReplicatedStorage.Shared.Economy)
-local Money = require(ReplicatedStorage.Shared.Money)
+local BigMoney = require(ReplicatedStorage.Shared.BigMoney)
+local Wallet = require(ReplicatedStorage.Shared.Wallet)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -117,12 +118,12 @@ function PlayerService.sellMultipliers(session: Session): { { Name: string, Fact
 	return list
 end
 
-function PlayerService.sellMultiplier(session: Session): number
-	local m = 1
+local function factorsOf(session: Session): { number }
+	local out = {}
 	for _, bonus in PlayerService.sellMultipliers(session) do
-		m *= bonus.Factor
+		table.insert(out, bonus.Factor)
 	end
-	return m
+	return out
 end
 
 -- Anyone carrying a Storm Core glows, so everyone can see who's holding the big prize. A Golden
@@ -162,10 +163,11 @@ local function refreshCoreGlow(player: Player, session: Session)
 	end
 end
 
-local function carriedValue(session: Session): number
-	local total = 0
+-- The exact base value of the bag (BigMoney string).
+local function carriedValue(session: Session): string
+	local total = "0"
 	for _, id in session.Carried do
-		total += Config.Loot[id].Value
+		total = BigMoney.add(total, BigMoney.of(Config.Loot[id].Value))
 	end
 	return total
 end
@@ -187,9 +189,11 @@ function PlayerService.pushState(player: Player)
 		player:SetAttribute("Band", band)
 	end
 	playerStateRemote:FireClient(player, {
-		Coins = session.Data.Coins,
+		-- Money as exact BigMoney strings: the client formats and compares them with BigMoney.
+		Coins = Wallet.cash(session.Data),
+		Lifetime = Wallet.lifetime(session.Data),
 		Carried = session.Carried,
-		CarriedValue = math.floor(carriedValue(session) * PlayerService.sellMultiplier(session)),
+		CarriedValue = BigMoney.mulFactors(carriedValue(session), factorsOf(session)),
 		Capacity = PlayerService.getCapacity(session),
 		Upgrades = session.Data.Upgrades,
 		BoostRemaining = PlayerService.boostRemaining(session),
@@ -206,10 +210,11 @@ function PlayerService.pushState(player: Player)
 		Band = band,
 		Titles = session.Data.Titles,
 	})
+	-- The player list shows the compact balance as text: an IntValue can't hold big numbers.
 	local leaderstats = player:FindFirstChild("leaderstats")
 	local coins = leaderstats and leaderstats:FindFirstChild("Coins")
 	if coins then
-		(coins :: IntValue).Value = session.Data.Coins
+		(coins :: StringValue).Value = BigMoney.tag(Wallet.cash(session.Data))
 	end
 end
 
@@ -255,18 +260,22 @@ function PlayerService.damage(player: Player, amount: number)
 	end
 end
 
--- Returns how many coins were actually added (less than `amount` only at Money.MAX).
-function PlayerService.addCoins(player: Player, amount: number): number
+-- Earned coins (a number or a BigMoney string), exact, into cash and lifetime earnings through
+-- Wallet. Returns what was actually added (less than `amount` only at BigMoney.MAX, 10^303 - 1).
+function PlayerService.addCoins(player: Player, amount: number | string): string
 	local session = sessions[player]
 	if not session then
-		return 0
+		return "0"
 	end
-	-- Whole coins only, never past Money.MAX (1 Qa), never NaN: see Money.luau.
-	local added
-	session.Data.Coins, added = Money.grant(session.Data.Coins, amount)
-	session.Data.Stats.TotalEarned = Money.grant(session.Data.Stats.TotalEarned, added)
+	local added = Wallet.earn(session.Data, amount)
 	PlayerService.pushState(player)
 	return added
+end
+
+-- The exact cash balance (BigMoney string).
+function PlayerService.cash(player: Player): string
+	local session = sessions[player]
+	return if session then Wallet.cash(session.Data) else "0"
 end
 
 -- Returns true if the item fit in the bag.
@@ -331,10 +340,14 @@ function PlayerService.sell(player: Player)
 	end
 	local lines = {}
 	for id, count in counts do
-		table.insert(lines, { Id = id, Count = count, Value = Config.Loot[id].Value })
+		local value = BigMoney.of(Config.Loot[id].Value)
+		table.insert(
+			lines,
+			{ Id = id, Count = count, Value = value, Total = BigMoney.mulSmall(value, count) }
+		)
 	end
 	table.sort(lines, function(a, b)
-		return a.Value * a.Count > b.Value * b.Count
+		return BigMoney.cmp(a.Total, b.Total) > 0
 	end)
 	local multipliers = PlayerService.sellMultipliers(session) -- read before clearing the bag
 	local values, factors = {}, {}
@@ -352,29 +365,33 @@ function PlayerService.sell(player: Player)
 	session.Carried = {}
 	session.Sales += 1
 	refreshCoreGlow(player, session)
-	-- The receipt shows what was really paid: only at the 1 Qa coin cap is that less than earned.
+	-- The receipt shows what was really paid: only at the coin cap (10^303 - 1) is that less.
 	local paid = PlayerService.addCoins(player, earned)
-	local capLoss = earned - paid
+	local capLoss = BigMoney.sub(earned, paid) :: string
 	earned = paid
+	-- Contracts and stats count progress, not money: an approximate number is fine there.
+	local approx = BigMoney.approx(earned)
 	for _, cb in soldCallbacks do
-		cb(player, itemsSold, earned, cores)
+		cb(player, itemsSold, approx, cores)
 	end
-	StormStats.sold(player, earned)
-	SessionStats.sold(player, earned)
+	StormStats.sold(player, approx)
+	SessionStats.sold(player, approx)
 	saleReceiptRemote:FireClient(player, {
 		Sale = session.Sales,
 		Lines = lines,
 		Base = base,
 		Multipliers = multipliers,
 		Total = earned,
-		CapLoss = if capLoss > 0 then capLoss else nil,
-		Balance = session.Data.Coins,
+		CapLoss = if capLoss ~= "0" then capLoss else nil,
+		Balance = Wallet.cash(session.Data),
 		HadCore = hadCore,
 	})
 	if hadCore then
-		local coreValue = (counts.StormCore or 0) * Config.Loot.StormCore.Value
-			+ (counts.GoldenCore or 0) * Config.Loot.GoldenCore.Value
-		local coreCoins = math.floor(coreValue * PlayerService.sellMultiplier(session))
+		local coreValue = BigMoney.add(
+			BigMoney.mulSmall(BigMoney.of(Config.Loot.StormCore.Value), counts.StormCore or 0),
+			BigMoney.mulSmall(BigMoney.of(Config.Loot.GoldenCore.Value), counts.GoldenCore or 0)
+		)
+		local coreCoins = BigMoney.mulFactors(coreValue, factors)
 		local what = if (counts.GoldenCore or 0) > 0
 			then (if counts.GoldenCore > 1
 				then counts.GoldenCore .. " GOLDEN Storm Cores"
@@ -382,7 +399,7 @@ function PlayerService.sell(player: Player)
 			elseif cores > 1 then cores .. " Storm Cores"
 			else "a Storm Core"
 		PlayerService.notifyAll(
-			("%s delivered %s! +%d"):format(player.DisplayName, what, coreCoins),
+			("%s delivered %s! +%s"):format(player.DisplayName, what, BigMoney.full(coreCoins)),
 			Config.RarityColors.Legendary
 		)
 	end
@@ -420,26 +437,23 @@ local function buyUpgrade(player: Player, upgradeId: unknown)
 		return
 	end
 	local level = session.Data.Upgrades[upgradeId] or 0
-	local check = Economy.checkUpgrade(def.Costs, level, session.Data.Coins)
+	local check = Economy.checkUpgrade(def.Costs, level, Wallet.cash(session.Data))
 	if check.Reason == "maxed" then
 		PlayerService.notify(player, def.DisplayName .. " is maxed out!")
 		return
 	elseif check.Reason == "short" then
 		PlayerService.notify(
 			player,
-			("Need %d more coins."):format(check.Short :: number),
+			("Need %s more coins."):format(BigMoney.full(check.Short)),
 			Color3.fromRGB(255, 120, 90)
 		)
 		return
 	elseif not check.Ok then
 		return
 	end
-	local cost = check.Cost :: number
-	local paid, after = Money.spend(session.Data.Coins, cost)
-	if not paid then
+	if not Wallet.spend(session.Data, check.Cost) then
 		return
 	end
-	session.Data.Coins = after
 	session.Data.Upgrades[upgradeId] = level + 1
 	SessionStats.upgraded(player, upgradeId, level + 1)
 	PlayerService.applyCharacterStats(player)
@@ -481,25 +495,23 @@ local function buyTool(player: Player, toolId: unknown)
 	if type(session.Data.Tools) ~= "table" or type(session.Data.Tools.Owned) ~= "table" then
 		session.Data.Tools = { Owned = {} }
 	end
-	local check = Economy.checkTool(def.Cost, session.Data.Tools.Owned[toolId], session.Data.Coins)
+	local check = Economy.checkTool(def.Cost, session.Data.Tools.Owned[toolId], Wallet.cash(session.Data))
 	if check.Reason == "maxed" then
 		PlayerService.notify(player, "You already own the " .. def.DisplayName .. ".")
 		return
 	elseif check.Reason == "short" then
 		PlayerService.notify(
 			player,
-			("Need %d more coins."):format(check.Short :: number),
+			("Need %s more coins."):format(BigMoney.full(check.Short)),
 			Color3.fromRGB(255, 120, 90)
 		)
 		return
 	elseif not check.Ok then
 		return
 	end
-	local paid, after = Money.spend(session.Data.Coins, check.Cost)
-	if not paid then
+	if not Wallet.spend(session.Data, check.Cost) then
 		return
 	end
-	session.Data.Coins = after
 	session.Data.Tools.Owned[toolId] = true
 	SessionStats.toolBought(player, toolId)
 	PlayerService.pushState(player)
@@ -534,7 +546,7 @@ local function buyLicense(player: Player, licenseId: unknown)
 	local check = Bands.checkLicense(licenseId, {
 		Rank = Progression.rankFor(session.Data.Rep.XP).Index,
 		Extractions = records and records.Extractions or 0,
-		Coins = session.Data.Coins,
+		Coins = Wallet.cash(session.Data),
 		Owned = session.Data.Licenses[licenseId] == true,
 	})
 	if check.Reason == "owned" then
@@ -550,18 +562,16 @@ local function buyLicense(player: Player, licenseId: unknown)
 	elseif check.Reason == "short" then
 		PlayerService.notify(
 			player,
-			("Need %s more coins."):format(Money.full(def.Cost - session.Data.Coins)),
+			("Need %s more coins."):format(BigMoney.full(Wallet.shortBy(session.Data, def.Cost))),
 			Color3.fromRGB(255, 120, 90)
 		)
 		return
 	elseif not check.Ok then
 		return
 	end
-	local paid, after = Money.spend(session.Data.Coins, def.Cost)
-	if not paid then
+	if not Wallet.spend(session.Data, def.Cost) then
 		return
 	end
-	session.Data.Coins = after
 	session.Data.Licenses[licenseId] = true
 	SessionStats.event(player, "License_" .. licenseId, 1)
 	PlayerService.pushState(player)
@@ -576,7 +586,7 @@ local function onPlayerAdded(player: Player)
 	SessionStats.joined(player)
 	local leaderstats = Instance.new("Folder")
 	leaderstats.Name = "leaderstats"
-	local coins = Instance.new("IntValue")
+	local coins = Instance.new("StringValue")
 	coins.Name = "Coins"
 	coins.Parent = leaderstats
 	leaderstats.Parent = player

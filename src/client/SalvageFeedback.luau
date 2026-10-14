@@ -20,7 +20,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
 local CharacterAnims = require(script.Parent:WaitForChild("CharacterAnims"))
-local Money = require(ReplicatedStorage.Shared:WaitForChild("Money"))
+local BigMoney = require(ReplicatedStorage.Shared:WaitForChild("BigMoney"))
+
+-- Every digit while it has at most `digits` digits, else the compact form (cards are small).
+local function money(v: string, digits: number): string
+	return if #v <= digits then BigMoney.full(v) else BigMoney.compact(v)
+end
 local Notifications = require(script.Parent:WaitForChild("Notifications"))
 local UI = require(script.Parent:WaitForChild("UI"))
 
@@ -181,7 +186,7 @@ function SalvageFeedback.onPickup(info: { Id: string, Position: Vector3 }, carri
 	end
 	local rank = RANK[def.Rarity] or 0
 	local color = Config.RarityColors[def.Rarity]
-	worldPop(info.Position, ("%s · %s"):format(def.Name, Money.full(def.Value)), color, rank >= 1)
+	worldPop(info.Position, ("%s · %s"):format(def.Name, BigMoney.full(def.Value)), color, rank >= 1)
 	Audio.play("Pickup", 1, 1 + rank * 0.05)
 	if rank == 1 then
 		sparkleBurst(info.Position + Vector3.new(0, 1.5, 0), color, 6)
@@ -225,7 +230,7 @@ function SalvageFeedback.onPickup(info: { Id: string, Position: Vector3 }, carri
 				line(card, 74, 18, {
 					Font = UI.Font.Mono,
 					TextSize = 16,
-					Text = ("WORTH %s"):format(Money.full(def.Value)),
+					Text = ("WORTH %s"):format(BigMoney.full(def.Value)),
 					TextColor3 = color:Lerp(M.Marker, 0.45),
 					ZIndex = 7,
 				})
@@ -339,14 +344,14 @@ function SalvageFeedback.extracted(msg: any)
 			line(card, 100, 22, {
 				Font = UI.Font.Mono,
 				TextSize = 18,
-				Text = ("+%s BONUS"):format(Money.full(msg.Bonus or 0)),
+				Text = ("+%s BONUS"):format(money(BigMoney.of(msg.Bonus or 0), 12)),
 				TextColor3 = Color3.fromRGB(34, 130, 56),
 				ZIndex = 7,
 			})
 			line(card, 124, 18, {
 				Font = UI.Font.Label,
 				TextSize = 13,
-				Text = ("Now sell it at the Scrap Buyer: %s"):format(Money.full(prize.Value)),
+				Text = ("Now sell it at the Scrap Buyer: %s"):format(BigMoney.full(prize.Value)),
 				TextColor3 = M.RedPen,
 				ZIndex = 7,
 			})
@@ -452,20 +457,26 @@ function SalvageFeedback.onSale(receipt: any)
 				local entry = receipt.Lines[i]
 				local def = Config.Loot[entry.Id]
 				local name = if entry.Count > 1 then ("%s ×%d"):format(def.Name, entry.Count) else def.Name
-				row(name, Money.full(entry.Value * entry.Count), nil, Config.RarityColors[def.Rarity])
+				row(
+					name,
+					money(BigMoney.mulSmall(BigMoney.of(entry.Value), entry.Count), 12),
+					nil,
+					Config.RarityColors[def.Rarity]
+				)
 			end
 			if extra > 0 then
-				local rest = 0
+				local rest = "0"
 				for i = shown + 1, #receipt.Lines do
-					rest += receipt.Lines[i].Value * receipt.Lines[i].Count
+					local l = receipt.Lines[i]
+					rest = BigMoney.add(rest, BigMoney.mulSmall(BigMoney.of(l.Value), l.Count))
 				end
-				row(("+ %d more"):format(extra), Money.full(rest))
+				row(("+ %d more"):format(extra), money(rest, 12))
 			end
 			for _, bonus in receipt.Multipliers do
 				row(bonus.Name, ("×%s"):format(tostring(bonus.Factor)), M.RedPen)
 			end
-			if type(receipt.CapLoss) == "number" and receipt.CapLoss > 0 then
-				row("Coin cap reached (1 Qa)", "-" .. Money.full(receipt.CapLoss), M.RedPen)
+			if BigMoney.is(receipt.CapLoss) and receipt.CapLoss ~= "0" then
+				row("Coin cap reached", "-" .. money(receipt.CapLoss, 12), M.RedPen)
 			end
 			-- The payout: biggest number on the card, circled in red pen.
 			local ring = UI.new("Frame", {
@@ -492,14 +503,26 @@ function SalvageFeedback.onSale(receipt: any)
 			line(card, y + 66, 16, {
 				Font = UI.Font.Label,
 				TextSize = 13,
-				Text = ("Coins now: %s"):format(UI.comma(receipt.Balance)),
+				Text = ("Coins now: %s"):format(money(receipt.Balance, 15)),
 				TextColor3 = M.Pencil,
 				ZIndex = 7,
 			})
-			-- Count up to the exact server total (visual only; the coins were already paid).
-			UI.countUp(total, 0, receipt.Total, if UI.reduced() then 0.01 else UI.Time.Count, function(n)
-				return "+" .. Money.full(n)
-			end)
+			-- Count up to the exact server total (visual only; the coins were already paid). Every
+			-- digit up to 999,999,999; above that the compact form (the exact amount is in the
+			-- server's receipt). The animation runs through plain numbers only while exact.
+			if #receipt.Total <= 9 then
+				UI.countUp(
+					total,
+					0,
+					tonumber(receipt.Total) :: number,
+					if UI.reduced() then 0.01 else UI.Time.Count,
+					function(n)
+						return "+" .. BigMoney.full(n)
+					end
+				)
+			else
+				total.Text = "+" .. BigMoney.compact(receipt.Total)
+			end
 		end,
 	})
 
@@ -511,7 +534,7 @@ function SalvageFeedback.onSale(receipt: any)
 		if root then
 			sparkleBurst(root.Position + Vector3.new(0, 2, 0), Config.RarityColors.Legendary, 24)
 		end
-	elseif receipt.Total >= 150 then
+	elseif BigMoney.gte(receipt.Total, "150") then
 		task.delay(0.12, Audio.play, "SellBig")
 	end
 end

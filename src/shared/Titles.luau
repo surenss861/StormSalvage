@@ -10,12 +10,15 @@
 -- from how you extract and what you find, only a few from coins.
 -- Pure: no Roblox APIs, so `lune` tests it.
 
+-- Roblox resolves the sibling ModuleScript; Lune (unit tests) resolves the file path.
+local BigMoney = if script then require(script.Parent.BigMoney) else (require :: any)("./BigMoney")
+
 local Titles = {}
 
 export type View = {
 	Records: { [string]: number }, -- Pursuit records (+ GoldenExtractions)
 	Found: { [string]: boolean }, -- Salvage Log kinds found
-	TotalEarned: number,
+	TotalEarned: number | string, -- lifetime earnings (BigMoney string, or a legacy number)
 	Licenses: { [string]: boolean },
 }
 
@@ -127,16 +130,34 @@ Titles.List = {
 			return v.Licenses.Pro == true
 		end,
 	},
-	{
-		Id = "FirstFortune",
-		Name = "First Fortune",
-		Category = "Wealth",
-		How = "Earn 1,000,000 coins in total",
-		earned = function(v)
-			return type(v.TotalEarned) == "number" and v.TotalEarned >= 1e6
-		end,
-	},
 } :: { Def }
+
+-- Wealth titles: lifetime-earnings milestones, so spending never takes one away. One per named
+-- tier up to quintillions for now; more come with the bands that reach them.
+local function earnedAtLeast(v: View, digits: string): boolean
+	local have = BigMoney.parse(v.TotalEarned)
+	return have ~= nil and BigMoney.gte(have, digits)
+end
+for _, w in
+	{
+		{ Id = "FirstFortune", Name = "First Fortune", Zeros = 6, Words = "1,000,000" },
+		{ Id = "Billionaire", Name = "Billionaire", Zeros = 9, Words = "1 billion" },
+		{ Id = "Trillionaire", Name = "Trillionaire", Zeros = 12, Words = "1 trillion" },
+		{ Id = "Quadrillionaire", Name = "Quadrillionaire", Zeros = 15, Words = "1 quadrillion" },
+		{ Id = "Quintillionaire", Name = "Quintillionaire", Zeros = 18, Words = "1 quintillion" },
+	}
+do
+	local threshold = "1" .. string.rep("0", w.Zeros)
+	table.insert(Titles.List, {
+		Id = w.Id,
+		Name = w.Name,
+		Category = "Wealth",
+		How = ("Earn %s coins in total"):format(w.Words),
+		earned = function(v)
+			return earnedAtLeast(v, threshold)
+		end,
+	})
+end
 
 Titles.ById = {} :: { [string]: Def }
 for _, t in Titles.List do

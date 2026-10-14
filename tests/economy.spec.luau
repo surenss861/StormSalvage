@@ -20,18 +20,18 @@ local BACKPACK = { 50, 150, 400, 1000, 2500 }
 return {
 	["sell: no multipliers"] = function()
 		local base, total = Economy.sellTotal({ 20, 35, 140 }, {})
-		eq(base, 195, "base")
-		eq(total, 195, "total")
+		eq(base, "195", "base")
+		eq(total, "195", "total")
 	end,
 	["sell: VIP and 2x stack and round down"] = function()
 		local base, total = Economy.sellTotal({ 33 }, { 1.2, 2 })
-		eq(base, 33, "base")
-		eq(total, 79, "total") -- 33 * 2.4 = 79.2
+		eq(base, "33", "base")
+		eq(total, "79", "total") -- 33 * 2.4 = 79.2
 	end,
 	["sell: empty bag pays nothing"] = function()
 		local base, total = Economy.sellTotal({}, { 2 })
-		eq(base, 0, "base")
-		eq(total, 0, "total")
+		eq(base, "0", "base")
+		eq(total, "0", "total")
 	end,
 	["sell: rejects negative, NaN and infinite input"] = function()
 		throws(function()
@@ -50,13 +50,13 @@ return {
 	["upgrade: affordable"] = function()
 		local c = Economy.checkUpgrade(BACKPACK, 3, 1000)
 		eq(c.Ok, true, "ok")
-		eq(c.Cost, 1000, "cost")
+		eq(c.Cost, "1000", "cost")
 	end,
 	["upgrade: one coin short"] = function()
 		local c = Economy.checkUpgrade(BACKPACK, 3, 999)
 		eq(c.Ok, false, "ok")
 		eq(c.Reason, "short", "reason")
-		eq(c.Short, 1, "short")
+		eq(c.Short, "1", "short")
 	end,
 	["upgrade: maxed"] = function()
 		local c = Economy.checkUpgrade(BACKPACK, 5, 1e9)
@@ -69,16 +69,29 @@ return {
 		end
 		eq(Economy.checkUpgrade(BACKPACK, 0, 0 / 0).Reason, "invalid", "NaN coins")
 	end,
+	["sell: exact past 2^53, items given as strings"] = function()
+		local base, total = Economy.sellTotal({ "9000000000000000000000", 1 }, { 1.5 })
+		eq(base, "9000000000000000000001", "base exact")
+		eq(total, "13500000000000000000001", "x1.5, floor of ...001.5")
+	end,
+	["upgrade: priced in sextillions, paid in septillions"] = function()
+		local costs = { "1000000000000000000000" }
+		local c = Economy.checkUpgrade(costs, 0, "999999999999999999999")
+		eq(c.Reason, "short", "one coin short of 1 Sx")
+		eq(c.Short, "1", "exactly 1")
+		eq(Economy.checkUpgrade(costs, 0, "1000000000000000000000000").Ok, true, "1 Sp affords it")
+	end,
 	["tool: buy, own once, short and invalid"] = function()
 		local ok = Economy.checkTool(2500, nil, 2600)
 		eq(ok.Ok, true, "affordable")
-		eq(ok.Cost, 2500, "cost")
+		eq(ok.Cost, "2500", "cost")
 		eq(Economy.checkTool(2500, true, 9999).Reason, "maxed", "already owned")
 		local short = Economy.checkTool(2500, false, 2000)
 		eq(short.Reason, "short", "short")
-		eq(short.Short, 500, "short by")
+		eq(short.Short, "500", "short by")
 		eq(Economy.checkTool(2500, nil, 0 / 0).Reason, "invalid", "NaN coins")
-		eq(Economy.checkTool("2500", nil, 9999).Reason, "invalid", "string cost")
+		eq(Economy.checkTool("25x0", nil, 9999).Reason, "invalid", "garbage cost")
+		eq(Economy.checkTool("2500", nil, "9999").Ok, true, "digit-string cost and coins")
 		eq(Economy.checkTool(2500, "yes", 2500).Ok, true, "only true counts as owned")
 	end,
 }

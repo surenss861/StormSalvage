@@ -1,0 +1,21 @@
+Arithmetic (Lune, this machine):
+compare, 20 digits                                0.03 us/op
+compare, 303 digits                               0.04 us/op
+add, 20 digits                                    2.65 us/op
+add, 303 digits                                  22.31 us/op
+sub, 303 digits                                  16.59 us/op
+x1.5 (mulFactors), 303 digits                    46.09 us/op
+x1.5 x2 (two factors), 303 digits                93.98 us/op
+mul 151 x 151 digits                            102.52 us/op
+parse/validate, 303 digits                        6.40 us/op
+compact format, 303 digits                        6.63 us/op
+full format (403 chars), 303 digits              13.74 us/op
+Wallet.earn (sale), 300-digit balance            42.86 us/op
+Wallet.spend, 300-digit balance                  25.47 us/op
+
+Sizes (JSON):
+legacy money fields (RC10, at 1 Qa)              71 bytes
+schema 2 money (Wallet + mirror), 1.25 Qi       226 bytes
+schema 2 money (Wallet + mirror), MAX           794 bytes
+PlayerState money fields at MAX                 953 bytes
+DataStore value limit: 4,194,304 bytes per key

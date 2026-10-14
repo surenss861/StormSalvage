@@ -16,7 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Bands = require(ReplicatedStorage.Shared:WaitForChild("Bands"))
-local Money = require(ReplicatedStorage.Shared:WaitForChild("Money"))
+local BigMoney = require(ReplicatedStorage.Shared:WaitForChild("BigMoney"))
 local Progression = require(ReplicatedStorage.Shared:WaitForChild("Progression"))
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local UI = require(script.Parent:WaitForChild("UI"))
@@ -160,7 +160,7 @@ function Tools.refresh()
 		tag.PriceText.Text = if have then "OWNED" else UI.comma(cost)
 		tag.Price.BackgroundColor3 = if have
 			then Color3.fromRGB(80, 170, 90)
-			elseif state.Coins >= cost then M.Orange
+			elseif BigMoney.gte(state.Coins, BigMoney.of(cost)) then M.Orange
 			else Color3.fromRGB(176, 166, 148)
 		local active = id == selected
 		tag.Stroke.Color = if active then M.Orange else M.KraftEdge
@@ -210,7 +210,7 @@ function Tools.refresh()
 		facts.TextColor3 = Color3.fromRGB(34, 130, 56)
 		stampText.Text = "OWNED"
 	end
-	wallet.Text = ("YOU HAVE %s COINS"):format(Money.full(state.Coins))
+	wallet.Text = ("YOU HAVE %s COINS"):format(BigMoney.full(state.Coins))
 	stamp.Visible = owned(selected)
 	if owned(selected) then
 		buy.Text = if license
@@ -220,11 +220,13 @@ function Tools.refresh()
 	elseif not ready then
 		buy.Text = "FINISH THE CHECKLIST FIRST"
 		buy:SetAttribute("Disabled", true)
-	elseif state.Coins < cost then
-		buy.Text = ("NEED %s MORE"):format(Money.full(cost - state.Coins))
+	elseif BigMoney.lt(state.Coins, BigMoney.of(cost)) then
+		buy.Text = ("NEED %s MORE"):format(
+			BigMoney.full(BigMoney.sub(BigMoney.of(cost), state.Coins) :: string)
+		)
 		buy:SetAttribute("Disabled", true)
 	else
-		buy.Text = ("BUY  ·  %s COINS"):format(Money.full(cost))
+		buy.Text = ("BUY  ·  %s COINS"):format(BigMoney.full(cost))
 		buy:SetAttribute("Disabled", false)
 	end
 end

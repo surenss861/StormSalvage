@@ -8,13 +8,16 @@
 -- only ask to show a title they own ("showTitle"); the shown title's name goes on the Player as
 -- the "Title" attribute for nameplates.
 -- The player card: any client may ask for another player's card (Inspect, rate-limited) and gets
--- only public facts: rank, band, shown title, lifetime earned, extraction records, the Salvage Log
--- count. Never the coin balance, never anything a client sent.
+-- only public facts: rank, band, shown title, lifetime earned, net worth (the owner's status
+-- design: cash plus owned assets), extraction records, the Salvage Log count. Never anything a
+-- client sent.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Bands = require(ReplicatedStorage.Shared.Bands)
+local BigMoney = require(ReplicatedStorage.Shared.BigMoney)
+local Wallet = require(ReplicatedStorage.Shared.Wallet)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -36,7 +39,7 @@ local function viewOf(data: any): Titles.View
 		Found = if type(data.Collection) == "table" and type(data.Collection.Found) == "table"
 			then data.Collection.Found
 			else {},
-		TotalEarned = data.Stats and data.Stats.TotalEarned or 0,
+		TotalEarned = Wallet.lifetime(data),
 		Licenses = if type(data.Licenses) == "table" then data.Licenses else {},
 	}
 end
@@ -83,6 +86,37 @@ local function onAction(player: Player, action: unknown, arg: unknown)
 	PlayerService.pushState(player)
 end
 
+-- Net worth: cash plus what the player's permanent things cost (upgrade levels, tools, licences,
+-- nameplate finishes), exact. Spending moves value from cash into assets; it never drops.
+function StatusService.netWorth(data: any): string
+	local total = Wallet.cash(data)
+	for id, def in Config.Upgrades do
+		local level = data.Upgrades[id] or 0
+		for i = 1, math.min(level, #def.Costs) do
+			total = BigMoney.add(total, BigMoney.of(def.Costs[i]))
+		end
+	end
+	for id, owned in (data.Tools and data.Tools.Owned or {}) :: { [string]: boolean } do
+		local def = Config.Tools[id]
+		if owned and def then
+			total = BigMoney.add(total, BigMoney.of(def.Cost))
+		end
+	end
+	for id, held in (data.Licenses or {}) :: { [string]: boolean } do
+		local def = Bands.Licenses[id]
+		if held and def then
+			total = BigMoney.add(total, BigMoney.of(def.Cost))
+		end
+	end
+	for id, owned in data.Cosmetics.Owned :: { [string]: boolean } do
+		local f = Progression.finish(id)
+		if owned and f then
+			total = BigMoney.add(total, BigMoney.of(f.Cost))
+		end
+	end
+	return BigMoney.cap(total)
+end
+
 -- The public card for `player`.
 function StatusService.card(player: Player): { [string]: any }?
 	local session = PlayerService.get(player)
@@ -110,7 +144,8 @@ function StatusService.card(player: Player): { [string]: any }?
 		Titles = owned,
 		TitlesTotal = #Titles.List,
 		Plate = data.Cosmetics.Plate,
-		LifetimeEarned = data.Stats.TotalEarned,
+		LifetimeEarned = Wallet.lifetime(data), -- exact BigMoney strings
+		NetWorth = StatusService.netWorth(data),
 		Extractions = records.Extractions or 0,
 		BestExtract = records.BestExtract or 0,
 		BestStreak = records.BestStreak or 0,

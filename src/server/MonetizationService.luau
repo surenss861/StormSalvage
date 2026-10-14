@@ -30,7 +30,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
-local Money = require(ReplicatedStorage.Shared.Money)
+local Wallet = require(ReplicatedStorage.Shared.Wallet)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local PlayerService = require(script.Parent.PlayerService)
@@ -90,7 +90,10 @@ local function coinPack(key: string, coins: number): Product
 		Key = key,
 		Coins = coins,
 		apply = function(data)
-			data.Coins = Money.grant(data.Coins, coins)
+			-- A fixed amount, decided by the product (never by the player's state at delivery
+			-- time), applied in the same write as the PurchaseId. Bought coins are cash, not
+			-- earnings, so they never count toward wealth titles.
+			Wallet.deposit(data, coins)
 		end,
 		message = ("+%s coins delivered. Thanks for the support!"):format(tostring(coins)),
 	}

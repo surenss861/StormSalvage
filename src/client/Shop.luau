@@ -16,7 +16,7 @@ local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local SupplyCounter = require(script.Parent:WaitForChild("SupplyCounter"))
 local Tools = require(script.Parent:WaitForChild("Tools"))
 local UI = require(script.Parent:WaitForChild("UI"))
-local Money = require(ReplicatedStorage.Shared:WaitForChild("Money"))
+local BigMoney = require(ReplicatedStorage.Shared:WaitForChild("BigMoney"))
 
 local Shop = {}
 local M = UI.Mat
@@ -82,8 +82,14 @@ local function locked(def: any): boolean
 end
 
 -- Price stickers are small: full digits up to 99,999, compact above ("150K", "2.50M").
-local function sticker(n: number): string
-	return if n < 100000 then UI.comma(n) else Money.compact(n)
+local function sticker(n: number | string): string
+	local v = BigMoney.of(n)
+	return if #v <= 5 then BigMoney.full(v) else BigMoney.compact(v)
+end
+
+-- Can the player (state.Coins, an exact string) afford `cost` (a number or a string)?
+local function affords(cost: number | string): boolean
+	return BigMoney.gte(state.Coins, BigMoney.of(cost))
 end
 
 local function makeTile(rack: Instance, id: string, order: number): Tile
@@ -365,9 +371,7 @@ function Shop.refresh()
 			tile.Price.BackgroundColor3 = Color3.fromRGB(120, 110, 96)
 		elseif cost then
 			tile.PriceText.Text = sticker(cost)
-			tile.Price.BackgroundColor3 = if state.Coins >= cost
-				then M.Orange
-				else Color3.fromRGB(176, 166, 148)
+			tile.Price.BackgroundColor3 = if affords(cost) then M.Orange else Color3.fromRGB(176, 166, 148)
 		else
 			tile.PriceText.Text = "MAX"
 			tile.Price.BackgroundColor3 = Color3.fromRGB(80, 170, 90)
@@ -400,7 +404,7 @@ function Shop.refresh()
 	sheetTitle.Text = def.DisplayName
 	sheetDesc.Text = def.Description
 	sheetLevel.Text = ("LEVEL %d / %d"):format(level, #def.Costs)
-	wallet.Text = ("YOU HAVE %s COINS"):format(UI.comma(state.Coins))
+	wallet.Text = ("YOU HAVE %s COINS"):format(BigMoney.full(state.Coins))
 
 	for _, c in track:GetChildren() do
 		if c:IsA("Frame") then
@@ -431,15 +435,16 @@ function Shop.refresh()
 		sheetNext.Text = formatValue(selected, def.Values[level + 2])
 		sheetArrow.Visible = true
 		sheetNext.Visible = true
-		local short = cost - state.Coins
 		if locked(def) then
 			buy.Text = "NEEDS THE PRO LICENSE (TOOLS TAB)"
 			buy:SetAttribute("Disabled", true)
-		elseif short > 0 then
-			buy.Text = ("NEED %s MORE"):format(UI.comma(short))
+		elseif not affords(cost) then
+			buy.Text = ("NEED %s MORE"):format(
+				BigMoney.full(BigMoney.sub(BigMoney.of(cost), state.Coins) :: string)
+			)
 			buy:SetAttribute("Disabled", true)
 		else
-			buy.Text = ("BUY  ·  %s COINS"):format(UI.comma(cost))
+			buy.Text = ("BUY  ·  %s COINS"):format(BigMoney.full(cost))
 			buy:SetAttribute("Disabled", false)
 		end
 	else

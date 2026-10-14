@@ -13,7 +13,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
-local Money = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Money"))
+local BigMoney = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BigMoney"))
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local PlateStyle = require(script.Parent:WaitForChild("PlateStyle"))
 local UI = require(script.Parent:WaitForChild("UI"))
@@ -35,6 +35,7 @@ local HARDEST = { [0] = "-", [1] = "Easy", [2] = "Hard", [3] = "Hardest" }
 
 local CELLS = {
 	{ "Earned", "LIFETIME EARNED" },
+	{ "NetWorth", "NET WORTH" },
 	{ "Extractions", "EXTRACTIONS" },
 	{ "Best", "BEST EXTRACTION" },
 	{ "Streak", "BEST CLEAN STREAK" },
@@ -60,12 +61,17 @@ function PlayerCard.show(card: any)
 	titleChip.Visible = type(card.Title) == "string"
 	titleChip.Text = if type(card.Title) == "string" then string.upper(card.Title) else ""
 	PlateStyle.apply(plateStrip, card.Plate, 2)
-	local earned = tonumber(card.LifetimeEarned) or 0
 	local function set(key: string, value: string, sub: string?)
 		cells[key].Value.Text = value
 		cells[key].Sub.Text = sub or ""
 	end
-	set("Earned", Money.compact(earned), Money.full(earned))
+	-- Exact strings from the server: compact on the card, every digit underneath while it fits.
+	local function wealth(key: string, v: unknown)
+		local amount = BigMoney.parse(v) or "0"
+		set(key, BigMoney.compact(amount), if #amount <= 15 then BigMoney.full(amount) else "")
+	end
+	wealth("Earned", card.LifetimeEarned)
+	wealth("NetWorth", card.NetWorth)
 	set("Extractions", tostring(card.Extractions or 0))
 	set("Best", if (card.BestExtract or 0) > 0 then ("%.1f s"):format(card.BestExtract) else "-")
 	set("Streak", tostring(card.BestStreak or 0), "in a row, never caught")
@@ -202,7 +208,7 @@ function PlayerCard.init(root: Frame)
 		ZIndex = 21,
 	}, {
 		UI.new("UIGridLayout", {
-			CellSize = UDim2.new(0.25, -6, 0.5, -6),
+			CellSize = UDim2.new(1 / 3, -6, 1 / 3, -6),
 			CellPadding = UDim2.fromOffset(6, 6),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),

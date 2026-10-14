@@ -27,6 +27,7 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+local Wallet = require(game:GetService("ReplicatedStorage").Shared.Wallet)
 local DataService = require(script.Parent.DataService)
 local DodgeService = require(script.Parent.DodgeService)
 local LookService = require(script.Parent.LookService)
@@ -97,14 +98,15 @@ local commands: { [string]: (...any) -> any } = {
 		end
 		return index ~= nil
 	end,
-	-- Set a player's coins (restoring a test account after purchase tests).
-	setcoins = function(playerName: string, amount: number)
+	-- Set a player's cash exactly (a number or a digit string; restoring a test account after
+	-- purchase tests, or big-number tests).
+	setcoins = function(playerName: string, amount: number | string)
 		local player = Players:FindFirstChild(playerName)
 		local session = player and player:IsA("Player") and PlayerService.get(player)
 		assert(session, "no session")
-		session.Data.Coins = amount
+		Wallet.setCashForTest(session.Data, amount)
 		PlayerService.pushState(player :: Player)
-		return amount
+		return Wallet.cash(session.Data)
 	end,
 	-- V4 events: start one now. event("Pursuit" | "Extraction" | "Rush", siteId) or eventnext().
 	event = function(kind: string, siteId: string, prize: string?)
@@ -152,8 +154,9 @@ local commands: { [string]: (...any) -> any } = {
 		assert(session, "no session")
 		local d = session.Data
 		return {
-			Coins = d.Coins,
-			TotalEarned = d.Stats.TotalEarned,
+			Coins = Wallet.cash(d),
+			TotalEarned = Wallet.lifetime(d),
+			Mirror = { Coins = d.Coins, TotalEarned = d.Stats.TotalEarned },
 			XP = d.Rep.XP,
 			Records = d.Records,
 			Licenses = d.Licenses,
@@ -256,7 +259,7 @@ local commands: { [string]: (...any) -> any } = {
 			local session = PlayerService.get(player)
 			if session then
 				players[player.Name] = {
-					Coins = session.Data.Coins,
+					Coins = Wallet.cash(session.Data),
 					Carried = table.clone(session.Carried),
 					Capacity = PlayerService.getCapacity(session),
 					Upgrades = table.clone(session.Data.Upgrades),

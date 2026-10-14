@@ -11,7 +11,7 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local Bands = require(ReplicatedStorage.Shared.Bands)
 local Config = require(ReplicatedStorage.Shared.Config)
-local Money = require(ReplicatedStorage.Shared.Money)
+local BigMoney = require(ReplicatedStorage.Shared.BigMoney)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Shelter = require(ReplicatedStorage.Shared.Shelter)
 local PlayerService = require(script.Parent.PlayerService)
@@ -184,7 +184,7 @@ local function createLoot(
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Grab"
-	prompt.ObjectText = ("%s  (%s)"):format(def.Name, Money.full(def.Value))
+	prompt.ObjectText = ("%s  (%s)"):format(def.Name, BigMoney.full(def.Value))
 	if def.License then
 		-- Band 2 salvage: everyone sees it, only licence holders can take it.
 		item:SetAttribute("Class", def.Class)

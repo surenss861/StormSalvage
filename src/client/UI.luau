@@ -257,7 +257,7 @@ end
 
 -- Counts a label up from `from` to `to` over `seconds`, formatting each value with `format`.
 -- Returns a cancel function. Purely visual: the true number is always shown at the end.
--- `format` is a string.format pattern ("%d") or a function (e.g. Money.tag).
+-- `format` is a string.format pattern ("%d") or a function (e.g. BigMoney.tag).
 function UI.countUp(
 	label: TextLabel,
 	from: number,

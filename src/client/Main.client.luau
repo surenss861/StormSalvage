@@ -30,6 +30,7 @@ local Movement = require(script.Parent:WaitForChild("Movement"))
 local Dodge = require(script.Parent:WaitForChild("Dodge"))
 local CharacterAnims = require(script.Parent:WaitForChild("CharacterAnims"))
 local PlayerCard = require(script.Parent:WaitForChild("PlayerCard"))
+local BigMoney = require(ReplicatedStorage.Shared:WaitForChild("BigMoney"))
 local PursuitHud = require(script.Parent:WaitForChild("PursuitHud"))
 local Nameplates = require(script.Parent:WaitForChild("Nameplates"))
 local Notifications = require(script.Parent:WaitForChild("Notifications"))
@@ -163,10 +164,12 @@ local function updateHint()
 		Notifications.setHint(Jobs.pinnedLine(s))
 	elseif s.Stats.ItemsSold > 0 then
 		local cost = cheapestUpgrade(s)
-		if cost and s.Coins >= cost then
+		if cost and BigMoney.gte(s.Coins, BigMoney.of(cost)) then
 			Notifications.setHint("You can afford gear! Visit the Gear Shop in the Scrapyard")
 		elseif #s.Carried == 0 then
-			Notifications.setHint(("Salvage more: next upgrade costs %d coins"):format(cost or 0))
+			Notifications.setHint(
+				("Salvage more: next upgrade costs %s coins"):format(BigMoney.full(cost or 0))
+			)
 		else
 			Notifications.setHint(Jobs.pinnedLine(s))
 		end

@@ -18,7 +18,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local SalvageLog = require(ReplicatedStorage.Shared.SalvageLog)
-local Money = require(ReplicatedStorage.Shared.Money)
+local BigMoney = require(ReplicatedStorage.Shared.BigMoney)
+local Wallet = require(ReplicatedStorage.Shared.Wallet)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local PlayerService = require(script.Parent.PlayerService)
@@ -106,9 +107,7 @@ local function apply(player: Player, event: Progression.Event)
 			job.Progress = math.min(job.Target, job.Progress + step)
 			if job.Progress >= job.Target then
 				-- Complete: reward, then a fresh job in the same slot, all before anything yields.
-				local added
-				data.Coins, added = Money.grant(data.Coins, job.Coins)
-				data.Stats.TotalEarned = Money.grant(data.Stats.TotalEarned, added)
+				Wallet.earn(data, job.Coins)
 				c.Done += 1
 				local text = Progression.describe(job)
 				local replacement = Progression.make(
@@ -262,13 +261,13 @@ local function onAction(player: Player, action: unknown, arg: unknown)
 			end
 		end
 	elseif action == "buyFinish" then
-		local ok, why = Progression.canBuyFinish(arg, data.Coins, data.Rep.XP, data.Cosmetics.Owned)
+		local ok, why = Progression.canBuyFinish(arg, Wallet.cash(data), data.Rep.XP, data.Cosmetics.Owned)
 		if not ok then
 			local f = Progression.finish(arg)
 			PlayerService.notify(
 				player,
 				if why == "short" and f
-					then ("Need %d more coins."):format(f.Cost - data.Coins)
+					then ("Need %s more coins."):format(BigMoney.full(Wallet.shortBy(data, f.Cost)))
 					elseif why == "rank" and f then ("Reach %s to unlock this finish."):format(
 						Progression.Ranks[f.Rank].Title
 					)
@@ -278,11 +277,9 @@ local function onAction(player: Player, action: unknown, arg: unknown)
 			return
 		end
 		local f = Progression.finish(arg) :: Progression.Finish
-		local paid, after = Money.spend(data.Coins, f.Cost)
-		if not paid then
+		if not Wallet.spend(data, f.Cost) then
 			return
 		end
-		data.Coins = after
 		data.Cosmetics.Owned[f.Id] = true
 		data.Cosmetics.Plate = f.Id
 		publish(player, data)

@@ -16,6 +16,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 local Progression = require(ReplicatedStorage.Shared:WaitForChild("Progression"))
 local SalvageLog = require(ReplicatedStorage.Shared:WaitForChild("SalvageLog"))
 local Titles = require(ReplicatedStorage.Shared:WaitForChild("Titles"))
+local BigMoney = require(ReplicatedStorage.Shared:WaitForChild("BigMoney"))
 local PlayerCard = require(script.Parent:WaitForChild("PlayerCard"))
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local PlateStyle = require(script.Parent:WaitForChild("PlateStyle"))
@@ -903,9 +904,11 @@ function Jobs.refresh()
 		elseif rank.Index < f.Rank then
 			text, color, disabled = "LOCKED", UI.Color.Disabled, true
 			note = ("%s at %s"):format(UI.comma(f.Cost), Progression.Ranks[f.Rank].Title)
-		elseif state.Coins < f.Cost then
+		elseif BigMoney.lt(state.Coins, BigMoney.of(f.Cost)) then
 			text, color, disabled = ("%s COINS"):format(UI.comma(f.Cost)), UI.Color.Disabled, false
-			note = ("Need %s more"):format(UI.comma(f.Cost - state.Coins))
+			note = ("Need %s more"):format(
+				BigMoney.full(BigMoney.sub(BigMoney.of(f.Cost), state.Coins) :: string)
+			)
 		else
 			text, color, disabled, note = ("BUY · %s"):format(UI.comma(f.Cost)), M.Orange, false, "Coins"
 		end

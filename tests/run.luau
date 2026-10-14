@@ -10,8 +10,9 @@ local specs = {
 	require("./pursuit.spec"),
 	require("./salvagelog.spec"),
 	require("./moverules.spec"),
-	require("./money.spec"),
 	require("./titles.spec"),
+	require("./bigmoney.spec"),
+	require("./wallet.spec"),
 }
 local passed, failed = 0, 0
 for _, spec in specs do
