@@ -16,6 +16,7 @@ local specs = {
 	require("./rollback.spec"),
 	require("./restore.spec"),
 	require("./leaderboard.spec"),
+	require("./coop.spec"),
 }
 local passed, failed = 0, 0
 for _, spec in specs do

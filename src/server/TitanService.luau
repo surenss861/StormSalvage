@@ -13,7 +13,9 @@
 --   * inside InnerRadius it hurts and drains your siphon;
 --   * the pull drags you inward (drawn and applied on your client, like the storm's wind; the
 --     Rig resists it), and telegraphed debris strikes fall where siphoners are heading.
--- A full siphon forms a Mythic Core at your feet (going down loses your siphon). Its kind is drawn at the published odds
+-- A full siphon forms a Mythic Core at your feet, yours alone (owner-only). Going down loses
+-- your siphon; standing still adds nothing (IdleSeconds); a partial siphon when the Titan ends
+-- pays coins (Coop.consolation), once. Its kind is drawn at the published odds
 -- (Bands.Mythic) and announced with those odds; anyone licensed can grab it, so carry it home.
 -- Server-authoritative: the Titan's position, each siphon and every draw are decided here.
 -- Clients get TitanState (where it is) and their own siphon as the TitanSiphon attribute.
@@ -22,7 +24,9 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Bands = require(ReplicatedStorage.Shared.Bands)
+local BigMoney = require(ReplicatedStorage.Shared.BigMoney)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Coop = require(ReplicatedStorage.Shared.Coop)
 local Pursuit = require(ReplicatedStorage.Shared.Pursuit)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local ContractService = require(script.Parent.ContractService)
@@ -47,6 +51,7 @@ type Titan = {
 	NodeDir: number,
 	FlipAt: number,
 	InhaleAt: number, -- server time the next inhale starts (its warning runs before it)
+	Moved: { [Player]: { At: Vector3, Clock: number } }, -- last real movement (no idle siphoning)
 }
 local current: Titan? = nil
 local rngSeed = os.time()
@@ -103,7 +108,8 @@ local function formCore(t: Titan, player: Player, at: Vector3)
 	end
 	ContractService.awardXP(player, 80)
 	SessionStats.event(player, "TitanCore_" .. m.Id, 1)
-	LootService.spawnSpecial(m.Id, at, T.CoreSeconds, function(taker)
+	-- Their siphon, their core: owner-only, so nobody can snatch it from the person who earned it.
+	LootService.spawnFor(player, m.Id, at, T.CoreSeconds, function(taker)
 		if taker then
 			SessionStats.event(taker, "TitanCoreTaken", 1)
 		end
@@ -162,6 +168,7 @@ function TitanService.run(duration: number, force: boolean?)
 		NodeDir = if rng:NextNumber() < 0.5 then -1 else 1,
 		FlipAt = os.clock() + rng:NextNumber(6, 11),
 		InhaleAt = workspace:GetServerTimeNow() + T.InhaleEvery,
+		Moved = {},
 	}
 	current = t
 	broadcast()
@@ -217,12 +224,22 @@ function TitanService.run(duration: number, force: boolean?)
 			if licensed then
 				player:SetAttribute("TitanInNode", inNode or nil)
 			end
+			-- Only a player who's working siphons: the node moves, so working it means steering.
+			-- Uses the player's own move input (Humanoid.MoveDirection), not position, because
+			-- the Titan's pull drags an idle player around. Standing still or AFK adds nothing.
+			local moved = t.Moved[player]
+			local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+			if root and humanoid and humanoid.MoveDirection.Magnitude > 0.1 then
+				t.Moved[player] = { At = root.Position, Clock = os.clock() }
+				moved = t.Moved[player]
+			end
+			local active = moved ~= nil and os.clock() - moved.Clock < T.IdleSeconds
 			if root and d < T.InnerRadius then
 				PlayerService.damage(player, T.CoreDamagePerSecond * dt * (if inhaling then 2 else 1))
 				if licensed and t.Siphon[player] then
 					t.Siphon[player] = math.max(0, t.Siphon[player] - T.DrainPerSecond * dt)
 				end
-			elseif root and licensed and d <= T.OuterRadius then
+			elseif root and licensed and active and d <= T.OuterRadius then
 				local rate = rigSpeed(player) / T.SiphonSeconds * (if inNode then 1 else T.RingRate)
 				local s = (t.Siphon[player] or 0) + dt * rate
 				if s >= 1 then
@@ -250,6 +267,24 @@ function TitanService.run(duration: number, force: boolean?)
 	end
 	if current == t then
 		current = nil
+		-- Work that didn't reach a core still counts: a partial siphon pays coins (earned, so it
+		-- counts toward lifetime), once, to whoever's still here.
+		for player, progress in t.Siphon do
+			local coins = Coop.consolation(progress, T.ConsolationFloor, T.ConsolationValue)
+			if coins > 0 and player.Parent then
+				PlayerService.addCoins(player, coins)
+				SessionStats.event(player, "TitanConsolation", coins)
+				PlayerService.notify(
+					player,
+					("The Titan broke up. Your %d%% siphon is worth %s coins."):format(
+						math.floor(progress * 100),
+						BigMoney.full(coins)
+					),
+					COLOR
+				)
+			end
+		end
+		t.Siphon = {}
 		for _, player in Players:GetPlayers() do
 			player:SetAttribute("TitanSiphon", nil)
 			player:SetAttribute("TitanInNode", nil)

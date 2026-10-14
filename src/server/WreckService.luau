@@ -17,8 +17,11 @@
 -- press the prompt again.
 -- A crew splits up: every lock being cut at once speeds up all of them (Bands.crewBonus), and
 -- the charges keep one pace for the whole wreck, so each cutter dodges fewer.
--- Each cut lock drops a Strongbox. With every lock cut the vault opens: bullion bars for
--- everyone (more with more cutters) and, at announced odds, the Crown Jewels. Vault salvage is
+-- Fair shares: work is the cut progress each player actually added (by user id, so a rejoin
+-- keeps it). A lock's Strongbox goes to whoever cut most of it; the vault's bars are split by
+-- work among everyone with at least MinShare of it (Coop.shares), as owner-only salvage at
+-- their feet; the Crown Jewels (announced odds) are drawn weighted by work. Standing nearby,
+-- touching a lock for a second or arriving at the end earns nothing. Vault salvage is
 -- Heavy-licence loot, sold at the Scrap Buyer like any salvage.
 -- It runs when someone in the server holds the Heavy licence, and ends before the storm warning.
 -- Server-authoritative: progress, hits and drops are all decided here; clients draw WreckState.
@@ -29,6 +32,7 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local Bands = require(ReplicatedStorage.Shared.Bands)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Coop = require(ReplicatedStorage.Shared.Coop)
 local Pursuit = require(ReplicatedStorage.Shared.Pursuit)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local ContractService = require(script.Parent.ContractService)
@@ -45,14 +49,21 @@ local W = Bands.Wreck
 local COLOR = Color3.fromRGB(255, 190, 80)
 local remote: RemoteEvent
 
-type Lock = { Part: BasePart, Progress: number, Cut: boolean, Cutters: { [Player]: true }, Bar: Frame? }
+type Lock = {
+	Part: BasePart,
+	Progress: number,
+	Cut: boolean,
+	Cutters: { [Player]: true },
+	Bar: Frame?,
+	Work: { [string]: number }, -- cut progress each player added to this lock, by user id
+}
 type Wreck = {
 	Id: number,
 	Site: string,
 	Model: Model,
 	Locks: { Lock },
 	EndsAt: number,
-	Helpers: { [Player]: true }, -- everyone who cut at least a little (vault credit)
+	Work: { [string]: number }, -- all cut progress each player added, by user id (survives a rejoin)
 	Opened: boolean,
 	Items: { Instance },
 	ActiveLocks: number, -- locks being cut this tick (the crew bonus)
@@ -142,8 +153,9 @@ local function rootOf(player: Player): BasePart?
 	return character:FindFirstChild("HumanoidRootPart") :: BasePart?
 end
 
-local function spill(w: Wreck, lootId: string, at: Vector3)
-	local item = LootService.spawnSpecial(lootId, at, W.ItemSeconds, function(player)
+-- A reward that only `owner` can pick up (their share: nobody can sweep the vault).
+local function award(w: Wreck, owner: Player, lootId: string, at: Vector3)
+	local item = LootService.spawnFor(owner, lootId, at, W.ItemSeconds, function(player)
 		if player then
 			SessionStats.event(player, "Vault_" .. lootId, 1)
 		end
@@ -151,34 +163,72 @@ local function spill(w: Wreck, lootId: string, at: Vector3)
 	table.insert(w.Items, item)
 end
 
+local function playerOf(id: string): Player?
+	local userId = tonumber(id)
+	return if userId then Players:GetPlayerByUserId(userId) else nil
+end
+
+-- The vault: every contributor (by measured cutting, at least MinShare of the work) gets their
+-- share of the bars as owner-only salvage at their feet, and the Crown Jewels (at the announced
+-- odds) go to one of them, drawn weighted by work. Players who left before it opened forfeit
+-- (their share is not paid to anyone else either: the split is by work, not by who's left).
 local function openVault(w: Wreck)
 	w.Opened = true
-	local cutters = 0
-	for player in w.Helpers do
-		if player.Parent then
-			cutters += 1
+	local eligible = Coop.eligible(w.Work, W.MinShare)
+	local bars = Bands.barsFor(#eligible)
+	local split = Coop.shares(w.Work, bars, W.MinShare)
+	local total = 0
+	for _, v in w.Work do
+		total += v
+	end
+	local rear = w.Model:GetPivot() * CFrame.new(-11, 0, 0)
+	for _, id in eligible do
+		local player = playerOf(id)
+		if player then
 			local r = records(player)
 			if r then
 				r.VaultsOpened += 1
 			end
 			ContractService.awardXP(player, 60)
+			local root = rootOf(player)
+			local at = if root then root.Position else rear.Position
+			for k = 1, split[id] or 0 do
+				local a = k * 1.3
+				award(w, player, "BullionBar", at + Vector3.new(math.cos(a) * 3, 0, math.sin(a) * 3))
+			end
+			PlayerService.notify(
+				player,
+				("Your share of the vault: %d bullion bar%s (%d%% of the cutting)."):format(
+					split[id] or 0,
+					if (split[id] or 0) == 1 then "" else "s",
+					math.floor((w.Work[id] or 0) / math.max(total, 1e-9) * 100 + 0.5)
+				),
+				COLOR
+			)
 			PlayerService.pushState(player)
 		end
 	end
-	local rear = w.Model:GetPivot() * CFrame.new(-11, 0, 0)
-	local bars = Bands.barsFor(cutters)
-	for i = 1, bars do
-		local a = (i / bars) * math.pi - math.pi / 2
-		spill(w, "BullionBar", (rear * CFrame.new(-math.cos(a) * 3, 0, math.sin(a) * 5)).Position)
-	end
-	local jewels = math.random() < W.JewelChance
-	if jewels then
-		spill(w, "CrownJewels", (rear * CFrame.new(-4.5, 0, 0)).Position)
+	local winner: Player? = nil
+	if math.random() < W.JewelChance then
+		local id = Coop.weightedPick(w.Work, math.random(), W.MinShare)
+		winner = if id then playerOf(id) else nil
+		if winner then
+			local root = rootOf(winner)
+			award(
+				w,
+				winner,
+				"CrownJewels",
+				if root then root.Position + Vector3.new(0, 0, 3) else rear.Position
+			)
+		end
 	end
 	PlayerService.notifyAll(
-		if jewels
-			then ("THE VAULT IS OPEN: %d bullion bars and the CROWN JEWELS!"):format(bars)
-			else ("THE VAULT IS OPEN: %d bullion bars spilled out!"):format(bars),
+		if winner
+			then ("THE VAULT IS OPEN! %s won the CROWN JEWELS draw. %d bars shared by the crew."):format(
+				winner.DisplayName,
+				bars
+			)
+			else ("THE VAULT IS OPEN: %d bullion bars shared by the crew."):format(bars),
 		COLOR
 	)
 	for _, light in w.Model:GetChildren() do
@@ -193,13 +243,19 @@ local function cutLock(w: Wreck, lock: Lock)
 	lock.Cut = true
 	lock.Progress = 1
 	for player in lock.Cutters do
-		local r = records(player)
-		if r then
-			r.WreckLocks += 1
-		end
 		player:SetAttribute("WreckCutting", nil)
 	end
 	lock.Cutters = {}
+	-- Credit and the strongbox go by work on this lock: everyone with a real share of it gets
+	-- the lock on their record; the strongbox goes to whoever cut most of it.
+	local lockers = Coop.eligible(lock.Work, W.MinShare)
+	for _, id in lockers do
+		local player = playerOf(id)
+		local r = player and records(player)
+		if r then
+			r.WreckLocks += 1
+		end
+	end
 	local prompt = lock.Part:FindFirstChildOfClass("ProximityPrompt")
 	if prompt then
 		prompt:Destroy()
@@ -217,7 +273,10 @@ local function cutLock(w: Wreck, lock: Lock)
 		end
 	end
 	local out = w.Model:GetPivot() * CFrame.new(12, 0, (cut - 2) * 3)
-	spill(w, "Strongbox", out.Position + Vector3.new(0, 4, 0))
+	local top = lockers[1] and playerOf(lockers[1])
+	if top then
+		award(w, top, "Strongbox", out.Position + Vector3.new(0, 4, 0))
+	end
 	local left = 0
 	for _, l in w.Locks do
 		if not l.Cut then
@@ -260,7 +319,6 @@ local function startCutting(w: Wreck, lock: Lock, player: Player)
 	end
 	stopCutting(player)
 	lock.Cutters[player] = true
-	w.Helpers[player] = true
 	player:SetAttribute("WreckCutting", lock.Part.Name)
 end
 
@@ -403,7 +461,7 @@ function WreckService.start(siteId: string?, force: boolean?, seconds: number?):
 		EndsAt = if force
 			then os.clock() + (seconds or W.Seconds)
 			else math.min(os.clock() + W.Seconds, stormAt - 2),
-		Helpers = {},
+		Work = {},
 		Opened = false,
 		Items = {},
 		ActiveLocks = 0,
@@ -412,7 +470,7 @@ function WreckService.start(siteId: string?, force: boolean?, seconds: number?):
 	for i = 1, W.Locks do
 		local part = clone:FindFirstChild("Lock" .. i)
 		if part and part:IsA("BasePart") then
-			local lock: Lock = { Part = part, Progress = 0, Cut = false, Cutters = {} }
+			local lock: Lock = { Part = part, Progress = 0, Cut = false, Cutters = {}, Work = {} }
 			makeBar(lock)
 			makePrompt(w, lock)
 			table.insert(w.Locks, lock)
@@ -439,6 +497,7 @@ function WreckService.start(siteId: string?, force: boolean?, seconds: number?):
 			local dt = task.wait(0.2)
 			local cutting = false
 			local rates: { [Lock]: number } = {}
+			local speeds: { [Player]: number } = {}
 			local crew = 0
 			for _, lock in w.Locks do
 				if lock.Cut then
@@ -458,8 +517,10 @@ function WreckService.start(siteId: string?, force: boolean?, seconds: number?):
 					else
 						cutting = true -- someone is on the job: the charges keep coming
 						if d <= W.CutReach + 1 then
-							rate += cutterSpeed(player)
+							local speed = cutterSpeed(player)
+							rate += speed
 							crew += 1
+							speeds[player] = speed
 						end
 					end
 				end
@@ -475,7 +536,18 @@ function WreckService.start(siteId: string?, force: boolean?, seconds: number?):
 			w.ActiveLocks, w.Crew = active, crew
 			local bonus = Bands.crewBonus(active)
 			for lock, rate in rates do
-				lock.Progress = math.min(1, lock.Progress + dt * rate * bonus / W.CutSeconds)
+				local add = math.min(1 - lock.Progress, dt * rate * bonus / W.CutSeconds)
+				-- Work: each cutter's part of what this lock gained (by their cutter speed).
+				for player in lock.Cutters do
+					local speed = speeds[player]
+					if speed then
+						local id = tostring(player.UserId)
+						local share = add * speed / rate
+						lock.Work[id] = (lock.Work[id] or 0) + share
+						w.Work[id] = (w.Work[id] or 0) + share
+					end
+				end
+				lock.Progress = math.min(1, lock.Progress + add)
 				lock.Part:SetAttribute("Sparking", true)
 				if lock.Bar then
 					lock.Bar.Size = UDim2.fromScale(lock.Progress, 1)
@@ -520,6 +592,18 @@ function WreckService.qaProgress(index: number, progress: number): boolean
 	return true
 end
 
+-- Studio QA: add `amount` of cutting work for `userId` (a stand-in for a crew member, who may
+-- not be in the server: that tests the forfeit rule).
+function WreckService.qaWork(userId: number, amount: number): boolean
+	local w = current
+	if not w then
+		return false
+	end
+	local id = tostring(userId)
+	w.Work[id] = (w.Work[id] or 0) + amount
+	return true
+end
+
 function WreckService.state(): { [string]: any }?
 	local w = current
 	if not w then
@@ -539,7 +623,14 @@ function WreckService.state(): { [string]: any }?
 			Position = lock.Part.Position,
 		})
 	end
-	return { Id = w.Id, Site = w.Site, Opened = w.Opened, Locks = locks, Left = w.EndsAt - os.clock() }
+	return {
+		Id = w.Id,
+		Site = w.Site,
+		Opened = w.Opened,
+		Locks = locks,
+		Left = w.EndsAt - os.clock(),
+		Work = table.clone(w.Work),
+	}
 end
 
 function WreckService.init()

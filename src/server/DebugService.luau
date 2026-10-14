@@ -213,6 +213,9 @@ local commands: { [string]: (...any) -> any } = {
 		require(script.Parent.LeaderboardService).qaFlush(player)
 		return true
 	end,
+	wreckwork = function(userId: number, amount: number)
+		return require(script.Parent.WreckService).qaWork(userId, amount)
+	end,
 	wreckstate = function()
 		return require(script.Parent.WreckService).state()
 	end,

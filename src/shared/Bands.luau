@@ -178,6 +178,7 @@ Bands.Wreck = {
 	JewelChance = 0.25, -- real odds, announced when it spills
 	ItemSeconds = 40, -- vault salvage left on the ground this long
 	CrewBonus = 0.2, -- per extra lock cut at the same time
+	MinShare = 0.1, -- a contributor needs this fraction of the cutting for a share
 }
 -- Vault salvage (band 4). Heavy licence holders only.
 export type VaultItem = { Id: string, Name: string, Value: number, Rarity: string }
@@ -221,6 +222,9 @@ Bands.Titan = {
 	InhaleWarn = 1.5,
 	InhaleSeconds = 2.2,
 	InhalePull = 3, -- pull multiplier while it inhales
+	IdleSeconds = 2.5, -- no siphon for a player who hasn't steered (move input) in this long
+	ConsolationFloor = 0.25, -- a partial siphon under this pays nothing when the Titan ends
+	ConsolationValue = 15000000, -- coins for a full meter's worth (a Mythic Core averages 94M)
 	CoreDamagePerSecond = 18, -- inside the inner radius
 	DrainPerSecond = 0.15, -- siphon lost per second inside the inner radius
 	Pull = 45, -- studs/s² at the inner edge, a quarter at the outer (80 dragged a player at the node into the core; the inhale is the drag moment)

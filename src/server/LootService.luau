@@ -226,6 +226,15 @@ local function createLoot(
 			)
 			return
 		end
+		-- A share (Armored Wreck, Storm Titan) is only ever its owner's, even if they leave.
+		if owner and player ~= owner and item:GetAttribute("Share") then
+			PlayerService.notify(
+				player,
+				("That's %s's share. Earn your own: help with the work."):format(owner.DisplayName),
+				Color3.fromRGB(255, 200, 120)
+			)
+			return
+		end
 		if owner and player ~= owner and owner.Parent and os.clock() < (ownerOnlyUntil or 0) then
 			PlayerService.notify(
 				player,
@@ -440,6 +449,27 @@ function LootService.spawnSpecial(
 		nil,
 		recovered
 	)
+end
+
+-- A reward only `owner` can take, for `lifetime` seconds (then it's gone): a cooperative
+-- event's share, so nobody can sweep up a crew's rewards.
+function LootService.spawnFor(
+	owner: Player,
+	lootId: string,
+	position: Vector3,
+	lifetime: number,
+	onTaken: (Player?) -> ()
+): Part
+	local item = createLoot(
+		lootId,
+		Vector3.new(position.X, groundY(position), position.Z),
+		onTaken,
+		lifetime,
+		owner,
+		os.clock() + lifetime
+	)
+	item:SetAttribute("Share", true)
+	return item
 end
 
 function LootService.spawnForTest(lootId: string, position: Vector3): Instance
