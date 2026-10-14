@@ -13,6 +13,7 @@ local RunService = game:GetService("RunService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local SalvageLog = require(game:GetService("ReplicatedStorage").Shared.SalvageLog)
+local PendingRewards = require(game:GetService("ReplicatedStorage").Shared.PendingRewards)
 local Wallet = require(game:GetService("ReplicatedStorage").Shared.Wallet)
 local Titles = require(game:GetService("ReplicatedStorage").Shared.Titles)
 
@@ -290,6 +291,91 @@ function DataService.grantReceipt(
 	end)
 	if not ok then
 		warn("[DataService] receipt grant failed for", player.Name, err)
+		return false, false, false
+	end
+	return not lostLock, already, lostLock
+end
+
+---------------------------------------------------------------------------- Pending rewards
+
+-- Cooperative shares waiting for a player who wasn't there (PendingRewards.luau): one record per
+-- user in <store>_Pending. Paid on join through grantClaim (the claim id is written into the
+-- profile in the same UpdateAsync as the coins, so a share is paid exactly once).
+local pending: DataStore? = nil
+if Config.DataStoreName then
+	pcall(function()
+		pending = DataStoreService:GetDataStore((Config.DataStoreName :: string) .. "_Pending")
+	end)
+end
+
+function DataService.addPending(userId: number, entry: PendingRewards.Entry): boolean
+	if not pending then
+		return false
+	end
+	local ok, err = pcall(function()
+		(pending :: DataStore):UpdateAsync("u_" .. userId, function(old)
+			return PendingRewards.add(old, entry, os.time())
+		end)
+	end)
+	if not ok then
+		warn("[DataService] pending reward not stored:", userId, err)
+	end
+	return ok
+end
+
+function DataService.readPending(userId: number): { PendingRewards.Entry }?
+	if not pending then
+		return nil
+	end
+	local ok, value = pcall(function()
+		return (pending :: DataStore):GetAsync("u_" .. userId)
+	end)
+	return if ok then PendingRewards.live(value, os.time()) else nil
+end
+
+function DataService.removePending(userId: number, ids: { [string]: boolean }): boolean
+	if not pending then
+		return false
+	end
+	local ok = pcall(function()
+		(pending :: DataStore):UpdateAsync("u_" .. userId, function(old)
+			return PendingRewards.remove(old, ids)
+		end)
+	end)
+	return ok
+end
+
+-- Pays claim `id` into the stored profile once: `apply` and the claimed-id record in one write.
+-- Returns (written, alreadyClaimed, lostLock), like grantReceipt.
+function DataService.grantClaim(
+	player: Player,
+	id: string,
+	apply: (data: Data) -> ()
+): (boolean, boolean, boolean)
+	if not store then
+		return false, false, false
+	end
+	local token = tokens[player]
+	local already, lostLock = false, false
+	local ok, err = pcall(function()
+		(store :: DataStore):UpdateAsync(key(player.UserId), function(old)
+			if not ownedBy(old, token) then
+				lostLock = true
+				return nil
+			end
+			local data = reconcile(old)
+			if PendingRewards.claimed(data.ClaimedRewards, id) then
+				already = true
+				return nil
+			end
+			apply(data)
+			data.ClaimedRewards = PendingRewards.remember(data.ClaimedRewards, id, os.time())
+			data.Lock = { Session = token, Time = os.time() }
+			return data
+		end)
+	end)
+	if not ok then
+		warn("[DataService] claim failed for", player.Name, err)
 		return false, false, false
 	end
 	return not lostLock, already, lostLock

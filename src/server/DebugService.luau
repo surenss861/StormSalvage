@@ -237,6 +237,20 @@ local commands: { [string]: (...any) -> any } = {
 		PlayerService.pushState(player :: Player)
 		return "fresh (not saving)"
 	end,
+	-- Pending rewards QA: hold a share for a user id, read what's held, drop an owner-only share.
+	holdpending = function(userId: number, id: string, ...: string)
+		return require(script.Parent.RewardClaims).hold(userId, id, { ... }, "QA")
+	end,
+	pending = function(userId: number)
+		return require(script.Parent.DataService).readPending(userId)
+	end,
+	spawnshare = function(playerName: string, lootId: string)
+		local player = Players:FindFirstChild(playerName)
+		assert(player and player:IsA("Player"), "no player")
+		local root = (player.Character :: Model):FindFirstChild("HumanoidRootPart") :: BasePart
+		LootService.spawnFor(player, lootId, root.Position + Vector3.new(6, 0, 0), 300, function() end)
+		return true
+	end,
 	wreckstate = function()
 		return require(script.Parent.WreckService).state()
 	end,

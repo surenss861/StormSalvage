@@ -7,6 +7,7 @@
 
 local Players = game:GetService("Players")
 local CollectionService = game:GetService("CollectionService")
+local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
@@ -15,6 +16,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local BigMoney = require(ReplicatedStorage.Shared.BigMoney)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Shelter = require(ReplicatedStorage.Shared.Shelter)
+local RewardClaims = require(script.Parent.RewardClaims)
 local PlayerService = require(script.Parent.PlayerService)
 local SessionStats = require(script.Parent.SessionStats)
 local StormStats = require(script.Parent.StormStats)
@@ -525,6 +527,7 @@ function LootService.spawnFor(
 		os.clock() + lifetime
 	)
 	item:SetAttribute("Share", kind or "Coop")
+	item:SetAttribute("ShareId", HttpService:GenerateGUID(false))
 	return item
 end
 
@@ -596,6 +599,23 @@ function LootService.init(map)
 	LootService.refillAll()
 
 	PlayerService.onDied(dropBag)
+	-- Leaving with cooperative shares still on the ground: they wait for the owner's next join
+	-- (RewardClaims), never for anyone else. (Welcome finds are just gone: they're a gift.)
+	Players.PlayerRemoving:Connect(function(player)
+		local items = {}
+		local ids = {}
+		for _, item in folder:GetChildren() do
+			if item:GetAttribute("OwnerId") == player.UserId and item:GetAttribute("Share") == "Coop" then
+				table.insert(items, item:GetAttribute("LootId") :: string)
+				table.insert(ids, item:GetAttribute("ShareId") :: string)
+				item:Destroy()
+			end
+		end
+		if #items > 0 then
+			table.sort(ids)
+			RewardClaims.hold(player.UserId, "left:" .. ids[1], items, "Left behind")
+		end
+	end)
 	-- The first meaningful reward arrives fast: a brand-new player (nothing sold yet) finds a
 	-- glowing Jukebox (140 coins) for them alone at the foot of the ramp, a few seconds' walk from
 	-- spawn, enough for their first gear once sold. Once per session, only until the first sale.

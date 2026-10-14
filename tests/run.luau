@@ -19,6 +19,7 @@ local specs = {
 	require("./coop.spec"),
 	require("./onboarding.spec"),
 	require("./catalog.spec"),
+	require("./pendingrewards.spec"),
 }
 local passed, failed = 0, 0
 for _, spec in specs do

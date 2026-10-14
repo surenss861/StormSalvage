@@ -27,6 +27,7 @@ local StormEyeService = require(script.Parent.StormEyeService)
 local WreckService = require(script.Parent.WreckService)
 local TitanService = require(script.Parent.TitanService)
 local LeaderboardService = require(script.Parent.LeaderboardService)
+local RewardClaims = require(script.Parent.RewardClaims)
 
 require(script.Parent.AssetPivotFix).apply() -- before anything places an asset
 
@@ -57,6 +58,7 @@ StormEyeService.init()
 WreckService.init()
 TitanService.init()
 LeaderboardService.init(workspace:WaitForChild("Map"))
+RewardClaims.init()
 StormService.init(map)
 DebugService.init()
 ServerPerf.init() -- staging and Studio only

@@ -20,7 +20,8 @@
 -- Fair shares: work is the cut progress each player actually added (by user id, so a rejoin
 -- keeps it). A lock's Strongbox goes to whoever cut most of it; the vault's bars are split by
 -- work among everyone with at least MinShare of it (Coop.shares), as owner-only salvage at
--- their feet; the Crown Jewels (announced odds) are drawn weighted by work. Standing nearby,
+-- their feet (a contributor who has left gets theirs held for their next join: RewardClaims);
+-- the Crown Jewels (announced odds) are drawn weighted by work. Standing nearby,
 -- touching a lock for a second or arriving at the end earns nothing. Vault salvage is
 -- Heavy-licence loot, sold at the Scrap Buyer like any salvage.
 -- It runs when someone in the server holds the Heavy licence, and ends before the storm warning.
@@ -41,6 +42,7 @@ local EventService = require(script.Parent.EventService)
 local LootService = require(script.Parent.LootService)
 local PlayerService = require(script.Parent.PlayerService)
 local PursuitService = require(script.Parent.PursuitService)
+local RewardClaims = require(script.Parent.RewardClaims)
 local SessionStats = require(script.Parent.SessionStats)
 local StormService = require(script.Parent.StormService)
 
@@ -185,6 +187,16 @@ local function openVault(w: Wreck)
 	local rear = w.Model:GetPivot() * CFrame.new(-11, 0, 0)
 	for _, id in eligible do
 		local player = playerOf(id)
+		if not player then
+			-- Contributed, then left before it opened: the share is held for their next join.
+			local items = table.create(split[id] or 0, "BullionBar")
+			RewardClaims.hold(
+				tonumber(id) :: number,
+				("wreck:%s:%d:vault:%s"):format(RewardClaims.ServerId, w.Id, id),
+				items,
+				"Armored Wreck"
+			)
+		end
 		if player then
 			local r = records(player)
 			if r then
@@ -213,6 +225,14 @@ local function openVault(w: Wreck)
 	if math.random() < W.JewelChance then
 		local id = Coop.weightedPick(w.Work, math.random(), W.MinShare)
 		winner = if id then playerOf(id) else nil
+		if id and not winner then
+			RewardClaims.hold(
+				tonumber(id) :: number,
+				("wreck:%s:%d:jewels:%s"):format(RewardClaims.ServerId, w.Id, id),
+				{ "CrownJewels" },
+				"Armored Wreck"
+			)
+		end
 		if winner then
 			local root = rootOf(winner)
 			award(
@@ -275,9 +295,18 @@ local function cutLock(w: Wreck, lock: Lock)
 		end
 	end
 	local out = w.Model:GetPivot() * CFrame.new(12, 0, (cut - 2) * 3)
-	local top = lockers[1] and playerOf(lockers[1])
+	local topId = lockers[1]
+	local top = topId and playerOf(topId)
 	if top then
 		award(w, top, "Strongbox", out.Position + Vector3.new(0, 4, 0))
+	elseif topId then
+		-- The top cutter has left: their strongbox waits for them (never someone else).
+		RewardClaims.hold(
+			tonumber(topId) :: number,
+			("wreck:%s:%d:%s:%s"):format(RewardClaims.ServerId, w.Id, lock.Part.Name, topId),
+			{ "Strongbox" },
+			"Armored Wreck"
+		)
 	end
 	local left = 0
 	for _, l in w.Locks do
