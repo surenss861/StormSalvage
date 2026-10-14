@@ -251,6 +251,9 @@ local commands: { [string]: (...any) -> any } = {
 		LootService.spawnFor(player, lootId, root.Position + Vector3.new(6, 0, 0), 300, function() end)
 		return true
 	end,
+	lbstress = function(amounts: { [string]: string })
+		return require(script.Parent.LeaderboardService).qaStress(amounts)
+	end,
 	wreckstate = function()
 		return require(script.Parent.WreckService).state()
 	end,

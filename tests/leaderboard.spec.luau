@@ -112,6 +112,99 @@ return {
 		eq(W.lifetime(d), "500", "a coin pack adds cash, not lifetime earned")
 		eq(L.score(W.lifetime(d)), L.score("500"), "so it can't inflate an earned-wealth board")
 	end,
+	["leaderboard: exact top 10 through more index ties than the read window (adversarial)"] = function()
+		-- 150 fortunes share one 12-digit prefix (one index score); the ordered store returns tied
+		-- scores in key order, so the truly biggest have the LAST keys: a shortlist would miss them.
+		local prefix = "777777777777"
+		local store = {}
+		for i = 1, 150 do
+			local tail = string.format("%08d", i * 37 % 150) -- shuffled tails
+			local amount = prefix .. tail
+			table.insert(store, { Id = string.format("u%03d", i), Score = L.score(amount), Amount = amount })
+		end
+		-- and a few clear leaders and some smaller players
+		table.insert(store, { Id = "big1", Score = L.score("9" .. string.rep("0", 25)), Amount = "9" .. string.rep("0", 25) })
+		table.insert(store, { Id = "small", Score = L.score("5"), Amount = "5" })
+		table.sort(store, function(a, b)
+			if a.Score ~= b.Score then
+				return a.Score > b.Score
+			end
+			return a.Id < b.Id -- adversarial: worst order for ties
+		end)
+		local amounts = {}
+		for _, e in store do
+			amounts[e.Id] = e.Amount
+		end
+		local PAGE = 25
+		local function page(cursor)
+			local start = (cursor or 0) + 1
+			local out = {}
+			for i = start, math.min(start + PAGE - 1, #store) do
+				table.insert(out, { Id = store[i].Id, Score = store[i].Score })
+			end
+			return out, if start + PAGE - 1 < #store then start + PAGE - 1 else nil
+		end
+		local function tied(score, cursor)
+			local all = {}
+			for _, e in store do
+				if e.Score == score then
+					table.insert(all, e)
+				end
+			end
+			local start = (cursor or 0) + 1
+			local out = {}
+			for i = start, math.min(start + PAGE - 1, #all) do
+				table.insert(out, { Id = all[i].Id, Score = all[i].Score })
+			end
+			return out, if start + PAGE - 1 < #all then start + PAGE - 1 else nil
+		end
+		local function exact(id)
+			return amounts[id]
+		end
+		local board = L.topN(page, tied, exact, 10, 1000)
+		eq(board.Exact, true, "complete tie scan")
+		-- The true top 10 by exact amount.
+		local truth = table.clone(store)
+		local B = require("../src/shared/BigMoney")
+		table.sort(truth, function(a, b)
+			return B.cmp(a.Amount, b.Amount) > 0
+		end)
+		for i = 1, 10 do
+			eq(board.Entries[i].Id, truth[i].Id, "rank " .. i)
+		end
+		-- A shortlist of the first 25 index entries would have been wrong (the point of the test).
+		local first = page(nil)
+		local inFirst = {}
+		for _, e in first do
+			inFirst[e.Id] = true
+		end
+		local missed = 0
+		for i = 1, 10 do
+			if not inFirst[truth[i].Id] then
+				missed += 1
+			end
+		end
+		assert(missed > 0, "the adversarial order really hides top players from a shortlist")
+		-- With a tie scan cap below the group size, it says it's not exact.
+		eq(L.topN(page, tied, exact, 10, 50).Exact, false, "capped scan is flagged")
+	end,
+	["leaderboard: exact ties at the cutoff are all kept"] = function()
+		local store = {}
+		for i = 1, 12 do
+			table.insert(store, { Id = "p" .. i, Score = L.score("1000"), Amount = "1000" })
+		end
+		local function page(cursor)
+			return if cursor then {} else store, nil
+		end
+		local function tied(score)
+			return store, nil
+		end
+		local board = L.topN(page, tied, function()
+			return "1000"
+		end, 10, 100)
+		eq(#board.Entries, 12, "twelve players tied for 1st are all shown as 1st")
+		eq(board.Entries[12].Rank, 1, "shared rank")
+	end,
 	["leaderboard: ISO week keys"] = function()
 		-- Fixtures from Python's isocalendar (midnight UTC, and the last second of that day).
 		for _, case in

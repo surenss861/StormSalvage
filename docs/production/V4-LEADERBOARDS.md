@@ -35,12 +35,21 @@ OrderedDataStores sort int64 values. Money is an exact decimal string of up to 3
 
 Equal indexes are possible only above 12 digits, and the exact record resolves them. Unit test: 2,000 random fortunes of up to 303 digits never rank a bigger one lower.
 
-## Reading (server)
+## Reading (server): an exact top N
 
-1. **Page the index** in descending order, 25 entries per page, up to 4 pages. Keep reading while the 10th-best index seen is ≤ the last index on the page (`Leaderboard.needMore`). Below that point nothing can tie or beat the top 10.
-2. **Fetch exact amounts** for the top 10 by index and for every entry sharing an index with them. The cache is keyed by (entry, index), so an unchanged entry costs no further reads.
-3. **Verify** each exact amount: its index must equal `Leaderboard.score(exact)` (`Leaderboard.verify`). A stale or tampered pair is not trusted, and that entry ranks by its index amount (exact below a trillion).
-4. **Rank** with exact BigMoney comparison (`Leaderboard.rank`). Equal amounts share a rank (competition ranking: 1, 2, 2, 4) and are listed by user id for a stable order.
+The index alone is **not** an exact global order: different amounts can share an index (the same digit count and the same first 12 digits), and the store returns tied entries in an order that has nothing to do with their exact amounts. Sorting only the entries fetched would miss a bigger fortune that the store happened to put past the read window (owner review, 2026-10-14). `Leaderboard.topN` therefore reads:
+
+1. **The index, descending, until N entries are known.** The N-th entry's index is the cutoff s\*. Every entry with an index above s\* has now been read, because they come first.
+2. **Every entry whose index is exactly s\*,** with a separate filtered query (`GetSortedAsync(false, 25, s*, s*)`, paged), however many there are.
+3. **Exact amounts for all of those** (cached, and verified against their index), ranked by exact comparison.
+
+**Why this is exact:** the index is monotone, so a > b implies index(a) ≥ index(b). Any entry not read has an index below s\*, which makes it strictly smaller than every entry read. The candidate set therefore holds the true top N.
+
+**Ties:**
+- Equal exact amounts share a rank (1, 2, 2, 4).
+- Everyone tied with the N-th place is kept, and the board shows "+k more tied".
+
+**Limit, stated rather than hidden:** the cutoff tie group is read up to 500 entries (TIE_CAP), within a 30-page read budget per board per refresh. If more than 500 players share one 12-digit prefix at the cutoff, the board shows "Huge tie at the cutoff: order near the bottom may vary" and is not claimed exact. Higher ranks stay exact even then, because they are above the cutoff.
 
 ## Writing (server only)
 
@@ -75,6 +84,10 @@ Store names derive from `Config.DataStoreName`:
 An unknown place has no DataStore at all, and the board says so.
 
 ## Evidence
+
+**Adversarial tests:**
+- **Unit test:** 150 fortunes share one index, ordered worst-case by the fake store (biggest last), with 25-entry pages. `topN` returns the true top 10, and the test also proves a first-page shortlist would have missed some of them. A tie scan capped below the group size is flagged not exact. Twelve players tied for first are all shown as first.
+- **Studio, real Studio OrderedDataStore (`<store>_LB_QA`, never shown on a board):** 40 fortunes share one index, with ids chosen so the biggest sort last by key, plus a 26-digit leader. Result: 1 leader, then the 9 largest of the tied group (1040…1032) in exact order, in 3 reads.
 
 **Unit tests (`leaderboard.spec.luau`):**
 - index order across magnitudes and 2,000 random 303-digit pairs;

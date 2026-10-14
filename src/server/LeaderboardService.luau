@@ -12,11 +12,10 @@
 --   exact first, then the index; recorded as done only when both succeed, so a failure is
 --   retried next cycle. At most one write per kind per player per WRITE_EVERY, only on change,
 --   and a final one as they leave.
--- Reads: index pages (PAGE) until nothing further down can reach the top TOP
---   (Leaderboard.needMore), exact amounts for those entries (cached by score, so unchanged
---   entries cost no reads), each checked against its index score (Leaderboard.verify), then
---   exact ranking with shared ranks for equal amounts (Leaderboard.rank). A failed read keeps
---   the last good board and says it's paused.
+-- Reads: Leaderboard.topN, an exact top TOP even when amounts share an index: index pages to
+--   the TOP-th score (the cutoff), then EVERY entry with exactly that score (min = max query),
+--   exact amounts (cached, verified against the index), exact ranking with shared ranks. A tie
+--   group over TIE_CAP is reported as not exact; a failed read keeps the last board ("paused").
 
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
@@ -34,7 +33,8 @@ local WRITE_EVERY = 120
 local READ_EVERY = 60
 local TOP = 10
 local PAGE = 25
-local MAX_PAGES = 4
+local TIE_CAP = 500 -- entries sharing the cutoff index read before the board admits it's not exact
+local MAX_READS = 30 -- index pages per board per refresh (budget guard)
 local BOARD_AT = CFrame.new(34, 30, -250) -- on the plateau, facing the ramp (+Z)
 
 type Board = { Title: string, Rows: { TextLabel }, Status: TextLabel }
@@ -51,6 +51,8 @@ local function storeName(kind: string): string?
 	end
 	if kind == "Week" then
 		return ("%s_LB_Week_%s"):format(base, Leaderboard.weekKey(os.time()))
+	elseif kind == "QA" then
+		return base .. "_LB_QA" -- Studio stress test only (never shown on a board)
 	end
 	return base .. "_LB_Lifetime"
 end
@@ -67,7 +69,10 @@ local function exactStore(): DataStore?
 end
 
 local function exactKey(kind: string, id: string): string
-	return if kind == "Week" then ("W_%s_%s"):format(Leaderboard.weekKey(os.time()), id) else "L_" .. id
+	return if kind == "Week"
+		then ("W_%s_%s"):format(Leaderboard.weekKey(os.time()), id)
+		elseif kind == "QA" then "Q_" .. id
+		else "L_" .. id
 end
 
 local function ordered(kind: string): OrderedDataStore?
@@ -163,54 +168,73 @@ local function exactFor(kind: string, id: string, score: number): string?
 	return exact
 end
 
+-- The exact top TOP of board `kind` (Leaderboard.topN over the real stores).
+local function compute(kind: string): (boolean, any, number)
+	local store = ordered(kind)
+	if not store then
+		return false, "no store", 0
+	end
+	local function toEntries(page: { any }): { Leaderboard.Entry }
+		local out = {}
+		for _, entry in page do
+			local id = string.match(entry.key, "^u_(%d+)$")
+			if id and type(entry.value) == "number" then
+				table.insert(out, { Id = id, Score = entry.value })
+			end
+		end
+		return out
+	end
+	local reads = 0
+	local function pager(pages: any): (any) -> ({ Leaderboard.Entry }, any)
+		return function(cursor: any)
+			reads += 1
+			if reads > MAX_READS then
+				return {}, nil
+			end
+			local p = cursor or pages
+			local entries = toEntries(p:GetCurrentPage())
+			if p.IsFinished then
+				return entries, nil
+			end
+			p:AdvanceToNextPageAsync()
+			return entries, p
+		end
+	end
+	local ok, result = pcall(function()
+		local top = pager(store:GetSortedAsync(false, PAGE))
+		local tiedPagers: { [number]: (any) -> ({ Leaderboard.Entry }, any) } = {}
+		local function tied(score: number, cursor: any)
+			local f = tiedPagers[score]
+			if not f then
+				-- Every entry with exactly this index score (min = max), however many there are.
+				f = pager(store:GetSortedAsync(false, PAGE, score, score))
+				tiedPagers[score] = f
+			end
+			return f(cursor)
+		end
+		return Leaderboard.topN(top, tied, function(id, score)
+			return exactFor(kind, id, score)
+		end, TOP, TIE_CAP)
+	end)
+	return ok and reads <= MAX_READS, result, reads
+end
+
 local function refresh(kind: string)
 	local board = boards[kind]
 	if not board then
 		return
 	end
-	local store = ordered(kind)
-	if not store then
+	if not ordered(kind) then
 		board.Status.Text = "No leaderboard in this test place"
 		return
 	end
-	local entries: { Leaderboard.Entry } = {}
-	local scores: { number } = {}
-	local ok, err = pcall(function()
-		local pages = store:GetSortedAsync(false, PAGE)
-		for _ = 1, MAX_PAGES do
-			local page = pages:GetCurrentPage()
-			local last: number? = nil
-			for _, entry in page do
-				local id = string.match(entry.key, "^u_(%d+)$")
-				if id and type(entry.value) == "number" then
-					table.insert(entries, { Id = id, Score = entry.value })
-					table.insert(scores, entry.value)
-					last = entry.value
-				end
-			end
-			if not Leaderboard.needMore(scores, TOP, last, #page >= PAGE and not pages.IsFinished) then
-				break
-			end
-			pages:AdvanceToNextPageAsync()
-		end
-	end)
+	local ok, result = compute(kind)
 	if not ok then
-		warn("[LeaderboardService] read failed:", kind, err)
+		warn("[LeaderboardService] read failed or over budget:", kind, result)
 		board.Status.Text = "Leaderboard paused, retrying"
 		return
 	end
-	-- Exact amounts only where they decide order or are shown: the top TOP by index, plus any
-	-- entry sharing an index score with one of them.
-	table.sort(entries, function(a, b)
-		return a.Score > b.Score
-	end)
-	local cutoff = if entries[TOP] then entries[TOP].Score else -1
-	for _, e in entries do
-		if e.Score >= cutoff then
-			e.Exact = exactFor(kind, e.Id, e.Score)
-		end
-	end
-	local ranked = Leaderboard.rank(entries)
+	local ranked = (result :: Leaderboard.Board).Entries
 	for i, row in board.Rows do
 		local e = ranked[i]
 		if e then
@@ -222,7 +246,17 @@ local function refresh(kind: string)
 			row.Text = ""
 		end
 	end
-	board.Status.Text = if #ranked == 0 then "Nobody yet. Be the first!" else ""
+	local extraTied = #ranked - #board.Rows
+	board.Status.Text = if #ranked == 0
+		then "Nobody yet. Be the first!"
+		elseif
+			not (result :: Leaderboard.Board).Exact
+		then "Huge tie at the cutoff: order near the bottom may vary"
+		elseif extraTied > 0 then ("+%d more tied"):format(extraTied)
+		else ""
+	if #ranked > 0 then
+		board.Status.Position = UDim2.fromOffset(44, 74 + #board.Rows * 30)
+	end
 end
 
 local function buildBoard(map: Instance)
@@ -330,6 +364,20 @@ function LeaderboardService.init(map: Instance)
 			task.wait(READ_EVERY)
 		end
 	end)
+end
+
+-- Studio QA (exactness stress test): write `amounts` ({ [fakeId] = exact string }) to the QA
+-- store (exact first, then index), then return the exact top board read back from the stores.
+function LeaderboardService.qaStress(amounts: { [string]: string }): any
+	assert(game:GetService("RunService"):IsStudio(), "Studio only")
+	local store, exacts = ordered("QA"), exactStore()
+	assert(store and exacts, "no stores")
+	for id, amount in amounts do
+		exacts:SetAsync(exactKey("QA", id), amount)
+		store:SetAsync("u_" .. id, Leaderboard.score(amount))
+	end
+	local ok, result, reads = compute("QA")
+	return { Ok = ok, Board = result, Reads = reads }
 end
 
 -- Studio QA: write this player's scores now and refresh both boards.

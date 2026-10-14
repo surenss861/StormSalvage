@@ -102,6 +102,93 @@ function Leaderboard.needMore(
 	return sorted[n] <= lastOnPage
 end
 
+-- The exact top `n` from an index whose order may tie (scores equal for different amounts).
+--   page(cursor) -> (entries { {Id, Score} } in descending score order, nextCursor | nil)
+--   tied(score, cursor) -> (all entries with exactly this score, in any order, nextCursor | nil)
+--   exact(id, score) -> the verified exact amount, or nil
+-- Proof of exactness: Leaderboard.score is monotone (a > b implies score(a) >= score(b)), so
+-- an entry scored below the cutoff s* (the n-th score read) is smaller than every entry scored
+-- s* or above. Reading every entry scored above s* (they come first in the index) plus EVERY
+-- entry scored exactly s* (the filtered query) therefore holds the true top n, which exact
+-- comparison then orders. If the tie group at s* is bigger than `tieCap`, the result is marked
+-- Exact = false (the board says so) instead of guessing.
+export type Board = { Entries: { Entry }, Exact: boolean, Reads: number }
+function Leaderboard.topN(
+	page: (cursor: any) -> ({ Entry }, any),
+	tied: (score: number, cursor: any) -> ({ Entry }, any),
+	exact: (id: string, score: number) -> string?,
+	n: number,
+	tieCap: number
+): Board
+	local reads = 0
+	local above: { Entry } = {}
+	local cursor: any = nil
+	local cutoff: number? = nil
+	-- 1. Descend until n entries are known; the n-th score is the cutoff.
+	repeat
+		local entries, nextCursor = page(cursor)
+		reads += 1
+		for _, e in entries do
+			table.insert(above, { Id = e.Id, Score = e.Score })
+			if #above == n then
+				cutoff = e.Score
+			end
+		end
+		cursor = nextCursor
+	until cutoff ~= nil or cursor == nil
+	if cutoff == nil then
+		-- Fewer than n entries exist: all of them are the board.
+		for _, e in above do
+			e.Exact = exact(e.Id, e.Score)
+		end
+		return { Entries = Leaderboard.rank(above), Exact = true, Reads = reads }
+	end
+	-- 2. Everyone strictly above the cutoff is already read (descending order). Replace the
+	-- cutoff group with the complete one from the filtered query.
+	local candidates: { Entry } = {}
+	for _, e in above do
+		if e.Score > (cutoff :: number) then
+			table.insert(candidates, e)
+		end
+	end
+	local group = 0
+	local complete = true
+	cursor = nil
+	repeat
+		local entries, nextCursor = tied(cutoff :: number, cursor)
+		reads += 1
+		for _, e in entries do
+			if e.Score == cutoff then
+				group += 1
+				if group > tieCap then
+					complete = false
+					break
+				end
+				table.insert(candidates, { Id = e.Id, Score = e.Score })
+			end
+		end
+		cursor = nextCursor
+	until cursor == nil or not complete
+	-- 3. Exact amounts decide.
+	for _, e in candidates do
+		e.Exact = exact(e.Id, e.Score)
+	end
+	local ranked = Leaderboard.rank(candidates)
+	local top = {}
+	for i = 1, math.min(n, #ranked) do
+		top[i] = ranked[i]
+	end
+	-- Shared ranks can run past n (a tie for 10th): keep everyone sharing the n-th rank.
+	for i = n + 1, #ranked do
+		if top[n] and ranked[i].Rank == top[n].Rank then
+			table.insert(top, ranked[i])
+		else
+			break
+		end
+	end
+	return { Entries = top, Exact = complete, Reads = reads }
+end
+
 -- ISO-8601 week key ("2026W42") for a unix time (UTC). Weeks start on Monday.
 function Leaderboard.weekKey(unix: number): string
 	local days = math.floor(unix / 86400)
