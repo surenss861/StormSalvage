@@ -41,6 +41,7 @@ local function viewOf(data: any): Titles.View
 			else {},
 		TotalEarned = Wallet.lifetime(data),
 		Licenses = if type(data.Licenses) == "table" then data.Licenses else {},
+		FoundTotal = select(2, SalvageLog.progress(SalvageLog.reconcile(data.Collection), Config.Loot)),
 	}
 end
 
@@ -153,6 +154,26 @@ function StatusService.card(player: Player): { [string]: any }?
 		local def = Titles.List[picks[k]]
 		table.insert(badges, { Name = def.Name, Category = def.Category, How = def.How })
 	end
+	-- Trophy case: their three rarest logged finds (rarity, then value).
+	local order = { Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5, Mythic = 6 }
+	local trophies = {}
+	for id, logged in collection.Found do
+		local def = Config.Loot[id]
+		if logged and def then
+			table.insert(trophies, { Id = id, Name = def.Name, Rarity = def.Rarity, Value = def.Value })
+		end
+	end
+	table.sort(trophies, function(a, b)
+		local ra, rb = order[a.Rarity] or 0, order[b.Rarity] or 0
+		if ra ~= rb then
+			return ra > rb
+		end
+		return a.Value > b.Value
+	end)
+	local top = {}
+	for i = 1, math.min(3, #trophies) do
+		top[i] = { Name = trophies[i].Name, Rarity = trophies[i].Rarity }
+	end
 	local rank = Progression.rankFor(data.Rep.XP)
 	local nextRank = Progression.Ranks[rank.Index + 1]
 	return {
@@ -164,6 +185,7 @@ function StatusService.card(player: Player): { [string]: any }?
 		RankXP = rank.XP,
 		NextXP = if nextRank then nextRank.XP else nil,
 		Badges = badges,
+		Trophies = top,
 		Band = band,
 		BandName = Bands.Names[band],
 		Title = if shown then shown.Name else nil,

@@ -17,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local BigMoney = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BigMoney"))
+local Config = require(ReplicatedStorage.Shared:WaitForChild("Config"))
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local PlateStyle = require(script.Parent:WaitForChild("PlateStyle"))
 local UI = require(script.Parent:WaitForChild("UI"))
@@ -35,6 +36,7 @@ local titleBanner: TextLabel
 local portrait: ImageLabel
 local plateStrip: Frame
 local badgeSlots: { Frame } = {}
+local trophySlots: { Frame } = {}
 local cells: { [string]: { Value: TextLabel, Sub: TextLabel } } = {}
 local A = UI.Arcade
 local CATEGORY_COLOR = {
@@ -137,6 +139,18 @@ function PlayerCard.show(card: any)
 			(medal:FindFirstChild("Letter") :: TextLabel).TextColor3 = color;
 			(slot:FindFirstChild("Name") :: TextLabel).Text = string.upper(tostring(b.Name));
 			(slot:FindFirstChild("How") :: TextLabel).Text = tostring(b.How or b.Category or "")
+		end
+	end
+	local trophies = if type(card.Trophies) == "table" then card.Trophies else {}
+	for i, chip in trophySlots do
+		local t = trophies[i]
+		chip.Visible = t ~= nil
+		if t then
+			(chip:FindFirstChild("Dot") :: Frame).BackgroundColor3 = Config.RarityColors[t.Rarity] or A.Dim;
+			(chip:FindFirstChild("Text") :: TextLabel).Text = ("%s · %s"):format(
+				string.upper(tostring(t.Name)),
+				string.upper(tostring(t.Rarity))
+			)
 		end
 	end
 	if not modal.IsOpen() then
@@ -411,8 +425,8 @@ function PlayerCard.init(root: Frame)
 		local slot = UI.new("Frame", {
 			Name = "Badge" .. i,
 			Parent = right,
-			Position = UDim2.new(0, 10, 0, 46 + (i - 1) * 96),
-			Size = UDim2.new(1, -20, 0, 88),
+			Position = UDim2.new(0, 10, 0, 44 + (i - 1) * 74),
+			Size = UDim2.new(1, -20, 0, 70),
 			BackgroundTransparency = 1,
 			Visible = false,
 			ZIndex = 23,
@@ -455,6 +469,44 @@ function PlayerCard.init(root: Frame)
 			Text = "",
 		})
 		table.insert(badgeSlots, slot)
+	end
+	-- Trophy case: their three rarest finds, in rarity colours.
+	label(right, {
+		Position = UDim2.new(0, 12, 1, -96),
+		Size = UDim2.new(1, -24, 0, 16),
+		TextSize = 14,
+		TextColor3 = A.Text,
+		Text = "TROPHY CASE",
+	})
+	for i = 1, 3 do
+		local chip = UI.new("Frame", {
+			Name = "Trophy" .. i,
+			Parent = right,
+			Position = UDim2.new(0, 12, 1, -76 + (i - 1) * 24),
+			Size = UDim2.new(1, -24, 0, 20),
+			BackgroundColor3 = A.Plate,
+			BorderSizePixel = 0,
+			Visible = false,
+			ZIndex = 23,
+		}, { UI.corner(4) })
+		UI.new("Frame", {
+			Name = "Dot",
+			Parent = chip,
+			Position = UDim2.fromOffset(6, 6),
+			Size = UDim2.fromOffset(8, 8),
+			BorderSizePixel = 0,
+			ZIndex = 24,
+		}, { UI.corner(4) })
+		label(chip, {
+			Name = "Text",
+			Position = UDim2.fromOffset(20, 0),
+			Size = UDim2.new(1, -24, 1, 0),
+			TextSize = 13,
+			TextColor3 = A.Text,
+			Text = "",
+			ZIndex = 24,
+		})
+		table.insert(trophySlots, chip)
 	end
 
 	Remotes.get("InspectCard").OnClientEvent:Connect(PlayerCard.show)

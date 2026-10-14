@@ -244,6 +244,21 @@ return {
 		local stacked = W.CutSeconds / 3 * W.Locks -- one lock at a time, three cutters
 		assert(spread < stacked, ("spread %.1fs vs stacked %.1fs"):format(spread, stacked))
 	end,
+	["titles: collection milestones follow the share of the Salvage Log"] = function()
+		local found = {}
+		for i = 1, 10 do
+			found["k" .. i] = true
+		end
+		local v = view(nil, found)
+		v.FoundTotal = 20
+		local got = Titles.earned(v)
+		assert(has(got, "Curator"), "half")
+		eq(has(got, "Archivist"), false, "not all")
+		v.FoundTotal = 10
+		assert(has(Titles.earned(v), "Archivist"), "all")
+		v.FoundTotal = nil
+		eq(has(Titles.earned(v), "Curator"), false, "unknown total grants nothing")
+	end,
 	["titles: bad records never grant"] = function()
 		local got = Titles.earned(view({ Extractions = 0 / 0, BestExtract = -5, BestStreak = "9" }))
 		eq(#got, 0, "nothing from garbage")

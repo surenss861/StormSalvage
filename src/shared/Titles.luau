@@ -20,6 +20,7 @@ export type View = {
 	Found: { [string]: boolean }, -- Salvage Log kinds found
 	TotalEarned: number | string, -- lifetime earnings (BigMoney string, or a legacy number)
 	Licenses: { [string]: boolean },
+	FoundTotal: number?, -- how many kinds exist in the Salvage Log (collection titles)
 }
 
 export type Def = {
@@ -29,6 +30,21 @@ export type Def = {
 	How: string,
 	earned: (View) -> boolean,
 }
+
+-- The share of all Salvage Log kinds this view has found (0 if the total isn't known).
+function Titles.logShare(v: View): number
+	local total = v.FoundTotal
+	if type(total) ~= "number" or total <= 0 then
+		return 0
+	end
+	local n = 0
+	for _, found in v.Found do
+		if found then
+			n += 1
+		end
+	end
+	return n / total
+end
 
 local function rec(v: View, key: string): number
 	local n = v.Records[key]
@@ -182,6 +198,25 @@ Titles.List = {
 		How = "Log the Crown Jewels",
 		earned = function(v)
 			return v.Found.CrownJewels == true
+		end,
+	},
+	-- Collection milestones (M7): a share of every kind in the Salvage Log.
+	{
+		Id = "Curator",
+		Name = "Curator",
+		Category = "Discovery",
+		How = "Log half of all salvage kinds",
+		earned = function(v)
+			return Titles.logShare(v) >= 0.5
+		end,
+	},
+	{
+		Id = "Archivist",
+		Name = "Archivist",
+		Category = "Discovery",
+		How = "Log every kind of salvage in Gale Hollow",
+		earned = function(v)
+			return Titles.logShare(v) >= 1
 		end,
 	},
 	{
