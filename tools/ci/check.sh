@@ -18,5 +18,6 @@ out=$(luau-lsp analyze --sourcemap=.tools/sourcemap.json --definitions="$DEFS" -
 if [ -n "$out" ]; then echo "$out"; exit 1; fi
 echo "== rojo build"; rojo build default.project.json -o .tools/build.rbxl
 echo "== asset pivots"; lune run tools/assets/pivots check .tools/build.rbxl
+echo "== world manifest"; lune run tools/assets/manifest .tools/build.rbxl
 echo "== unit tests"; lune run tests/run
 echo "All checks passed."
