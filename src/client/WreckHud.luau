@@ -7,7 +7,7 @@
 --   * a marker on each uncut lock (the progress bars themselves are server billboards);
 --   * an objective-strip entry, only for Heavy licence holders (band 4+): locks cut as a bar,
 --     time left, cutting or paused. Everyone else gets the one announcement.
--- Sparks fly from a lock while the local player is cutting it (fewer in Reduced Effects).
+-- Sparks fly from every lock being cut, for everyone (fewer in Reduced Effects).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,7 +28,6 @@ local GREEN = Color3.fromRGB(110, 230, 130)
 local folder: Folder
 local beacon: BasePart? = nil
 local markers: { BasePart } = {}
-local sparks: ParticleEmitter? = nil
 local state: any = nil
 
 local function clearWorld()
@@ -40,10 +39,6 @@ local function clearWorld()
 		m:Destroy()
 	end
 	markers = {}
-	if sparks then
-		(sparks.Parent :: Instance):Destroy()
-		sparks = nil
-	end
 end
 
 local function isHeavy(): boolean
@@ -121,55 +116,47 @@ local function lockPosition(name: string?): Vector3?
 	return lock and lock.Position
 end
 
-local function setSparks(at: Vector3?)
-	if not at then
-		if sparks then
-			(sparks.Parent :: Instance):Destroy()
-			sparks = nil
-		end
+-- Sparks on every lock someone is cutting (the server marks them "Sparking"), so a crew's work
+-- is visible to everyone. The emitters are client-side children of the server's lock parts.
+local function sparkLocks()
+	local wreck = workspace:FindFirstChild("ArmoredWreck")
+	if not wreck then
 		return
 	end
-	if not sparks then
-		local holder = Instance.new("Part")
-		holder.Name = "CutSparks"
-		holder.Anchored = true
-		holder.CanCollide = false
-		holder.CanQuery = false
-		holder.CanTouch = false
-		holder.Transparency = 1
-		holder.Size = Vector3.new(0.5, 0.5, 0.5)
-		holder.Parent = folder
-		local e = Instance.new("ParticleEmitter")
-		e.Color = ColorSequence.new(Color3.fromRGB(255, 230, 150), Color3.fromRGB(255, 120, 40))
-		e.LightEmission = 1
-		e.Size = NumberSequence.new(0.18, 0)
-		e.Speed = NumberRange.new(8, 14)
-		e.SpreadAngle = Vector2.new(60, 60)
-		e.Lifetime = NumberRange.new(0.25, 0.5)
-		e.Acceleration = Vector3.new(0, -30, 0)
-		e.Parent = holder
-		sparks = e
-		Audio.play("Gust", 0.25, 2.2)
+	for i = 1, Bands.Wreck.Locks do
+		local lock = wreck:FindFirstChild("Lock" .. i)
+		if lock and lock:IsA("BasePart") then
+			local e = lock:FindFirstChild("CutSparks") :: ParticleEmitter?
+			if not e then
+				local n = Instance.new("ParticleEmitter")
+				n.Name = "CutSparks"
+				n.Color = ColorSequence.new(Color3.fromRGB(255, 230, 150), Color3.fromRGB(255, 120, 40))
+				n.LightEmission = 1
+				n.Size = NumberSequence.new(0.18, 0)
+				n.Speed = NumberRange.new(8, 14)
+				n.SpreadAngle = Vector2.new(60, 60)
+				n.Lifetime = NumberRange.new(0.25, 0.5)
+				n.Acceleration = Vector3.new(0, -30, 0)
+				n.Parent = lock
+				e = n
+			end
+			local on = lock:GetAttribute("Sparking") == true
+			local em = e :: ParticleEmitter
+			if on and not em.Enabled then
+				Audio.playAt("Gust", lock.Position, 0.25, 2.2)
+			end
+			em.Enabled = on
+			em.Rate = if UI.reduced() then 12 else 60
+		end
 	end
-	local e = sparks :: ParticleEmitter
-	e.Rate = if UI.reduced() then 12 else 60;
-	(e.Parent :: BasePart).Position = at
 end
 
 local function step()
 	if not state then
 		return
 	end
-	if beacon and not UI.reduced() then
-		beacon.Transparency = 0.45 + 0.15 * math.sin(os.clock() * 4)
-	end
 	local cutting = Players.LocalPlayer:GetAttribute("WreckCutting")
-	local cutAt = lockPosition(cutting)
-	local me = Players.LocalPlayer.Character
-		and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	setSparks(
-		if cutAt and me and (me.Position - cutAt).Magnitude <= Bands.Wreck.CutReach + 1 then cutAt else nil
-	)
+	sparkLocks()
 	if not isHeavy() then
 		EventStrip.clear("wreck")
 		return
@@ -203,11 +190,24 @@ local function step()
 		local inReach = at ~= nil
 			and root ~= nil
 			and (root.Position - at).Magnitude <= Bands.Wreck.CutReach + 1
+		local crew = if (state.Crew or 0) > 1
+			then (" · Crew of %d, +%d%% speed"):format(
+				state.Crew,
+				math.floor(((state.Bonus or 1) - 1) * 100 + 0.5)
+			)
+			else ""
 		e.Sub = if inReach
-			then "Cutting… dodge the security charges, then get back to the lock!"
+			then "Cutting… dodge the security charges!" .. crew
 			else "Cut paused: get back to the lock to keep cutting."
 	else
-		e.Sub = ("At %s. Cut the locks: rear doors, side hatch (climb up), roof hatch."):format(state.Site)
+		e.Sub = if (state.Crew or 0) > 0
+			then ("%d cutting at %s. Take another lock: more locks at once, faster for all."):format(
+				state.Crew,
+				state.Site
+			)
+			else ("At %s. Cut the locks: rear doors, side hatch (climb up), roof hatch."):format(
+				state.Site
+			)
 	end
 	EventStrip.set("wreck", e)
 end

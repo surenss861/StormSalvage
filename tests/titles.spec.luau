@@ -234,6 +234,16 @@ return {
 		assert(T.RingRate < 0.5, "standing anywhere in the ring is much slower than the node")
 		assert(T.InhaleWarn >= 1, "the inhale is telegraphed")
 	end,
+	["bands: wreck crews split up: more locks at once is faster for everyone"] = function()
+		eq(Bands.crewBonus(0), 1, "nobody")
+		eq(Bands.crewBonus(1), 1, "one lock: no bonus")
+		assert(Bands.crewBonus(3) > Bands.crewBonus(2), "three locks beat two")
+		-- Three players on three locks finish sooner than three on one lock (no stacking bonus).
+		local W = Bands.Wreck
+		local spread = W.CutSeconds / Bands.crewBonus(3) -- each lock, one cutter, bonus
+		local stacked = W.CutSeconds / 3 * W.Locks -- one lock at a time, three cutters
+		assert(spread < stacked, ("spread %.1fs vs stacked %.1fs"):format(spread, stacked))
+	end,
 	["titles: bad records never grant"] = function()
 		local got = Titles.earned(view({ Extractions = 0 / 0, BestExtract = -5, BestStreak = "9" }))
 		eq(#got, 0, "nothing from garbage")

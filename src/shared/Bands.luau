@@ -177,6 +177,7 @@ Bands.Wreck = {
 	BarsMax = 6,
 	JewelChance = 0.25, -- real odds, announced when it spills
 	ItemSeconds = 40, -- vault salvage left on the ground this long
+	CrewBonus = 0.2, -- per extra lock cut at the same time
 }
 -- Vault salvage (band 4). Heavy licence holders only.
 export type VaultItem = { Id: string, Name: string, Value: number, Rarity: string }
@@ -258,6 +259,12 @@ Bands.Rig = {
 	Costs = { 100000000000, 300000000000, 900000000000, 2700000000000, 8000000000000 },
 	Values = { 1, 1.3, 1.6, 2, 2.5, 3 }, -- siphon speed at level 0..5 (pull resistance: 1 - 1/speed)
 }
+
+-- The Armored Wreck's crew bonus: cutting speed multiplier when `activeLocks` locks are being
+-- cut at the same moment (one lock: none; all three: +40%). Splitting up beats stacking.
+function Bands.crewBonus(activeLocks: number): number
+	return 1 + Bands.Wreck.CrewBonus * math.max(0, activeLocks - 1)
+end
 
 -- Bars the vault spills for `cutters` players.
 function Bands.barsFor(cutters: number): number

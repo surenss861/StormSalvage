@@ -15,6 +15,8 @@
 -- While anyone cuts, the truck's security charges fire telegraphed shocks at a cutter (the same
 -- strike judgement and dodge as the twister's). A hit hurts and stops your cutting until you
 -- press the prompt again.
+-- A crew splits up: every lock being cut at once speeds up all of them (Bands.crewBonus), and
+-- the charges keep one pace for the whole wreck, so each cutter dodges fewer.
 -- Each cut lock drops a Strongbox. With every lock cut the vault opens: bullion bars for
 -- everyone (more with more cutters) and, at announced odds, the Crown Jewels. Vault salvage is
 -- Heavy-licence loot, sold at the Scrap Buyer like any salvage.
@@ -53,6 +55,8 @@ type Wreck = {
 	Helpers: { [Player]: true }, -- everyone who cut at least a little (vault credit)
 	Opened: boolean,
 	Items: { Instance },
+	ActiveLocks: number, -- locks being cut this tick (the crew bonus)
+	Crew: number, -- players cutting this tick
 }
 local current: Wreck? = nil
 local nextId = 0
@@ -70,7 +74,14 @@ local function broadcast()
 	end
 	local locks = {}
 	for _, lock in w.Locks do
-		table.insert(locks, { Position = lock.Part.Position, Progress = lock.Progress, Cut = lock.Cut })
+		local n = 0
+		for _ in lock.Cutters do
+			n += 1
+		end
+		table.insert(
+			locks,
+			{ Position = lock.Part.Position, Progress = lock.Progress, Cut = lock.Cut, Cutters = n }
+		)
 	end
 	remote:FireAllClients({
 		Active = true,
@@ -80,6 +91,8 @@ local function broadcast()
 		Locks = locks,
 		Opened = w.Opened,
 		EndsAt = serverTime(w.EndsAt),
+		Crew = w.Crew,
+		Bonus = Bands.crewBonus(w.ActiveLocks),
 	})
 end
 
@@ -393,6 +406,8 @@ function WreckService.start(siteId: string?, force: boolean?, seconds: number?):
 		Helpers = {},
 		Opened = false,
 		Items = {},
+		ActiveLocks = 0,
+		Crew = 0,
 	}
 	for i = 1, W.Locks do
 		local part = clone:FindFirstChild("Lock" .. i)
@@ -423,6 +438,8 @@ function WreckService.start(siteId: string?, force: boolean?, seconds: number?):
 		while current == w and os.clock() < w.EndsAt do
 			local dt = task.wait(0.2)
 			local cutting = false
+			local rates: { [Lock]: number } = {}
+			local crew = 0
 			for _, lock in w.Locks do
 				if lock.Cut then
 					continue
@@ -442,17 +459,34 @@ function WreckService.start(siteId: string?, force: boolean?, seconds: number?):
 						cutting = true -- someone is on the job: the charges keep coming
 						if d <= W.CutReach + 1 then
 							rate += cutterSpeed(player)
+							crew += 1
 						end
 					end
 				end
 				if rate > 0 then
-					lock.Progress = math.min(1, lock.Progress + dt * rate / W.CutSeconds)
-					if lock.Bar then
-						lock.Bar.Size = UDim2.fromScale(lock.Progress, 1)
-					end
-					if lock.Progress >= 1 then
-						cutLock(w, lock)
-					end
+					rates[lock] = rate
+				end
+			end
+			-- The crew bonus: every lock being cut at once speeds up all of them.
+			local active = 0
+			for _ in rates do
+				active += 1
+			end
+			w.ActiveLocks, w.Crew = active, crew
+			local bonus = Bands.crewBonus(active)
+			for lock, rate in rates do
+				lock.Progress = math.min(1, lock.Progress + dt * rate * bonus / W.CutSeconds)
+				lock.Part:SetAttribute("Sparking", true)
+				if lock.Bar then
+					lock.Bar.Size = UDim2.fromScale(lock.Progress, 1)
+				end
+				if lock.Progress >= 1 then
+					cutLock(w, lock)
+				end
+			end
+			for _, lock in w.Locks do
+				if not rates[lock] and lock.Part.Parent then
+					lock.Part:SetAttribute("Sparking", nil)
 				end
 			end
 			if cutting and os.clock() - lastCharge >= W.ChargeEvery then
