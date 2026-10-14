@@ -60,7 +60,9 @@ local function formatValue(id: string, value: any): string
 	if id == "Backpack" then
 		return ("%d SLOTS"):format(value)
 	elseif id == "Boots" then
-		return ("SPEED %d"):format(value)
+		-- V4: run speed; sprint shown alongside.
+		local level = table.find(Config.Upgrades.Boots.Values, value) or 1
+		return ("RUN %d / SPRINT %s"):format(value, tostring(Config.Upgrades.Boots.SprintValues[level]))
 	elseif value == 0 then
 		return "NO ARMOR"
 	end

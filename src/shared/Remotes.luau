@@ -21,6 +21,7 @@ local EVENTS = {
 	"ClientDiag", -- client -> server: kind, number (ViewHealth); logged only, never trusted
 	"BuyTool", -- client -> server: toolId (Gear Shop Tools tab, coins)
 	"DetectorPing", -- server -> client: { { X, Z } } nearest ordinary salvage (detector owners only)
+	"PursuitState", -- server -> client: Storm Pursuit event state (V4)
 }
 
 local folder: Folder

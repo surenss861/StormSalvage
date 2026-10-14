@@ -345,6 +345,15 @@ local function buildBoard()
 end
 
 -- Studio QA only (DebugService): add XP through the real rank-up path.
+-- XP from other server systems (Storm Pursuit extraction). Same rank-up handling as jobs.
+function ContractService.awardXP(player: Player, amount: number)
+	local session = PlayerService.get(player)
+	if session then
+		addXP(player, session.Data, amount)
+		publish(player, session.Data)
+	end
+end
+
 function ContractService.addXPForTest(player: Player, amount: number)
 	assert(game:GetService("RunService"):IsStudio(), "Studio only")
 	local session = PlayerService.get(player)

@@ -95,7 +95,7 @@ end
 local function createLoot(
 	lootId: string,
 	floorPosition: Vector3,
-	onTaken: (() -> ())?,
+	onTaken: ((Player?) -> ())?,
 	lifetime: number?,
 	owner: Player?,
 	ownerOnlyUntil: number?,
@@ -222,7 +222,7 @@ local function createLoot(
 			PlayerService.notifyAll(("%s grabbed a %s!"):format(player.DisplayName, def.Name), rarityColor)
 		end
 		if onTaken then
-			onTaken()
+			onTaken(player)
 		end
 	end)
 
@@ -297,6 +297,17 @@ function LootService.spawnStormCores(count: number)
 end
 
 -- Studio QA (DebugService): one item of any kind on the floor at `position`.
+-- A one-off item for an event (Storm Pursuit). `onTaken(player)` runs when someone takes it, or
+-- with nil when it expires after `lifetime`. Anyone can grab it (no owner window).
+function LootService.spawnSpecial(
+	lootId: string,
+	position: Vector3,
+	lifetime: number,
+	onTaken: (Player?) -> ()
+): Part
+	return createLoot(lootId, Vector3.new(position.X, groundY(position), position.Z), onTaken, lifetime)
+end
+
 function LootService.spawnForTest(lootId: string, position: Vector3): Instance
 	assert(Config.Loot[lootId], "unknown loot " .. lootId)
 	return createLoot(lootId, position)

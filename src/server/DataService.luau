@@ -50,6 +50,8 @@ export type Data = {
 	Cosmetics: { Owned: { [string]: boolean }, Plate: string },
 	-- Added for the Supply Depot (Tools tab). Same reconcile/rollback rules as above.
 	Tools: { Owned: { [string]: boolean } },
+	-- V4 Storm Pursuit records.
+	Records: { Extractions: number, BestExtract: number },
 	Lock: { Session: string, Time: number }?,
 }
 
@@ -65,6 +67,7 @@ function DataService.default(): Data
 		Contracts = { Active = {}, Done = 0 },
 		Cosmetics = { Owned = { Cardboard = true }, Plate = "Cardboard" },
 		Tools = { Owned = {} },
+		Records = { Extractions = 0, BestExtract = 0 },
 	}
 end
 

@@ -272,9 +272,11 @@ Config.Upgrades = {
 	},
 	Boots = {
 		DisplayName = "Running Boots",
-		Description = "Move faster through the town.",
+		Description = "Run and sprint faster through the town.",
 		Costs = { 75, 250, 700, 1800 },
-		Values = { 16, 18, 20, 22, 24 }, -- walkspeed at level 0..4
+		-- V4 movement: run speed at level 0..4 (was 16..24). Sprint is SprintValues.
+		Values = { 20, 21, 22, 23, 24 },
+		SprintValues = { 28, 29.5, 31, 32.5, 34 },
 	},
 	Armor = {
 		DisplayName = "Storm Armor",
@@ -284,6 +286,50 @@ Config.Upgrades = {
 	},
 }
 Config.UpgradeOrder = { "Backpack", "Boots", "Armor" }
+
+-- V4 movement (Movement.client): run by default, sprint on Shift (keyboard), automatically after
+-- a moment of steady movement (touch and gamepad), with a short ramp so it doesn't snap. Speeds
+-- come from Boots (Values / SprintValues); the server sets them as character attributes.
+Config.Movement = {
+	SprintRampSeconds = 0.22, -- run -> sprint ease
+	AutoSprintAfter = 0.45, -- touch/gamepad: seconds of steady movement before sprinting
+	SprintFov = 76, -- camera field of view while sprinting (70 normally); off in Reduced Effects
+}
+
+-- V4 Storm Pursuit (PursuitService): after a storm passes, a rare cache drops in one district.
+-- Whoever grabs it is chased by a rogue twister and must extract it to the Scrapyard plateau.
+Config.Pursuit = {
+	Enabled = true,
+	StartAfterCalm = 6, -- seconds into the Calm phase
+	ClaimSeconds = 25, -- the race: the cache disappears if nobody takes it
+	ExtractSeconds = 45, -- after the first grab; then the core destabilises (removed).
+	-- Both windows are cut short so the event always ends before the next storm hits.
+	CacheLootId = "StormCore", -- the prize is a real Storm Core (normal sale value) ...
+	ExtractCoins = 150, -- ... plus this extraction bonus at the plateau, once per event
+	ExtractXP = 40,
+	Spot = Vector3.new(140, 0, 40), -- Warehouse 7, open loading yard in front of the dock
+	District = "Warehouse 7",
+	-- The twister
+	SpawnBehind = 22, -- studs behind the first carrier, back toward the cache
+	-- Speed builds over the chase: slower than a sprint at first, faster than a base sprint
+	-- after ~4 s, so only a quick, direct route home escapes it.
+	SpeedStart = 25,
+	SpeedRamp = 0.6, -- studs/s gained per second of chase
+	SpeedMax = 30,
+	CatchRadius = 7,
+	CatchDamage = 15,
+	FormSeconds = 0.8, -- the twister forms after the first grab before it moves
+	StunSeconds = 3, -- after a catch it stops, so the dropped core is a fair scramble
+	RegrabGrace = 1.5, -- head start when the core is grabbed again after a catch
+	DropFling = 9, -- studs the core is flung sideways on a catch (costs time to recover)
+	StrikeEvery = 5, -- telegraphed debris strike at the carrier's lead point
+	StrikeLead = 1.4, -- seconds of lead on the carrier's velocity (= warning: lands where you'd be)
+	StrikeWarn = 1.4,
+	StrikeRadius = 7,
+	StrikeDamage = 20,
+	SafeLine = 80, -- studs short of the plateau edge where the twister stops: the foot of the climb (z ≈ -142)
+	StepSeconds = 0.1, -- server simulation step
+}
 
 -- Tools: permanent coin unlocks in the Gear Shop's Tools tab (V3-SUPPLY-DEPOT.md). Owned once,
 -- saved in the profile's Tools.Owned.

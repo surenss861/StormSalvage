@@ -157,6 +157,11 @@ function SessionStats.upgraded(player: Player, upgradeId: string, level: number)
 	table.insert(report.Upgrades, ("%s %d @%ss"):format(upgradeId, level, tostring(since(report))))
 end
 
+-- A named analytics event from other systems (Storm Pursuit), logged like the others.
+function SessionStats.event(player: Player, name: string, value: number?)
+	event(player, name, value)
+end
+
 function SessionStats.toolBought(player: Player, toolId: string)
 	local report = reports[player]
 	if not report then

@@ -31,6 +31,7 @@ local LookService = require(script.Parent.LookService)
 local LootService = require(script.Parent.LootService)
 local MonetizationService = require(script.Parent.MonetizationService)
 local PlayerService = require(script.Parent.PlayerService)
+local PursuitService = require(script.Parent.PursuitService)
 local StormService = require(script.Parent.StormService)
 local SessionStats = require(script.Parent.SessionStats)
 local StormStats = require(script.Parent.StormStats)
@@ -101,6 +102,13 @@ local commands: { [string]: (...any) -> any } = {
 		session.Data.Coins = amount
 		PlayerService.pushState(player :: Player)
 		return amount
+	end,
+	-- Start a Storm Pursuit event now (V4 testing).
+	pursuit = function()
+		return PursuitService.start()
+	end,
+	pursuitstate = function()
+		return PursuitService.state()
 	end,
 	-- Clear a player's tool ownership (repeatable Tools-tab purchase tests).
 	cleartools = function(playerName: string)

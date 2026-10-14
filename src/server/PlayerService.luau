@@ -147,6 +147,7 @@ function PlayerService.pushState(player: Player)
 		Contracts = session.Data.Contracts,
 		Cosmetics = session.Data.Cosmetics,
 		Tools = session.Data.Tools,
+		Records = session.Data.Records,
 	})
 	local leaderstats = player:FindFirstChild("leaderstats")
 	local coins = leaderstats and leaderstats:FindFirstChild("Coins")
@@ -160,7 +161,12 @@ function PlayerService.applyCharacterStats(player: Player)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if session and humanoid then
-		humanoid.WalkSpeed = upgradeValue(session, "Boots")
+		-- V4: run speed by default; the client sprints up to SprintSpeed (Movement.client).
+		local level = (session.Data.Upgrades.Boots or 0) + 1
+		local boots = Config.Upgrades.Boots
+		humanoid.WalkSpeed = boots.Values[level]
+		character:SetAttribute("RunSpeed", boots.Values[level])
+		character:SetAttribute("SprintSpeed", boots.SprintValues[level])
 	end
 end
 
@@ -213,6 +219,22 @@ function PlayerService.tryCarry(player: Player, lootId: string): boolean
 		return false
 	end
 	table.insert(session.Carried, lootId)
+	refreshCoreGlow(player, session)
+	PlayerService.pushState(player)
+	return true
+end
+
+-- Removes one `lootId` from the bag (Storm Pursuit: a caught or expired cache core).
+function PlayerService.removeCarried(player: Player, lootId: string): boolean
+	local session = sessions[player]
+	if not session then
+		return false
+	end
+	local index = table.find(session.Carried, lootId)
+	if not index then
+		return false
+	end
+	table.remove(session.Carried, index)
 	refreshCoreGlow(player, session)
 	PlayerService.pushState(player)
 	return true

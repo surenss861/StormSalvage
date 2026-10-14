@@ -7,6 +7,7 @@ local specs = {
 	require("./environment.spec"),
 	require("./progression.spec"),
 	require("./detector.spec"),
+	require("./pursuit.spec"),
 }
 local passed, failed = 0, 0
 for _, spec in specs do

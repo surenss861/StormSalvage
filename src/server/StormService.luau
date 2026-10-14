@@ -383,10 +383,20 @@ end
 
 local runners = { Wind = runWind, Flood = runFlood, Lightning = runLightning }
 
+local phaseListeners: { (string, number) -> () } = {}
+
+-- Called with (phase, duration) whenever a phase starts (Storm Pursuit schedules off Calm).
+function StormService.onPhase(callback: (string, number) -> ())
+	table.insert(phaseListeners, callback)
+end
+
 local function setPhase(phase: string, duration: number)
 	state.Phase = phase
 	state.EndsAt = workspace:GetServerTimeNow() + duration
 	broadcast()
+	for _, cb in phaseListeners do
+		task.spawn(cb, phase, duration)
+	end
 end
 
 -- Waits out a phase, returning early if a Studio debug command asked to skip it.
