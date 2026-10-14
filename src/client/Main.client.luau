@@ -139,7 +139,7 @@ end)
 
 SalvageFeedback.init()
 StormEffects.init(Remotes.get("LightningWarning"))
-Districts.init()
+Districts.init(Hud.setLocation)
 WorldMotion.init()
 EnvironmentFX.init(StormEffects.getState, StormEffects.gustPhase, StormEffects.isReduced)
 StormEffects.setStrikeHook(EnvironmentFX.onStrike)
@@ -458,6 +458,7 @@ RunService.RenderStepped:Connect(function()
 	local status, statusColor = StormEffects.statusLine(now)
 	Hud.stepStorm(now, stormState, status, statusColor, SalvageFeedback.coreCount())
 	Hud.stepBoost(boostEndsAt - os.clock())
+	Hud.stepControls(Dodge.cooldownLeft(), Config.Dodge.Cooldown, Movement.isSprinting())
 
 	local camera = workspace.CurrentCamera
 	if camera then

@@ -17,6 +17,7 @@ local Bands = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Ban
 local Remotes = require(ReplicatedStorage.Shared:WaitForChild("Remotes"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
 local UI = require(script.Parent:WaitForChild("UI"))
+local WorldMotion = require(script.Parent:WaitForChild("WorldMotion"))
 local EventStrip = require(script.Parent:WaitForChild("EventStrip"))
 
 local WreckHud = {}
@@ -92,6 +93,8 @@ local function onState(m: any)
 		b.Size = Vector3.new(1.2, 120, 1.2)
 		b.Position = m.Position + Vector3.new(0, 66, 0)
 		b.Parent = folder
+
+		WorldMotion.beacon(b)
 		beacon = b
 		Audio.play("WarnWind", 0.5, 1.3)
 	end

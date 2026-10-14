@@ -31,6 +31,7 @@ local Audio = require(script.Parent:WaitForChild("Audio"))
 local Notifications = require(script.Parent:WaitForChild("Notifications"))
 local SalvageFeedback = require(script.Parent:WaitForChild("SalvageFeedback"))
 local UI = require(script.Parent:WaitForChild("UI"))
+local WorldMotion = require(script.Parent:WaitForChild("WorldMotion"))
 local EventStrip = require(script.Parent:WaitForChild("EventStrip"))
 
 local PursuitHud = {}
@@ -60,7 +61,7 @@ end
 local function mark(position: Vector3, label: string, withBeam: boolean, color: Color3)
 	clearMarkers()
 	if withBeam then
-		UI.new("Part", {
+		local beam = UI.new("Part", {
 			Name = "Beam",
 			Parent = markerFolder,
 			Anchored = true,
@@ -74,6 +75,7 @@ local function mark(position: Vector3, label: string, withBeam: boolean, color: 
 			Size = Vector3.new(1.2, 160, 1.2),
 			Position = position + Vector3.new(0, 80, 0),
 		})
+		WorldMotion.beacon(beam)
 	end
 	local p = UI.new("Part", {
 		Name = "Tag",

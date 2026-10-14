@@ -1,31 +1,34 @@
 -- @file Always-on HUD
 -- @domain ui
--- @status stable
--- @see [[V3-UI-WORKSHOP]]
--- The always-on HUD, built from objects in the salvage yard (docs/art/V3-UI-STUDIES.md):
---   cash tag      coins (top left)
---   crate         the bag: one slot per capacity, coloured by what's in it, and its sell value
---   storm sign    a tin sign at the top: storm type, countdown, and what to do right now
---   tool tag      the Gear Shop button, and a tin plate for Settings (right edge)
--- Everything else (cards, notices, alerts, the objective note) lives in Notifications.
--- Values shown here come from the server's player and storm state.
+-- @status wip
+-- @see [[V4-HUD]]
+-- The always-on gameplay HUD, V4 "Storm-Scarred Arcade" (docs/art/v4/HUD.md): restrained dark
+-- industrial plates at the edges so the middle of the screen stays on the twister, the debris
+-- warnings, the extraction route and other players.
+--   top centre    one objective strip (EventStrip): the most important thing right now
+--   top left      where you are (district chip)
+--   top right     wallet (gold) and your band; under it Shop / Jobs / Settings
+--   bottom left   the salvage bag (slots by rarity, what it sells for) and your health
+--   bottom right  dodge and sprint (keyboard and gamepad; touch has its own buttons) beside the
+--                 detector radar (DetectorHud)
+-- Cards, notices and the objective note live in Notifications. Values come from the server.
 --
--- Two compositions: desktop, and compact for phones. Compact keeps the left side inside the top
--- third of the screen, because Roblox's dynamic thumbstick starts anywhere in the left 40% of
--- the bottom two thirds (PlayerModule DynamicThumbstick), and leaves the bottom right to the
--- jump button. In Studio, ReplicatedStorage attribute QA_PhoneFrame previews the compact layout
--- inside an 844 x 390 pt phone frame with those control zones drawn in.
+-- Two compositions: desktop, and compact for phones. Compact keeps everything out of the left
+-- 40% of the bottom two thirds (Roblox's dynamic thumbstick) and the jump button corner: the bag
+-- and health move to the top left. In Studio, ReplicatedStorage attribute QA_PhoneFrame previews
+-- the compact layout inside an 844 x 390 pt phone frame with those control zones drawn in.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Bands = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Bands"))
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local EventStrip = require(script.Parent:WaitForChild("EventStrip"))
 local UI = require(script.Parent:WaitForChild("UI"))
 local BigMoney = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("BigMoney"))
 
 local Hud = {}
-local M = UI.Mat
+local A = UI.Arcade
 
 local screen: Frame -- the device screen (the whole GUI, or the Studio phone frame)
 local screenScale: UIScale
@@ -34,19 +37,27 @@ local rootScale: UIScale
 local topStack: Frame
 local phoneChrome: Frame? = nil
 
--- Left cluster.
-local cluster: Frame
+-- Wallet (top right) and bag + health (bottom left).
+local cluster: Frame -- the bag panel
 local cashTag: Frame
 local cashLabel: TextLabel
 local cashScale: UIScale
+local bandLabel: TextLabel
 local crate: Frame
 local crateCount: TextLabel
-local crateLabel: Frame
 local crateWorth: TextLabel
 local crateSlots: Frame
 local crateScale: UIScale
+local healthFill: Frame
+local healthText: TextLabel
 local boostSticker: Frame
 local boostLabel: TextLabel
+local location: Frame
+local locationLabel: TextLabel
+local controls: Frame
+local dodgeRing: Frame
+local dodgeKey: TextLabel
+local sprintChip: Frame
 
 -- Right rail.
 local rail: Frame
@@ -71,125 +82,299 @@ function Hud.isCompact(): boolean
 	return compact
 end
 
----------------------------------------------------------------------------- Cash tag + crate
+---------------------------------------------------------------------------- Wallet, bag, health
 
 local function buildCluster()
-	cluster = UI.new("Frame", {
-		Name = "Cluster",
+	-- Wallet: top right, gold.
+	cashTag = UI.arcadePlate({
+		Name = "Wallet",
 		Parent = root,
-		Position = UDim2.fromOffset(14, 10),
-		Size = UDim2.fromOffset(250, 180),
-		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(1, 0),
+		Size = UDim2.fromOffset(200, 50),
 	})
-
-	cashTag = UI.new("Frame", {
-		Name = "Cash",
-		Parent = cluster,
-		Size = UDim2.fromOffset(196, 62),
-		Rotation = -1.5,
-		BackgroundColor3 = M.Kraft,
-		BorderSizePixel = 0,
-	}, { UI.corner(4), UI.stroke(M.KraftEdge, 2) })
 	cashScale = UI.new("UIScale", { Parent = cashTag })
-	UI.tape(cashTag, UDim2.fromOffset(6, 4), Vector2.new(44, 15), -38, nil, 3)
-	local coin = UI.coinIcon(cashTag, 30)
+	local coin = UI.coinIcon(cashTag, 28)
 	coin.AnchorPoint = Vector2.new(0, 0.5)
-	coin.Position = UDim2.new(0, 14, 0.5, 0)
+	coin.Position = UDim2.new(0, 12, 0.5, 0)
 	coin.ZIndex = 2
 	cashLabel = UI.text({
 		Name = "Amount",
 		Parent = cashTag,
-		Font = UI.Font.Mono,
-		TextSize = 32,
-		Position = UDim2.fromOffset(52, 0),
-		Size = UDim2.new(1, -62, 1, 0),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = M.Marker,
+		FontFace = UI.Heading,
+		TextSize = 30,
+		Position = UDim2.fromOffset(48, 0),
+		Size = UDim2.new(1, -58, 1, 0),
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextColor3 = A.Gold,
 		Text = "0",
 		ZIndex = 2,
 	})
+	bandLabel = UI.text({
+		Name = "Band",
+		Parent = cashTag,
+		FontFace = UI.Heading,
+		TextSize = 13,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -2, 1, 4),
+		Size = UDim2.fromOffset(200, 16),
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextColor3 = A.Amber,
+		Text = "",
+	})
 
-	crate = UI.new("Frame", {
-		Name = "Crate",
+	-- Bag and health: bottom left (top left on phones).
+	cluster = UI.new("Frame", {
+		Name = "BagPanel",
+		Parent = root,
+		Size = UDim2.fromOffset(260, 104),
+		BackgroundTransparency = 1,
+	})
+	crate = UI.arcadePlate({
+		Name = "Bag",
 		Parent = cluster,
-		Position = UDim2.fromOffset(0, 74),
-		Size = UDim2.fromOffset(236, 74),
-		BackgroundColor3 = M.Wood,
-		BorderSizePixel = 0,
-	}, { UI.stroke(M.WoodDark, 3) })
+		Size = UDim2.new(1, 0, 0, 78),
+	})
 	crateScale = UI.new("UIScale", { Parent = crate })
-	for _, y in { 0.34, 0.67 } do
-		UI.new("Frame", {
-			Parent = crate,
-			Position = UDim2.fromScale(0, y),
-			Size = UDim2.new(1, 0, 0, 2),
-			BackgroundColor3 = M.WoodDark,
-			BorderSizePixel = 0,
-		})
-	end
-	for _, x in { 0, 1 } do
-		UI.new("Frame", {
-			Parent = crate,
-			AnchorPoint = Vector2.new(x, 0),
-			Position = UDim2.fromScale(x, 0),
-			Size = UDim2.new(0, 8, 1, 0),
-			BackgroundColor3 = M.WoodDark,
-			BorderSizePixel = 0,
-		})
-	end
+	local bag = UI.bagIcon(crate, 34, A.Amber)
+	bag.Position = UDim2.fromOffset(12, 10)
+	UI.text({
+		Name = "Caption",
+		Parent = crate,
+		FontFace = UI.Heading,
+		TextSize = 12,
+		Position = UDim2.fromOffset(56, 6),
+		Size = UDim2.fromOffset(110, 14),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = A.Dim,
+		Text = "SALVAGE BAG",
+	})
+	crateCount = UI.text({
+		Name = "Count",
+		Parent = crate,
+		FontFace = UI.Heading,
+		TextSize = 26,
+		Position = UDim2.fromOffset(56, 18),
+		Size = UDim2.fromOffset(110, 28),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = A.Text,
+		Text = "0 / 0",
+	})
 	crateWorth = UI.text({
 		Name = "Worth",
 		Parent = crate,
-		Font = UI.Font.Label,
-		TextSize = 13,
-		Position = UDim2.fromOffset(14, 4),
-		Size = UDim2.new(1, -110, 0, 18),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = Color3.fromRGB(255, 240, 214),
+		FontFace = UI.Heading,
+		TextSize = 15,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 8),
+		Size = UDim2.fromOffset(100, 36),
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		TextWrapped = true,
+		TextColor3 = A.Gold,
 		Text = "",
-		ZIndex = 3,
-	})
-	crateLabel = UI.tape(crate, UDim2.new(1, -44, 0, 4), Vector2.new(84, 28), 2, nil, 5)
-	crateCount = UI.text({
-		Name = "Count",
-		Parent = crateLabel,
-		Font = UI.Font.Mono,
-		TextSize = 19,
-		Size = UDim2.fromScale(1, 1),
-		TextColor3 = M.Marker,
-		Text = "0/0",
-		ZIndex = 6,
 	})
 	crateSlots = UI.new("Frame", {
 		Name = "Slots",
 		Parent = crate,
-		Position = UDim2.fromOffset(14, 28),
-		Size = UDim2.new(1, -28, 0, 38),
+		Position = UDim2.fromOffset(12, 52),
+		Size = UDim2.new(1, -24, 0, 16),
 		BackgroundTransparency = 1,
-		ZIndex = 3,
+	})
+	local health = UI.arcadePlate({
+		Name = "Health",
+		Parent = cluster,
+		Position = UDim2.fromOffset(0, 84),
+		Size = UDim2.new(1, 0, 0, 20),
+	})
+	local cross = UI.new("Frame", {
+		Parent = health,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 8, 0.5, 0),
+		Size = UDim2.fromOffset(12, 12),
+		BackgroundTransparency = 1,
+	})
+	UI.new("Frame", {
+		Parent = cross,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, 0, 0, 4),
+		BackgroundColor3 = A.Hurt,
+		BorderSizePixel = 0,
+	})
+	UI.new("Frame", {
+		Parent = cross,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(0, 4, 1, 0),
+		BackgroundColor3 = A.Hurt,
+		BorderSizePixel = 0,
+	})
+	local back = UI.new("Frame", {
+		Parent = health,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 28, 0.5, 0),
+		Size = UDim2.new(1, -96, 0, 8),
+		BackgroundColor3 = A.Plate2,
+		BorderSizePixel = 0,
+	}, { UI.corner(4) })
+	healthFill = UI.new("Frame", {
+		Parent = back,
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = A.Health,
+		BorderSizePixel = 0,
+	}, { UI.corner(4) })
+	healthText = UI.text({
+		Parent = health,
+		FontFace = UI.Heading,
+		TextSize = 13,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -8, 0.5, 0),
+		Size = UDim2.fromOffset(60, 16),
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextColor3 = A.Text,
+		Text = "100 / 100",
 	})
 
-	-- 2x Salvage: an orange price-gun sticker on the cash tag.
+	-- 2x Salvage: a gold sticker on the wallet.
 	boostSticker = UI.new("Frame", {
 		Name = "Boost",
-		Parent = cluster,
-		Position = UDim2.fromOffset(170, -6),
-		Size = UDim2.fromOffset(78, 40),
-		Rotation = 8,
-		BackgroundColor3 = M.Orange,
+		Parent = cashTag,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(0, -6, 0.5, 0),
+		Size = UDim2.fromOffset(72, 28),
+		BackgroundColor3 = A.Amber,
 		BorderSizePixel = 0,
 		Visible = false,
 		ZIndex = 6,
-	}, { UI.corner(20), UI.stroke(M.Marker, 2) })
+	}, { UI.corner(14) })
 	boostLabel = UI.text({
 		Parent = boostSticker,
-		Font = UI.Font.Mono,
-		TextSize = 13,
+		FontFace = UI.Heading,
+		TextSize = 14,
 		Size = UDim2.fromScale(1, 1),
-		TextColor3 = Color3.new(1, 1, 1),
+		TextColor3 = A.Plate,
 		Text = "",
 		ZIndex = 7,
 	})
+
+	-- Where you are: top left.
+	location = UI.arcadePlate({
+		Name = "Location",
+		Parent = root,
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 28),
+	})
+	UI.padding(0, 12, 0, 10).Parent = location
+	UI.new("UIListLayout", {
+		Parent = location,
+		FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 8),
+	})
+	UI.new("Frame", {
+		Name = "Dot",
+		Parent = location,
+		Size = UDim2.fromOffset(8, 8),
+		BackgroundColor3 = A.Amber,
+		BorderSizePixel = 0,
+	}, { UI.corner(4) })
+	locationLabel = UI.text({
+		Parent = location,
+		FontFace = UI.Heading,
+		TextSize = 15,
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 28),
+		TextColor3 = A.Text,
+		Text = "GALE HOLLOW",
+	})
+
+	-- Dodge and sprint (keyboard / gamepad): bottom right, left of the radar.
+	controls = UI.new("Frame", {
+		Name = "Controls",
+		Parent = root,
+		AnchorPoint = Vector2.new(1, 1),
+		Size = UDim2.fromOffset(150, 64),
+		BackgroundTransparency = 1,
+	})
+	local dodge = UI.arcadePlate({
+		Name = "Dodge",
+		Parent = controls,
+		Size = UDim2.fromOffset(64, 64),
+	})
+	UI.new("UICorner", { Parent = dodge, CornerRadius = UDim.new(0.5, 0) })
+	dodgeRing = UI.new("Frame", {
+		Name = "Ring",
+		Parent = dodge,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -6, 1, -6),
+		BackgroundTransparency = 1,
+	}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), UI.stroke(A.Amber, 3) })
+	dodgeKey = UI.text({
+		Parent = dodge,
+		FontFace = UI.Heading,
+		TextSize = 22,
+		Position = UDim2.fromOffset(0, 6),
+		Size = UDim2.new(1, 0, 0, 26),
+		TextColor3 = A.Text,
+		Text = "Q",
+	})
+	UI.text({
+		Parent = dodge,
+		FontFace = UI.Heading,
+		TextSize = 11,
+		Position = UDim2.fromOffset(0, 34),
+		Size = UDim2.new(1, 0, 0, 14),
+		TextColor3 = A.Dim,
+		Text = "DODGE",
+	})
+	sprintChip = UI.arcadePlate({
+		Name = "Sprint",
+		Parent = controls,
+		Position = UDim2.fromOffset(72, 18),
+		Size = UDim2.fromOffset(76, 30),
+	})
+	UI.text({
+		Parent = sprintChip,
+		FontFace = UI.Heading,
+		TextSize = 13,
+		Size = UDim2.fromScale(1, 1),
+		TextColor3 = A.Text,
+		Text = "SHIFT · SPRINT",
+		TextScaled = false,
+	})
+end
+
+-- The district you're in (Districts); nil for open town.
+function Hud.setLocation(label: string?)
+	locationLabel.Text = if label then ("GALE HOLLOW · %s"):format(string.upper(label)) else "GALE HOLLOW"
+end
+
+-- Per frame: the dodge cooldown ring and the sprint chip (Main passes both).
+function Hud.stepControls(cooldownLeft: number, cooldown: number, sprinting: boolean)
+	local ready = cooldownLeft <= 0
+	local ring = dodgeRing:FindFirstChildOfClass("UIStroke") :: UIStroke
+	ring.Color = if ready then A.Amber else A.Edge
+	dodgeKey.Text = if ready then "Q" else ("%.1f"):format(cooldownLeft)
+	dodgeKey.TextColor3 = if ready then A.Text else A.Dim
+	ring.Transparency = if ready then 0 else 0.4 * (cooldownLeft / math.max(cooldown, 0.01))
+	local stroke = sprintChip:FindFirstChildOfClass("UIStroke") :: UIStroke
+	stroke.Color = if sprinting then A.Amber else A.Edge
+end
+
+local function bindHealth(character: Model)
+	local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
+	if not humanoid then
+		return
+	end
+	local function refresh()
+		local f = math.clamp(humanoid.Health / math.max(humanoid.MaxHealth, 1), 0, 1)
+		healthFill.Size = UDim2.fromScale(f, 1)
+		healthFill.BackgroundColor3 = if f < 0.35 then A.Hurt else A.Health
+		healthText.Text = ("%d / %d"):format(math.ceil(humanoid.Health), humanoid.MaxHealth)
+	end
+	humanoid.HealthChanged:Connect(refresh)
+	refresh()
 end
 
 ---------------------------------------------------------------------------- Storm sign
@@ -266,96 +451,93 @@ end
 ---------------------------------------------------------------------------- Right rail
 
 local function buildRail()
+	-- Shop / Jobs / Settings: dark square buttons in a row under the wallet.
 	rail = UI.new("Frame", {
 		Name = "Rail",
 		Parent = root,
 		AnchorPoint = Vector2.new(1, 0),
-		Size = UDim2.fromOffset(150, 170),
+		Size = UDim2.fromOffset(200, 60),
 		BackgroundTransparency = 1,
+	}, {
+		UI.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalAlignment = Enum.HorizontalAlignment.Right,
+			Padding = UDim.new(0, 8),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
 	})
-	-- Settings: a riveted tin plate.
 	local size = UI.buttonSize()
-	local settings = UI.new("TextButton", {
-		Name = "SettingsButton",
-		Parent = rail,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -4, 0, 0),
-		Size = UDim2.fromOffset(size, size),
-		BackgroundColor3 = M.Tin,
-		AutoButtonColor = false,
-		BorderSizePixel = 0,
-		Text = "",
-	}, { UI.corner(6), UI.stroke(M.TinDark, 3) })
-	for _, p in
-		{ UDim2.fromOffset(7, 7), UDim2.new(1, -7, 0, 7), UDim2.new(0, 7, 1, -7), UDim2.new(1, -7, 1, -7) }
-	do
-		UI.rivet(settings, p, 2)
+	local function button(name: string, order: number, label: string): TextButton
+		local b = UI.new("TextButton", {
+			Name = name,
+			Parent = rail,
+			LayoutOrder = order,
+			Size = UDim2.fromOffset(size, size),
+			BackgroundColor3 = A.Plate,
+			BackgroundTransparency = 0.08,
+			AutoButtonColor = false,
+			BorderSizePixel = 0,
+			Text = "",
+		}, { UI.corner(8), UI.stroke(A.Edge, 1.5) })
+		UI.text({
+			Parent = b,
+			FontFace = UI.Heading,
+			TextSize = 11,
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, -3),
+			Size = UDim2.new(1, 0, 0, 13),
+			TextColor3 = A.Dim,
+			Text = label,
+		})
+		local scale = UI.new("UIScale", { Parent = b })
+		b.Activated:Connect(function()
+			UI.pop(scale, 0.92, 0.2)
+		end)
+		b.MouseEnter:Connect(function()
+			(b:FindFirstChildOfClass("UIStroke") :: UIStroke).Color = A.Amber
+		end)
+		b.MouseLeave:Connect(function()
+			(b:FindFirstChildOfClass("UIStroke") :: UIStroke).Color = A.Edge
+		end)
+		return b
 	end
-	local sliders = UI.slidersIcon(settings, math.floor(size * 0.45))
+	local shop = button("ShopButton", 1, "SHOP")
+	local bag = UI.bagIcon(shop, math.floor(size * 0.46), A.Amber)
+	bag.AnchorPoint = Vector2.new(0.5, 0)
+	bag.Position = UDim2.new(0.5, 0, 0, 6)
+	Hud.ShopButton = shop
+
+	local jobs = button("JobsButton", 2, "JOBS")
+	jobs.Visible = false -- shown after the first sale (staged discovery, Main)
+	local clip = UI.new("Frame", {
+		Parent = jobs,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 7),
+		Size = UDim2.fromOffset(math.floor(size * 0.38), math.floor(size * 0.46)),
+		BackgroundColor3 = A.Text,
+		BorderSizePixel = 0,
+	}, { UI.corner(3) })
+	for k = 1, 3 do
+		UI.new("Frame", {
+			Parent = clip,
+			Position = UDim2.new(0.18, 0, 0.2 + k * 0.18, 0),
+			Size = UDim2.new(0.64, 0, 0, 2),
+			BackgroundColor3 = A.Plate,
+			BorderSizePixel = 0,
+		})
+	end
+	Hud.JobsButton = jobs
+
+	local settings = button("SettingsButton", 3, "MENU")
+	local sliders = UI.slidersIcon(settings, math.floor(size * 0.42))
+	sliders.AnchorPoint = Vector2.new(0.5, 0)
+	sliders.Position = UDim2.new(0.5, 0, 0, 8)
 	for _, d in sliders:GetDescendants() do
 		if d:IsA("Frame") then
-			d.BackgroundColor3 = M.Marker
+			d.BackgroundColor3 = A.Text
 		end
 	end
 	Hud.SettingsButton = settings
-
-	-- Jobs: a clipboard plate left of Settings (the Contract board in the Scrapyard opens it too).
-	local jobs = UI.new("TextButton", {
-		Name = "JobsButton",
-		Parent = rail,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -4 - size - 8, 0, 0),
-		Size = UDim2.fromOffset(size, size),
-		BackgroundColor3 = M.Paper,
-		AutoButtonColor = false,
-		BorderSizePixel = 0,
-		Font = UI.Font.Mono,
-		TextSize = 14,
-		TextColor3 = M.Marker,
-		Text = "JOBS",
-		Visible = false, -- shown after the first sale (staged discovery, Main)
-	}, { UI.corner(4), UI.stroke(M.WoodDark, 3) })
-	UI.new("Frame", {
-		Parent = jobs,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0, 2),
-		Size = UDim2.fromOffset(math.floor(size * 0.45), 8),
-		BackgroundColor3 = M.Tin,
-		BorderSizePixel = 0,
-	}, { UI.corner(3), UI.stroke(M.TinDark, 1.5) })
-	Hud.JobsButton = jobs
-
-	-- Gear Shop: a manila tool tag hanging on a string.
-	local shop = UI.new("TextButton", {
-		Name = "ShopButton",
-		Parent = rail,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, size + 18),
-		Size = UDim2.fromOffset(140, 74),
-		Rotation = 3,
-		BackgroundColor3 = M.Manila,
-		AutoButtonColor = false,
-		BorderSizePixel = 0,
-		Text = "",
-	}, { UI.corner(8), UI.stroke(M.KraftEdge, 2) })
-	UI.punchHole(shop, UDim2.fromOffset(20, 18), 13, 2)
-	local bag = UI.bagIcon(shop, 30)
-	bag.Position = UDim2.fromOffset(10, 32)
-	UI.text({
-		Parent = shop,
-		Font = UI.Font.Title,
-		TextSize = 21,
-		Position = UDim2.fromOffset(42, 6),
-		Size = UDim2.new(1, -48, 1, -12),
-		TextWrapped = true,
-		TextColor3 = M.Marker,
-		Text = "GEAR SHOP",
-	})
-	local scale = UI.new("UIScale", { Parent = shop })
-	shop.Activated:Connect(function()
-		UI.pop(scale, 0.92, 0.2)
-	end)
-	Hud.ShopButton = shop
 end
 
 ---------------------------------------------------------------------------- Layout
@@ -475,32 +657,35 @@ local function fit()
 	local wasCompact = compact
 	compact = UI.compact()
 	if compact then
-		-- Phone: cash and crate side by side in one short row; the sign narrower; the rail on
-		-- the right above the jump button.
-		cluster.Size = UDim2.fromOffset(420, 66)
-		cashTag.Size = UDim2.fromOffset(160, 56)
-		cashLabel.TextSize = 28
-		crate.Position = UDim2.fromOffset(170, 0)
-		crate.Size = UDim2.fromOffset(220, 60)
+		-- Phone: bag + health at the top left (the bottom left belongs to the thumbstick), the
+		-- strip right of centre, wallet and buttons at the top right above the jump button.
+		cluster.Position = UDim2.fromOffset(10, 8)
+		cluster.Size = UDim2.fromOffset(230, 92)
+		crate.Size = UDim2.new(1, 0, 0, 66)
 		crateWorth.Visible = false
-		crateSlots.Position = UDim2.fromOffset(14, 24)
-		crateSlots.Size = UDim2.new(1, -28, 0, 28)
-		boostSticker.Position = UDim2.fromOffset(120, -8)
-		-- Right of centre, so the strip stays out of the thumbstick zone.
-		topStack.Position = UDim2.new(0.6, 0, 0, 4)
-		rail.Position = UDim2.new(1, -10, 0.22, 0)
+		crateSlots.Position = UDim2.fromOffset(12, 44)
+		location.Visible = false
+		controls.Visible = false
+		cashTag.Position = UDim2.new(1, -10, 0, 8)
+		cashTag.Size = UDim2.fromOffset(170, 44)
+		cashLabel.TextSize = 26
+		rail.Position = UDim2.new(1, -10, 0, 74)
+		topStack.Position = UDim2.new(0.58, 0, 0, 4)
 	else
-		cluster.Size = UDim2.fromOffset(250, 180)
-		cashTag.Size = UDim2.fromOffset(196, 62)
-		cashLabel.TextSize = 32
-		crate.Position = UDim2.fromOffset(0, 74)
-		crate.Size = UDim2.fromOffset(236, 74)
+		cluster.Position = UDim2.new(0, 14, 1, -118)
+		cluster.Size = UDim2.fromOffset(260, 104)
+		crate.Size = UDim2.new(1, 0, 0, 78)
 		crateWorth.Visible = true
-		crateSlots.Position = UDim2.fromOffset(14, 28)
-		crateSlots.Size = UDim2.new(1, -28, 0, 38)
-		boostSticker.Position = UDim2.fromOffset(170, -6)
-		topStack.Position = UDim2.new(0.5, 0, 0, 6)
-		rail.Position = UDim2.new(1, -12, 0.3, 0)
+		crateSlots.Position = UDim2.fromOffset(12, 52)
+		location.Visible = true
+		location.Position = UDim2.fromOffset(14, 10)
+		controls.Visible = not UI.isTouch()
+		controls.Position = UDim2.new(1, -196, 1, -20)
+		cashTag.Position = UDim2.new(1, -14, 0, 10)
+		cashTag.Size = UDim2.fromOffset(200, 50)
+		cashLabel.TextSize = 30
+		rail.Position = UDim2.new(1, -14, 0, 84)
+		topStack.Position = UDim2.new(0.5, 0, 0, 8)
 	end
 	if compact ~= wasCompact or not laidOut then
 		laidOut = true
@@ -519,19 +704,19 @@ end
 local shownCoins: string? = nil
 local cancelCount: (() -> ())? = nil
 
--- "+120" drifting up beside the cash tag.
+-- "+120" drifting up under the wallet.
 local function floatDelta(text: string, color: Color3)
 	local at = (cashTag.AbsolutePosition - root.AbsolutePosition) / (rootScale.Scale * screenScale.Scale)
 	local width = cashTag.AbsoluteSize.X / (rootScale.Scale * screenScale.Scale)
 	local label = UI.text({
 		Parent = root,
-		Font = UI.Font.Mono,
-		TextSize = 22,
+		FontFace = UI.Heading,
+		TextSize = 24,
 		Outline = true,
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromOffset(at.X + width + 8, at.Y + 30),
-		Size = UDim2.fromOffset(120, 26),
-		TextXAlignment = Enum.TextXAlignment.Left,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.fromOffset(at.X + width, at.Y + 70),
+		Size = UDim2.fromOffset(160, 26),
+		TextXAlignment = Enum.TextXAlignment.Right,
 		TextColor3 = color,
 		Text = text,
 		ZIndex = 6,
@@ -588,14 +773,11 @@ function Hud.setPlayer(s: any)
 	showCoins(s.Coins)
 	local carried = #s.Carried
 	local full = carried >= s.Capacity
-	crateCount.Text = if full
-		then ("FULL %d/%d"):format(carried, s.Capacity)
-		else ("%d/%d"):format(carried, s.Capacity)
-	crateCount.TextColor3 = if full then M.RedPen else M.Marker
-	crateLabel.BackgroundColor3 = if full then Color3.fromRGB(255, 214, 200) else M.Tape
-	crateWorth.Text = if carried > 0
-		then ("SELLS FOR %s"):format(BigMoney.tag(s.CarriedValue))
-		else "EMPTY CRATE"
+	crateCount.Text = ("%d / %d"):format(carried, s.Capacity)
+	crateCount.TextColor3 = if full then A.Hurt else A.Text
+	crateWorth.Text = if carried > 0 then ("SELLS FOR\n%s"):format(BigMoney.tag(s.CarriedValue)) else ""
+	local band = tonumber(s.Band) or 1
+	bandLabel.Text = if band > 1 then string.upper(Bands.Names[band] or "") else ""
 
 	local key = table.concat(s.Carried, ",") .. "/" .. s.Capacity .. (if compact then "c" else "d")
 	if key == slotKey then
@@ -615,7 +797,7 @@ function Hud.setPlayer(s: any)
 		width = if compact then 192 else 208
 	end
 	local slotW = math.clamp(math.floor((width - (s.Capacity - 1) * 3) / s.Capacity), 6, 34)
-	local slotH = if compact then 24 else 34
+	local slotH = 14
 	for i = 1, s.Capacity do
 		local id = s.Carried[i]
 		local def = id and Config.Loot[id]
@@ -624,11 +806,10 @@ function Hud.setPlayer(s: any)
 			Parent = crateSlots,
 			LayoutOrder = i,
 			Size = UDim2.fromOffset(slotW, slotH),
-			BackgroundColor3 = if def then Config.RarityColors[def.Rarity] else M.WoodDark,
-			BackgroundTransparency = if def then 0 else 0.5,
+			BackgroundColor3 = if def then Config.RarityColors[def.Rarity] else A.Plate2,
 			BorderSizePixel = 0,
 			ZIndex = 4,
-		}, if def then { UI.stroke(M.Marker, 1, 0.45) } else nil)
+		}, { UI.corner(3) })
 	end
 end
 
@@ -640,7 +821,7 @@ function Hud.stepBoost(secondsLeft: number)
 	boostSticker.Visible = secondsLeft > 0
 	if secondsLeft > 0 then
 		local secs = math.floor(secondsLeft)
-		boostLabel.Text = ("2X  %d:%02d"):format(secs // 60, secs % 60)
+		boostLabel.Text = ("2X %d:%02d"):format(secs // 60, secs % 60)
 	end
 end
 
@@ -663,6 +844,15 @@ function Hud.init(gui: ScreenGui): (Frame, Frame)
 	buildSign()
 	buildRail()
 	fit()
+	-- Our own health bar replaces Roblox's (bottom left, with the bag).
+	pcall(function()
+		game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
+	end)
+	local player = game:GetService("Players").LocalPlayer
+	if player.Character then
+		task.spawn(bindHealth, player.Character)
+	end
+	player.CharacterAdded:Connect(bindHealth)
 	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
 	if RunService:IsStudio() then
 		ReplicatedStorage:GetAttributeChangedSignal("QA_PhoneFrame"):Connect(fit)

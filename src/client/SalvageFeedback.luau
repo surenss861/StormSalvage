@@ -115,21 +115,21 @@ local function bagFullCard()
 	Notifications.card({
 		Priority = 1,
 		Accent = UI.Color.Danger,
-		Height = 70,
+		Height = 62,
 		Seconds = 3,
-		Surface = "Note",
+		Surface = "Arcade",
 		Build = function(card)
-			line(
-				card,
-				14,
-				22,
-				{ Font = UI.Font.Mono, TextSize = 19, Text = "BAG FULL!", TextColor3 = M.RedPen }
-			)
-			line(card, 38, 18, {
+			line(card, 10, 22, {
+				FontFace = UI.Heading,
+				TextSize = 20,
+				Text = "BAG FULL",
+				TextColor3 = UI.Color.Danger,
+			})
+			line(card, 34, 18, {
 				Font = UI.Font.Label,
 				TextSize = 14,
 				Text = "Sell at the Scrap Buyer on the hill",
-				TextColor3 = M.Marker,
+				TextColor3 = UI.Arcade.Text,
 			})
 		end,
 	})
@@ -201,92 +201,56 @@ function SalvageFeedback.onPickup(info: { Id: string, Position: Vector3 }, carri
 			Audio.play("CoreDelivered", 1)
 			sparkleBurst(info.Position + Vector3.new(0, 1.5, 0), color, 48)
 		end
+		-- The find card (V4 Arcade): rarity in its colour, the name, what it's worth, the bag.
+		local A = UI.Arcade
 		Notifications.card({
 			Priority = rank,
 			Accent = color,
-			Height = if isCore then 132 else 112,
-			Width = 270,
+			Height = if isCore then 104 else 88,
+			Width = 260,
 			Seconds = 2.2 + rank * 0.5 + (if jackpot then 1.5 else 0),
-			Surface = "Tag",
+			Surface = "Arcade",
 			Build = function(card)
-				local grade = line(card, 8, 26, {
-					Font = UI.Font.Mono,
-					TextSize = 16,
-					Position = UDim2.fromOffset(24, 8),
-					Size = UDim2.new(1, -34, 0, 26),
-					Rotation = -1,
-					Text = if jackpot then "JACKPOT!" elseif isCore then "STORM CORE!" else TAG[def.Rarity],
-					TextColor3 = if rank >= 4 then M.Marker else Color3.new(1, 1, 1),
+				line(card, 8, 18, {
+					FontFace = UI.Heading,
+					TextSize = 15,
+					Text = if def.Rarity == "Mythic"
+						then "MYTHIC!"
+						elseif jackpot then "JACKPOT!"
+						elseif isCore then "STORM CORE!"
+						else TAG[def.Rarity],
+					TextColor3 = color,
 					ZIndex = 7,
 				})
-				grade.TextXAlignment = Enum.TextXAlignment.Center
-				line(card, 42, 30, {
-					Font = UI.Font.Title,
-					TextSize = 25,
-					Text = def.Name,
-					TextColor3 = M.Marker,
+				line(card, 26, 28, {
+					FontFace = UI.Heading,
+					TextSize = 24,
+					Text = string.upper(def.Name),
+					TextColor3 = A.Text,
 					ZIndex = 7,
 				})
-				line(card, 74, 18, {
-					Font = UI.Font.Mono,
+				line(card, 56, 18, {
+					FontFace = UI.Heading,
 					TextSize = 16,
 					Text = ("WORTH %s"):format(BigMoney.full(def.Value)),
-					TextColor3 = color:Lerp(M.Marker, 0.45),
+					TextColor3 = A.Gold,
 					ZIndex = 7,
 				})
-				line(card, 94, 16, {
+				local bagLine = line(card, 56, 18, {
 					Font = UI.Font.Label,
 					TextSize = 13,
 					Text = ("Bag %d/%d"):format(carried, capacity),
-					TextColor3 = M.Pencil,
+					TextColor3 = A.Dim,
 					ZIndex = 7,
 				})
+				bagLine.TextXAlignment = Enum.TextXAlignment.Right
 				if isCore then
-					line(card, 110, 16, {
+					line(card, 78, 18, {
 						Font = UI.Font.Label,
 						TextSize = 13,
 						Text = "Get it to the Scrap Buyer alive!",
-						TextColor3 = M.RedPen,
+						TextColor3 = A.Amber,
 						ZIndex = 7,
-					})
-				end
-				if rank == 3 then
-					stamp(
-						card,
-						"EPIC",
-						color:Lerp(M.Marker, 0.2),
-						UDim2.new(1, -44, 0, 84),
-						Vector2.new(78, 32),
-						-12
-					)
-				elseif jackpot then
-					stamp(
-						card,
-						"GOLDEN",
-						color:Lerp(M.Marker, 0.25),
-						UDim2.new(1, -46, 0, 84),
-						Vector2.new(92, 32),
-						-12
-					)
-				elseif rank >= 4 then
-					local star = UI.new("Frame", {
-						Parent = card,
-						AnchorPoint = Vector2.new(0.5, 0.5),
-						Position = UDim2.new(1, -30, 0, 80),
-						Size = UDim2.fromOffset(46, 46),
-						Rotation = 18,
-						BackgroundColor3 = color,
-						BorderSizePixel = 0,
-						ZIndex = 8,
-					}, { UI.corner(8), UI.stroke(M.Marker, 2) })
-					UI.text({
-						Parent = star,
-						Font = UI.Font.Mono,
-						TextSize = 24,
-						Size = UDim2.fromScale(1, 1),
-						TextColor3 = M.Marker,
-						Text = "★",
-						ZIndex = 9,
 					})
 				end
 			end,

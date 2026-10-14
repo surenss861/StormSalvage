@@ -19,7 +19,7 @@ local Districts = {}
 type District = { Label: string, Sub: string, CFrame: CFrame, Half: Vector3 }
 local districts: { District } = {}
 local current: string? = nil
-local RANK = { Common = 0, Uncommon = 1, Rare = 2, Epic = 3, Legendary = 4 }
+local RANK = { Common = 0, Uncommon = 1, Rare = 2, Epic = 3, Legendary = 4, Mythic = 5 }
 
 -- "Best finds: Engine Block, Mini Safe" from the district's loot pool.
 local function bestFinds(zone: string?): string
@@ -42,24 +42,29 @@ local function inside(d: District, position: Vector3): boolean
 	return math.abs(p.X) <= d.Half.X and math.abs(p.Z) <= d.Half.Z and math.abs(p.Y) <= d.Half.Y
 end
 
-function Districts.init()
+function Districts.init(onChange: ((string?) -> ())?)
 	task.spawn(function()
 		local map = workspace:WaitForChild("Map", 60)
 		local folder = map and map:WaitForChild("Districts", 60)
 		if not folder then
 			return
 		end
-		for _, part in folder:GetChildren() do
+		local function add(part: Instance)
 			if part:IsA("BasePart") then
 				local zone = part:GetAttribute("Zone")
 				table.insert(districts, {
-					Label = string.upper(part:GetAttribute("Label") or part.Name),
+					Label = string.upper(tostring(part:GetAttribute("Label") or part.Name)),
 					Sub = part:GetAttribute("Sub") or bestFinds(zone),
 					CFrame = part.CFrame,
 					Half = part.Size / 2,
 				})
 			end
 		end
+		for _, part in folder:GetChildren() do
+			add(part)
+		end
+		-- Footprints can replicate after this runs (the V4 districts are added last).
+		folder.ChildAdded:Connect(add)
 		while true do
 			task.wait(0.5)
 			local character = Players.LocalPlayer.Character
@@ -75,6 +80,9 @@ function Districts.init()
 				local label = if here then here.Label else nil
 				if label ~= current then
 					current = label
+					if onChange then
+						onChange(label)
+					end
 					if here then
 						Notifications.location(here.Label, here.Sub)
 					end

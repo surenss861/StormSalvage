@@ -45,7 +45,8 @@ export type CardSpec = {
 	Height: number,
 	Width: number?,
 	Seconds: number,
-	-- "Tag" (manila tag, accent tape), "Clipboard" (wood board, paper), "Note" (sticky note).
+	-- "Arcade" (V4: dark plate, accent stripe; content uses light text), "Tag" (manila tag,
+	-- accent tape), "Clipboard" (wood board, paper), "Note" (sticky note).
 	Surface: string?,
 	Build: (card: Frame) -> (),
 }
@@ -109,6 +110,32 @@ local function surface(spec: CardSpec): Frame
 	local kind = spec.Surface or "Note"
 	local stroke = cardSlot:FindFirstChildOfClass("UIStroke") :: UIStroke
 	local corner = cardSlot:FindFirstChildOfClass("UICorner") :: UICorner
+	if kind == "Arcade" then
+		cardSlot.BackgroundColor3 = UI.Arcade.Plate
+		cardSlot.BackgroundTransparency = 0.06
+		cardSlot.Rotation = 0
+		stroke.Color = UI.Arcade.Edge
+		stroke.Thickness = 1.5
+		corner.CornerRadius = UDim.new(0, 8)
+		UI.new("Frame", {
+			Name = "Stripe",
+			Parent = cardSlot,
+			Position = UDim2.fromOffset(0, 0),
+			Size = UDim2.new(0, 5, 1, 0),
+			BackgroundColor3 = spec.Accent,
+			BorderSizePixel = 0,
+			ZIndex = 5,
+		}, { UI.corner(3) })
+		return UI.new("Frame", {
+			Name = "Body",
+			Parent = cardSlot,
+			Position = UDim2.fromOffset(16, 0),
+			Size = UDim2.new(1, -26, 1, 0),
+			BackgroundTransparency = 1,
+			ZIndex = 6,
+		})
+	end
+	cardSlot.BackgroundTransparency = 0
 	if kind == "Clipboard" then
 		cardSlot.BackgroundColor3 = M.Wood
 		cardSlot.Rotation = 0 -- rotated frames don't clip, and the paper must
@@ -275,7 +302,7 @@ function Notifications.feed(text: string, color: Color3?, seconds: number?)
 		end
 	end
 	feedCount += 1
-	local plate = UI.plate({
+	local plate = UI.arcadePlate({
 		Name = "Notice",
 		Parent = feedHolder,
 		LayoutOrder = feedCount,
@@ -286,7 +313,7 @@ function Notifications.feed(text: string, color: Color3?, seconds: number?)
 	plate:SetAttribute("Text", text)
 	plate:SetAttribute("Until", os.clock() + duration)
 	UI.padding(5, 12).Parent = plate
-	UI.new("UISizeConstraint", { Parent = plate, MaxSize = Vector2.new(560, 80) })
+	UI.new("UISizeConstraint", { Parent = plate, MaxSize = Vector2.new(380, 90) })
 	local label = UI.text({
 		Parent = plate,
 		Role = "Label",
@@ -298,8 +325,8 @@ function Notifications.feed(text: string, color: Color3?, seconds: number?)
 		Size = UDim2.new(),
 		TextWrapped = true,
 	})
-	UI.new("UISizeConstraint", { Parent = label, MaxSize = Vector2.new(536, 80) })
-	UI.tween(plate, 0.15, { BackgroundTransparency = UI.PlateTransparency }, Enum.EasingStyle.Quad)
+	UI.new("UISizeConstraint", { Parent = label, MaxSize = Vector2.new(356, 90) })
+	UI.tween(plate, 0.15, { BackgroundTransparency = 0.08 }, Enum.EasingStyle.Quad)
 	UI.tween(label, 0.15, { TextTransparency = 0 }, Enum.EasingStyle.Quad)
 	task.spawn(function()
 		while os.clock() < (plate:GetAttribute("Until") or 0) do
@@ -341,12 +368,12 @@ function Notifications.hasDanger(): boolean
 	return dangerText ~= ""
 end
 
--- District title (P0): a short-lived strip entry, below storms and events.
+-- District title (P0): the HUD's location chip names the district; its best finds go to the
+-- notice feed, briefly.
 function Notifications.location(title: string, sub: string)
-	EventStrip.set(
-		"location",
-		{ Priority = 35, Title = title, Sub = sub, Accent = UI.Color.Coin, Seconds = 3.2 }
-	)
+	if sub ~= "" and not suppress.Modal then
+		Notifications.feed(("%s · %s"):format(title, sub), UI.Arcade.Dim, 3)
+	end
 end
 
 ---------------------------------------------------------------------------- Objective note
@@ -396,12 +423,8 @@ function Notifications.applyLayout(isCompact: boolean)
 	-- Notices stack downwards from the top while a menu is open, upwards from the bottom otherwise.
 	local feedList = feedHolder:FindFirstChildOfClass("UIListLayout")
 	if feedList then
-		feedList.VerticalAlignment = if suppress.Modal
-			then Enum.VerticalAlignment.Top
-			else Enum.VerticalAlignment.Bottom
-		feedList.HorizontalAlignment = if suppress.Modal
-			then Enum.HorizontalAlignment.Right
-			else Enum.HorizontalAlignment.Center
+		feedList.VerticalAlignment = Enum.VerticalAlignment.Top
+		feedList.HorizontalAlignment = Enum.HorizontalAlignment.Right
 	end
 	if isCompact then
 		hintPlate.Parent = topStack
@@ -409,17 +432,19 @@ function Notifications.applyLayout(isCompact: boolean)
 		hintPlate.Rotation = 0
 		hintPlate.AnchorPoint = Vector2.zero
 		hintPlate.Position = UDim2.new()
-		feedHolder.AnchorPoint = if suppress.Modal then Vector2.new(1, 0) else Vector2.new(0.5, 1)
-		feedHolder.Position = if suppress.Modal then UDim2.new(1, -12, 0, 6) else UDim2.new(0.6, 0, 1, -10)
-		feedHolder.Size = UDim2.new(0.38, 0, 0, 120)
+		feedHolder.AnchorPoint = Vector2.new(1, 0)
+		feedHolder.Position = if suppress.Modal then UDim2.new(1, -12, 0, 6) else UDim2.new(1, -10, 0, 142)
+		feedHolder.Size = UDim2.new(0.4, 0, 0, 160)
 	else
 		hintPlate.Parent = root
-		hintPlate.Rotation = if UI.reduced() then 0 else 1.2
+		hintPlate.Rotation = 0
 		hintPlate.AnchorPoint = Vector2.zero
-		hintPlate.Position = UDim2.fromOffset(18, 200)
-		feedHolder.AnchorPoint = if suppress.Modal then Vector2.new(1, 0) else Vector2.new(0.5, 1)
-		feedHolder.Position = if suppress.Modal then UDim2.new(1, -12, 0, 6) else UDim2.new(0.5, 0, 1, -18)
-		feedHolder.Size = UDim2.new(0.5, 0, 0, 120)
+		hintPlate.Position = UDim2.fromOffset(14, 46)
+		-- V4: notices sit on the right, under the wallet and buttons, clear of the bag, the
+		-- controls and the middle of the screen.
+		feedHolder.AnchorPoint = Vector2.new(1, 0)
+		feedHolder.Position = if suppress.Modal then UDim2.new(1, -12, 0, 6) else UDim2.new(1, -14, 0, 150)
+		feedHolder.Size = UDim2.new(0, 380, 0, 200)
 	end
 	if cardSlot.Visible then
 		cardSlot.AnchorPoint = if compact then Vector2.new(1, 0) else Vector2.new(0, 0.5)
@@ -473,8 +498,8 @@ function Notifications.init(hudRoot: Frame, stack: Frame)
 		ZIndex = 30, -- above modals, so "Need 40 more coins" shows over the shop
 	}, {
 		UI.new("UIListLayout", {
-			VerticalAlignment = Enum.VerticalAlignment.Bottom,
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			VerticalAlignment = Enum.VerticalAlignment.Top,
+			HorizontalAlignment = Enum.HorizontalAlignment.Right,
 			Padding = UDim.new(0, 4),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
@@ -487,11 +512,13 @@ function Notifications.init(hudRoot: Frame, stack: Frame)
 		Parent = root,
 		AutomaticSize = Enum.AutomaticSize.XY,
 		Size = UDim2.new(),
-		BackgroundColor3 = M.Note,
+		BackgroundColor3 = UI.Arcade.Plate,
+		BackgroundTransparency = 0.08,
 		BorderSizePixel = 0,
 		Visible = false,
 	}, {
-		UI.stroke(Color3.fromRGB(200, 160, 40), 1.5),
+		UI.corner(6),
+		UI.stroke(UI.Arcade.Edge, 1.5),
 		UI.padding(8, 14, 8, 12),
 		UI.new("UIListLayout", {
 			FillDirection = Enum.FillDirection.Horizontal,
@@ -504,22 +531,22 @@ function Notifications.init(hudRoot: Frame, stack: Frame)
 		Name = "Kicker",
 		Parent = hintPlate,
 		LayoutOrder = 1,
-		Font = UI.Font.Title,
-		TextSize = 17,
-		TextColor3 = M.RedPen,
+		FontFace = UI.Heading,
+		TextSize = 15,
+		TextColor3 = UI.Arcade.Amber,
 		AutomaticSize = Enum.AutomaticSize.XY,
 		Size = UDim2.new(),
-		Text = "TO DO",
+		Text = "OBJECTIVE",
 	})
 	hintLabel = UI.text({
 		Name = "Text",
 		Parent = hintPlate,
 		LayoutOrder = 2,
 		Font = UI.Font.Label,
-		TextSize = 16,
-		TextColor3 = M.Marker,
+		TextSize = 14,
+		TextColor3 = UI.Arcade.Text,
 		AutomaticSize = Enum.AutomaticSize.Y,
-		Size = UDim2.fromOffset(290, 0),
+		Size = UDim2.fromOffset(210, 0),
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = "",

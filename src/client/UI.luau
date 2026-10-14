@@ -22,6 +22,33 @@ UI.Font = {
 
 UI.TextSize = { Display = 28, Title = 20, Label = 14, Body = 14, Caption = 13 }
 
+-- V4 "Storm-Scarred Arcade" (docs/art/v4/HUD.md): dark industrial plates, amber hazard edges,
+-- gold for wealth, bold condensed type. The always-on HUD and the objective strip use it; the
+-- menus move onto it in M9.
+UI.Arcade = {
+	Plate = Color3.fromRGB(24, 25, 29),
+	Plate2 = Color3.fromRGB(36, 38, 43),
+	Edge = Color3.fromRGB(62, 64, 71),
+	Amber = Color3.fromRGB(255, 176, 46),
+	Gold = Color3.fromRGB(255, 206, 74),
+	Text = Color3.fromRGB(246, 246, 248),
+	Dim = Color3.fromRGB(170, 172, 180),
+	Health = Color3.fromRGB(64, 214, 120),
+	Hurt = Color3.fromRGB(235, 70, 60),
+}
+UI.Heading = Font.new("rbxasset://fonts/families/Oswald.json", Enum.FontWeight.Bold)
+
+-- A dark Arcade plate (rounded, thin edge, slightly see-through so the world reads behind it).
+function UI.arcadePlate(props: { [string]: any }): Frame
+	props.BackgroundColor3 = props.BackgroundColor3 or UI.Arcade.Plate
+	props.BackgroundTransparency = props.BackgroundTransparency or 0.08
+	props.BorderSizePixel = 0
+	local f = UI.new("Frame", props)
+	UI.corner(6).Parent = f
+	UI.stroke(UI.Arcade.Edge, 1.5).Parent = f
+	return f
+end
+
 UI.Color = {
 	Plate = Color3.fromRGB(24, 26, 32),
 	PlateLight = Color3.fromRGB(40, 44, 54),

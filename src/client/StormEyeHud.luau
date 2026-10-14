@@ -17,6 +17,7 @@ local RunService = game:GetService("RunService")
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
 local UI = require(script.Parent:WaitForChild("UI"))
+local WorldMotion = require(script.Parent:WaitForChild("WorldMotion"))
 local EventStrip = require(script.Parent:WaitForChild("EventStrip"))
 
 local StormEyeHud = {}
@@ -113,6 +114,8 @@ local function makeHeartBeacon(at: Vector3)
 	b.Size = Vector3.new(1.2, 140, 1.2)
 	b.Position = at + Vector3.new(0, 70, 0)
 	b.Parent = folder
+
+	WorldMotion.beacon(b)
 	local gui = Instance.new("BillboardGui")
 	gui.Size = UDim2.fromOffset(200, 40)
 	gui.StudsOffset = Vector3.new(0, -60, 0)
