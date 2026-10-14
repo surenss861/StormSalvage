@@ -54,7 +54,7 @@ local finishRows: { FinishRow } = {}
 
 type LogTile = {
 	Id: string,
-	Frame: Frame,
+	Frame: TextButton,
 	View: ViewportFrame,
 	Mystery: TextLabel,
 	Name: TextLabel,
@@ -65,6 +65,9 @@ type LogTile = {
 	Shown: boolean?,
 }
 local logTiles: { LogTile } = {}
+local logFilter = "All"
+local logSelected: string? = nil
+local detail: { [string]: any } = {}
 
 type TitleRow = { Id: string, Frame: Frame, Button: TextButton, State: TextLabel }
 local titleRows: { TitleRow } = {}
@@ -422,6 +425,34 @@ end
 
 -- Puts the salvage model in a tile's viewport, framed three-quarter view. The models come from
 -- ReplicatedStorage.SalvageModels (the server's copy); without them the tile keeps its "?".
+local function frameModel(id: string, view: ViewportFrame, spin: number?): Model?
+	local models = ReplicatedStorage:FindFirstChild("SalvageModels")
+	local source = models and models:FindFirstChild(id)
+	if not source or not source:IsA("Model") then
+		return nil
+	end
+	view:ClearAllChildren()
+	local model = source:Clone()
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored = true
+		end
+	end
+	model.Parent = view
+	local cf, size = model:GetBoundingBox()
+	local camera = Instance.new("Camera")
+	camera.FieldOfView = 30
+	local distance = size.Magnitude / 2 / math.tan(math.rad(15)) * 1.05
+	local a = spin or 0
+	camera.CFrame = CFrame.lookAt(
+		cf.Position + Vector3.new(math.cos(a + 0.8), 0.6, -math.sin(a + 0.8)).Unit * distance,
+		cf.Position
+	)
+	camera.Parent = view
+	view.CurrentCamera = camera
+	return model
+end
+
 local function showModel(tile: LogTile): boolean
 	local models = ReplicatedStorage:FindFirstChild("SalvageModels")
 	local source = models and models:FindFirstChild(tile.Id)
@@ -444,6 +475,8 @@ local function showModel(tile: LogTile): boolean
 	tile.View.CurrentCamera = camera
 	return true
 end
+
+local refreshLog: () -> ()
 
 local function buildLog(parent: Instance): Frame
 	local view = UI.new("Frame", {
@@ -501,11 +534,123 @@ local function buildLog(parent: Instance): Frame
 		ZIndex = 24,
 	}, { UI.corner(3) })
 
+	-- Rarity filter chips.
+	local chips = UI.new("Frame", {
+		Name = "Filters",
+		Parent = view,
+		Position = UDim2.fromOffset(0, 46),
+		Size = UDim2.new(0.66, 0, 0, 26),
+		BackgroundTransparency = 1,
+		ZIndex = 22,
+	}, {
+		UI.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			Padding = UDim.new(0, 5),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+	for k, r in { "All", "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" } do
+		local chip = UI.new("TextButton", {
+			Name = r,
+			Parent = chips,
+			LayoutOrder = k,
+			AutomaticSize = Enum.AutomaticSize.X,
+			Size = UDim2.fromOffset(0, 24),
+			BackgroundColor3 = M.Manila,
+			BorderSizePixel = 0,
+			AutoButtonColor = false,
+			FontFace = UI.Heading,
+			TextSize = 12,
+			TextColor3 = M.Marker,
+			Text = string.upper(r),
+			ZIndex = 23,
+		}, {
+			UI.corner(12),
+			UI.padding(0, 10),
+			UI.stroke(if r == "All" then M.KraftEdge else (Config.RarityColors[r] or M.KraftEdge), 1.5),
+		})
+		chip.Activated:Connect(function()
+			logFilter = r
+			refreshLog()
+		end)
+		detail["Chip" .. r] = chip
+	end
+
+	-- The detail panel: the selected find, large and turning.
+	local panel = UI.new("Frame", {
+		Name = "Detail",
+		Parent = view,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 46),
+		Size = UDim2.new(0.33, -6, 1, -46),
+		BackgroundColor3 = M.Manila,
+		BorderSizePixel = 0,
+		ZIndex = 22,
+	}, { UI.corner(6), UI.stroke(M.KraftEdge, 1.5) })
+	detail.Panel = panel
+	detail.View = UI.new("ViewportFrame", {
+		Parent = panel,
+		Position = UDim2.fromOffset(8, 8),
+		Size = UDim2.new(1, -16, 0.55, -8),
+		BackgroundColor3 = M.Paper,
+		BackgroundTransparency = 0,
+		Ambient = Color3.fromRGB(170, 160, 150),
+		LightColor = Color3.fromRGB(255, 244, 225),
+		LightDirection = Vector3.new(-1, -1.5, 0.6),
+		ZIndex = 23,
+	}, { UI.corner(6) })
+	detail.Name = UI.text({
+		Parent = panel,
+		FontFace = UI.Heading,
+		TextSize = 22,
+		Position = UDim2.new(0, 10, 0.55, 6),
+		Size = UDim2.new(1, -20, 0, 26),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextColor3 = M.Marker,
+		Text = "",
+		ZIndex = 23,
+	})
+	detail.Rarity = UI.text({
+		Parent = panel,
+		FontFace = UI.Heading,
+		TextSize = 13,
+		Position = UDim2.new(0, 10, 0.55, 34),
+		Size = UDim2.new(1, -20, 0, 16),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = "",
+		ZIndex = 23,
+	})
+	detail.Value = UI.text({
+		Parent = panel,
+		FontFace = UI.Heading,
+		TextSize = 18,
+		Position = UDim2.new(0, 10, 0.55, 54),
+		Size = UDim2.new(1, -20, 0, 22),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Arcade.Gold,
+		Text = "",
+		ZIndex = 23,
+	})
+	detail.Where = UI.text({
+		Parent = panel,
+		Font = UI.Font.Label,
+		TextSize = 12,
+		Position = UDim2.new(0, 10, 0.55, 80),
+		Size = UDim2.new(1, -20, 0.45, -88),
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		TextColor3 = M.Pencil,
+		Text = "",
+		ZIndex = 23,
+	})
+
 	local grid = UI.new("ScrollingFrame", {
 		Name = "Entries",
 		Parent = view,
-		Position = UDim2.fromOffset(0, 48),
-		Size = UDim2.new(1, 0, 1, -48),
+		Position = UDim2.fromOffset(0, 78),
+		Size = UDim2.new(0.67, -6, 1, -78),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 5,
@@ -514,7 +659,7 @@ local function buildLog(parent: Instance): Frame
 		ZIndex = 21,
 	}, {
 		UI.new("UIGridLayout", {
-			CellSize = UDim2.new(1 / 3, -6, 0, 96),
+			CellSize = UDim2.new(0.5, -6, 0, 96),
 			CellPadding = UDim2.fromOffset(8, 8),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
@@ -522,14 +667,20 @@ local function buildLog(parent: Instance): Frame
 	})
 	for i, id in SalvageLog.order(Config.Loot) do
 		local def = Config.Loot[id]
-		local frame = UI.new("Frame", {
+		local frame = UI.new("TextButton", {
 			Name = id,
 			Parent = grid,
 			LayoutOrder = i,
 			BackgroundColor3 = M.Paper,
 			BorderSizePixel = 0,
+			AutoButtonColor = false,
+			Text = "",
 			ZIndex = 22,
 		}, { UI.corner(5), UI.stroke(M.KraftEdge, 1.5) })
+		frame.Activated:Connect(function()
+			logSelected = id
+			refreshLog()
+		end)
 		-- Rarity edge down the left side, like a coloured file tab.
 		UI.new("Frame", {
 			Name = "Edge",
@@ -645,10 +796,17 @@ local function buildLog(parent: Instance): Frame
 			Stamp = stamp,
 		})
 	end
+	-- The detail model turns slowly (still in Reduced Effects).
+	game:GetService("RunService").RenderStepped:Connect(function(dt)
+		local model = detail.Model :: Model?
+		if model and model.Parent and view.Visible and not UI.reduced() then
+			model:PivotTo(model:GetPivot() * CFrame.Angles(0, dt * 0.7, 0))
+		end
+	end)
 	return view
 end
 
-local function refreshLog()
+function refreshLog()
 	local collection = SalvageLog.reconcile(state and state.Collection)
 	local found, total = SalvageLog.progress(collection, Config.Loot)
 	local finds = 0
@@ -680,13 +838,51 @@ local function refreshLog()
 			tile.Hint.Text = "Keep salvaging"
 			tile.Stamp.Visible = false
 		end
-		if known and not tile.Shown then
+		if not tile.Shown then
 			tile.Shown = showModel(tile)
 		end
-		tile.View.Visible = known and tile.Shown == true
+		-- Undiscovered kinds show only their silhouette: a shape to look for, nothing else.
+		tile.View.Visible = tile.Shown == true
+		tile.View.ImageColor3 = if known then Color3.new(1, 1, 1) else Color3.new(0, 0, 0)
+		tile.View.ImageTransparency = if known then 0 else 0.15
 		tile.Mystery.Visible = not tile.View.Visible
 		tile.Mystery.Text = if known then "" else "?"
 		tile.Mystery.Parent.BackgroundColor3 = if known then M.Manila else M.KraftEdge
+		tile.Frame.Visible = logFilter == "All" or def.Rarity == logFilter
+		local stroke = tile.Frame:FindFirstChildOfClass("UIStroke") :: UIStroke
+		stroke.Color = if logSelected == tile.Id then M.Orange else M.KraftEdge
+		stroke.Thickness = if logSelected == tile.Id then 3 else 1.5
+	end
+	for _, r in { "All", "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" } do
+		local chip = detail["Chip" .. r] :: TextButton
+		chip.BackgroundColor3 = if logFilter == r then M.Orange else M.Manila
+		chip.TextColor3 = UI.inkOn(chip.BackgroundColor3)
+	end
+	-- Detail: the selected kind, or the rarest one found so far.
+	local pick = logSelected
+	if not pick then
+		for i = #logTiles, 1, -1 do
+			if collection.Found[logTiles[i].Id] then
+				pick = logTiles[i].Id
+				break
+			end
+		end
+	end
+	local def = pick and Config.Loot[pick]
+	local known = pick ~= nil and collection.Found[pick] == true
+	if def and pick then
+		if detail.Shown ~= pick then
+			detail.Shown = pick
+			detail.Model = frameModel(pick, detail.View, 0)
+		end
+		detail.View.ImageColor3 = if known then Color3.new(1, 1, 1) else Color3.new(0, 0, 0)
+		detail.Name.Text = if known then string.upper(def.Name) else "???"
+		detail.Rarity.Text = string.upper(def.Rarity)
+		detail.Rarity.TextColor3 = Config.RarityColors[def.Rarity] or M.Pencil
+		detail.Value.Text = if known then ("WORTH %s"):format(BigMoney.full(def.Value)) else ""
+		detail.Where.Text = if known
+			then ("%s\nLogged x%s"):format(whereFound(pick), UI.comma(collection.Counts[pick] or 1))
+			else "Not found yet. Keep salvaging: its shape is your clue."
 	end
 end
 
