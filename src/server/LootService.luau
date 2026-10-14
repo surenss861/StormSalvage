@@ -193,7 +193,11 @@ local function createLoot(
 	end
 	prompt.HoldDuration = math.clamp(def.Value / 150, 0.2, 1.2)
 	-- Storm Cores and dropped bags can sit under a flood, so reach them from the water's surface.
-	prompt.MaxActivationDistance = if def.Rarity == "Legendary" or owner then 16 else 10
+	prompt.MaxActivationDistance = if def.Rarity == "Legendary"
+			or def.Rarity == "Mythic"
+			or owner
+		then 16
+		else 10
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = item
 
@@ -244,7 +248,7 @@ local function createLoot(
 		item:Destroy()
 		pickupRemote:FireClient(player, { Id = lootId, Position = item.Position })
 		-- Only the signature find goes to everyone; Epic finds get the finder's own card.
-		if def.Rarity == "Legendary" and def.Class ~= "StormHeart" then -- the Eye announces its own
+		if (def.Rarity == "Legendary" or def.Rarity == "Mythic") and def.Class ~= "StormHeart" then -- the Eye announces its own
 			PlayerService.notifyAll(("%s grabbed a %s!"):format(player.DisplayName, def.Name), rarityColor)
 		end
 		if onTaken then

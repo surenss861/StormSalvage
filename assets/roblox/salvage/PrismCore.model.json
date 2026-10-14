@@ -1,0 +1,501 @@
+{
+ "className": "Model",
+ "properties": {
+  "WorldPivotData": {
+   "OptionalCFrame": {
+    "position": [
+     0,
+     0,
+     0
+    ],
+    "orientation": [
+     [
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      1
+     ]
+    ]
+   }
+  }
+ },
+ "children": [
+  {
+   "name": "Plinth",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.4,
+     1.8,
+     1.8
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.2,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1412,
+     0.1333,
+     0.1804
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Trim",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.12,
+     1.9,
+     1.9
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.42,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.4706,
+     0.4863,
+     0.5412
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Heart",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.9,
+     0.9,
+     0.9
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       1.5,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.9608,
+     0.9608,
+     1.0
+    ],
+    "Material": "Neon",
+    "Shape": "Ball",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Crystal",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.55,
+     2.6,
+     0.55
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.0,
+       1.75,
+       0.0
+      ],
+      "orientation": [
+       [
+        0.7071,
+        0.0,
+        0.7071
+       ],
+       [
+        0.0,
+        1.0,
+        0.0
+       ],
+       [
+        -0.7071,
+        0.0,
+        0.7071
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.4706,
+     0.902
+    ],
+    "Material": "Glass",
+    "Shape": "Block",
+    "Transparency": 0.2,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Crystal",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.42,
+     1.9,
+     0.42
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.3806,
+       1.3054,
+       0.1609
+      ],
+      "orientation": [
+       [
+        0.3111,
+        -0.4006,
+        0.8618
+       ],
+       [
+        0.3076,
+        0.9004,
+        0.3076
+       ],
+       [
+        -0.8992,
+        0.1694,
+        0.4033
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.4706,
+     0.902
+    ],
+    "Material": "Glass",
+    "Shape": "Block",
+    "Transparency": 0.2,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Crystal",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.4,
+     1.7,
+     0.4
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.3265,
+       1.1959,
+       0.2439
+      ],
+      "orientation": [
+       [
+        -0.9203,
+        0.3841,
+        -0.074
+       ],
+       [
+        0.339,
+        0.8776,
+        0.339
+       ],
+       [
+        0.1951,
+        0.2869,
+        -0.9379
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.4706,
+     0.902
+    ],
+    "Material": "Glass",
+    "Shape": "Block",
+    "Transparency": 0.2,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Crystal",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.38,
+     1.5,
+     0.38
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.1205,
+       1.0894,
+       -0.373
+      ],
+      "orientation": [
+       [
+        0.4876,
+        0.1606,
+        -0.8582
+       ],
+       [
+        0.3696,
+        0.8525,
+        0.3696
+       ],
+       [
+        0.791,
+        -0.4974,
+        0.3563
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.4706,
+     0.902
+    ],
+    "Material": "Glass",
+    "Shape": "Block",
+    "Transparency": 0.2,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Crystal",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.32,
+     1.2,
+     0.32
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       -0.0657,
+       0.9089,
+       0.3809
+      ],
+      "orientation": [
+       [
+        -0.6049,
+        -0.1095,
+        0.7887
+       ],
+       [
+        0.4555,
+        0.7648,
+        0.4555
+       ],
+       [
+        -0.6531,
+        0.6348,
+        -0.4128
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.4706,
+     0.902
+    ],
+    "Material": "Glass",
+    "Shape": "Block",
+    "Transparency": 0.2,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Crystal",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.3,
+     1.1,
+     0.3
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0.3218,
+       0.8878,
+       -0.0851
+      ],
+      "orientation": [
+       [
+        -0.3635,
+        0.5851,
+        -0.7249
+       ],
+       [
+        0.4279,
+        0.7961,
+        0.4279
+       ],
+       [
+        0.8275,
+        -0.1547,
+        -0.5398
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.4706,
+     0.902
+    ],
+    "Material": "Glass",
+    "Shape": "Block",
+    "Transparency": 0.2,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  }
+ ]
+}

@@ -66,6 +66,7 @@ export type Records = {
 	EyeHearts: number, -- V4 M4: Storm Hearts delivered (band 3 signature event)
 	WreckLocks: number, -- V4 M4: Armored Wreck locks you helped cut (band 4)
 	VaultsOpened: number, -- V4 M4: Armored Wreck vaults you helped open
+	TitanCores: number, -- V4 M4: Mythic Cores siphoned from the Storm Titan (band 5)
 }
 
 function Pursuit.newRecords(): Records
@@ -80,6 +81,7 @@ function Pursuit.newRecords(): Records
 		EyeHearts = 0,
 		WreckLocks = 0,
 		VaultsOpened = 0,
+		TitanCores = 0,
 	}
 end
 

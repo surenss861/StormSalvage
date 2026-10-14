@@ -66,6 +66,8 @@ local function formatValue(id: string, value: any): string
 		return ("RUN %d / SPRINT %s"):format(value, tostring(Config.Upgrades.Boots.SprintValues[level]))
 	elseif id == "Press" then
 		return if value <= 1 then "NO PRESS" else ("x%s ON SALES"):format(tostring(value))
+	elseif id == "Rig" then
+		return if value <= 1 then "STOCK RIG" else ("x%s SIPHON"):format(tostring(value))
 	elseif id == "Cutter" then
 		return if value <= 1 then "STOCK CUTTER" else ("x%s CUT SPEED"):format(tostring(value))
 	elseif id == "Harness" then

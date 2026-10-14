@@ -22,6 +22,11 @@
 --     fire telegraphed shocks at the cutters. Each lock drops a strongbox; when every lock is cut
 --     the vault spills bullion for everyone. A new skill (working a spot under fire, together),
 --     not a bigger price on the old loop.
+--   Band 5 "Storm Legend" (M4): the Storm Titan. During a storm a colossal twister roams town.
+--     Legend licence holders siphon it with a Containment Rig by holding the ring around it:
+--     close enough to draw its energy, not so close it swallows you, while it drags you in and
+--     hurls debris. A full siphon forms a Mythic Core at your feet, its kind drawn at published
+--     odds. The skill is riding a moving ring under pull.
 -- Paying Robux never buys a licence or skips a requirement (and purchases stay off).
 
 -- Roblox resolves the sibling ModuleScript; Lune (unit tests) resolves the file path.
@@ -49,7 +54,7 @@ export type License = {
 	Earned: string, -- the line shown when it's bought
 }
 
-Bands.Names = { "Town", "Pro", "Storm Hunter", "Heavy Salvage" }
+Bands.Names = { "Town", "Pro", "Storm Hunter", "Heavy Salvage", "Storm Legend" }
 
 Bands.Licenses = {
 	Pro = {
@@ -105,8 +110,25 @@ Bands.Licenses = {
 			.. "with a Thermal Cutter while its security charges fire, for strongboxes and vault "
 			.. "bullion. Unlocks Thermal Cutter upgrades and Heavy-sized event bonuses.",
 	},
+	Legend = {
+		Id = "Legend",
+		DisplayName = "Storm Legend License",
+		Band = 5,
+		Cost = 20000000000,
+		Requirements = {
+			{ Kind = "Rank", Value = 7, Text = "Reach the Storm Legend rank" },
+			{ Kind = "Extractions", Value = 50, Text = "Extract 50 event cores" },
+			{ Kind = "Record", Field = "VaultsOpened", Value = 3, Text = "Help open 3 Armored Wreck vaults" },
+			{ Kind = "Found", Class = "Vault", Value = 2, Text = "Log a Strongbox and a Bullion Bar" },
+		},
+		Tag = "LEGEND",
+		Earned = "The Storm Titan is yours to siphon.",
+		Description = "Licensed to take on the Storm Titan: siphon the colossal twister with a "
+			.. "Containment Rig for Mythic Cores, drawn at published odds. Unlocks Containment Rig "
+			.. "upgrades and Legend-sized event bonuses.",
+	},
 } :: { [string]: License }
-Bands.LicenseOrder = { "Pro", "Hunter", "Heavy" }
+Bands.LicenseOrder = { "Pro", "Hunter", "Heavy", "Legend" }
 
 -- Storm artifacts (band 3): each storm type forms its own kind, out in the open, only while the
 -- storm rages (they melt away in the aftermath). Values before the Salvage Press.
@@ -174,6 +196,58 @@ Bands.Cutter = {
 	Values = { 1, 1.3, 1.6, 2, 2.5, 3 }, -- cutting speed at level 0..5
 }
 
+-- The Storm Titan (band 5 signature event). Runs during a storm when someone in the server holds
+-- the Legend licence. Siphon ring: between InnerRadius and OuterRadius from its centre. Inside
+-- the inner radius it hurts and drains your siphon; the pull (client-side push, like the wind)
+-- grows toward the centre. Debris strikes (telegraphed) fall on siphoners.
+Bands.Titan = {
+	License = "Legend",
+	MinBand = 5,
+	StartAfter = 6, -- seconds into the storm
+	Speed = 7, -- studs/s
+	Legs = 5,
+	InnerRadius = 16,
+	OuterRadius = 40,
+	SiphonSeconds = 12, -- in the ring at Containment Rig level 0
+	CoreDamagePerSecond = 18, -- inside the inner radius
+	DrainPerSecond = 0.15, -- siphon lost per second inside the inner radius
+	Pull = 80, -- studs/s² at the inner edge, a quarter at the outer (steady wind 30, gust 150; 120 sucked players straight in)
+	StrikeEvery = 3,
+	StrikeWarn = 1.4,
+	StrikeRadius = 8,
+	StrikeDamage = 20,
+	CoreSeconds = 50, -- a Mythic Core waits this long on the ground
+}
+-- Mythic Cores: the Titan's prize. Odds are published (licence card, Salvage Log, the formation
+-- notice) and are the real draw weights.
+export type Mythic = { Id: string, Name: string, Value: number, Odds: number }
+Bands.Mythic = {
+	{ Id = "TitanCore", Name = "Titan Core", Value = 40000000, Odds = 0.6 },
+	{ Id = "PrismCore", Name = "Prism Core", Value = 100000000, Odds = 0.3 },
+	{ Id = "SingularityCore", Name = "Singularity Core", Value = 400000000, Odds = 0.1 },
+} :: { Mythic }
+
+-- Draw a Mythic Core with `roll` in [0, 1).
+function Bands.drawMythic(roll: number): Mythic
+	local acc = 0
+	for _, m in Bands.Mythic do
+		acc += m.Odds
+		if roll < acc then
+			return m
+		end
+	end
+	return Bands.Mythic[#Bands.Mythic]
+end
+
+-- The Containment Rig: band 5 gear. Siphon speed, and resistance to the Titan's pull.
+Bands.Rig = {
+	DisplayName = "Containment Rig",
+	Description = "Siphons the Storm Titan faster and braces you against its pull.",
+	License = "Legend",
+	Costs = { 100000000000, 300000000000, 900000000000, 2700000000000, 8000000000000 },
+	Values = { 1, 1.3, 1.6, 2, 2.5, 3 }, -- siphon speed at level 0..5 (pull resistance: 1 - 1/speed)
+}
+
 -- Bars the vault spills for `cutters` players.
 function Bands.barsFor(cutters: number): number
 	return math.clamp(Bands.Wreck.BarsBase + math.max(0, cutters), Bands.Wreck.BarsBase, Bands.Wreck.BarsMax)
@@ -219,6 +293,7 @@ Bands.EventBonus = {
 	{ Pursuit = 6000, Extraction = 5000, GoldenFactor = 3 },
 	{ Pursuit = 90000, Extraction = 75000, GoldenFactor = 3 },
 	{ Pursuit = 1500000, Extraction = 1200000, GoldenFactor = 3 },
+	{ Pursuit = 25000000, Extraction = 20000000, GoldenFactor = 3 },
 }
 
 -- The band a profile is in: 1 plus every licence held, in order.
@@ -383,6 +458,33 @@ function Bands.simBand4(): any
 		AvgItem = 0.5 * Bands.avgIndustrial() + 0.5 * Bands.Artifacts[2].Value,
 		EventBonus = Bands.EventBonus[4].Pursuit,
 		PrizeValue = 0.4 * wreck + 0.5 * Bands.StormHeart.Value,
+		Gear = gear,
+	}
+end
+
+-- Band 5 in the simulation's shape: a Legend siphons about one Mythic Core per storm (the ring
+-- is hard to hold: modelled as 0.8 of a core at the average draw), plus band 4's wreck on 40% of
+-- cycles; the Rig is an income factor (root of its speed) on top of the carried gear.
+function Bands.simBand5(): any
+	local avgMythic = 0
+	for _, m in Bands.Mythic do
+		avgMythic += m.Value * m.Odds
+	end
+	local W = Bands.Wreck
+	local wreck = W.Locks * Bands.Vault.Strongbox.Value
+		+ Bands.barsFor(1) * Bands.Vault.BullionBar.Value
+		+ W.JewelChance * Bands.Vault.CrownJewels.Value
+	local gear = {}
+	for i, cost in Bands.Rig.Costs do
+		table.insert(gear, { Cost = cost, Factor = math.sqrt(Bands.Rig.Values[i + 1]) })
+	end
+	return {
+		Name = "5 Storm Legend",
+		LicenseCost = Bands.Licenses.Legend.Cost,
+		RequireMinutes = 2400, -- Storm Legend rank, 50 extractions, 3 vaults
+		AvgItem = 0.5 * Bands.avgIndustrial() + 0.5 * Bands.Artifacts[2].Value,
+		EventBonus = Bands.EventBonus[5].Pursuit,
+		PrizeValue = 0.8 * avgMythic + 0.4 * wreck,
 		Gear = gear,
 	}
 end

@@ -12,6 +12,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
+local Bands = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Bands"))
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Progression = require(ReplicatedStorage.Shared:WaitForChild("Progression"))
 local SalvageLog = require(ReplicatedStorage.Shared:WaitForChild("SalvageLog"))
@@ -379,6 +380,13 @@ local function whereFound(id: string): string
 		return "The Storm's Eye · Storm Hunter license"
 	elseif class == "Vault" then
 		return "The Armored Wreck · Heavy license"
+	elseif class == "Mythic" then
+		for _, m in Bands.Mythic do
+			if m.Id == id then
+				return ("The Storm Titan · %d%% of cores · Legend"):format(math.floor(m.Odds * 100 + 0.5))
+			end
+		end
+		return "The Storm Titan · Legend license"
 	elseif id == "StormCore" then
 		return "Mid-storm, anywhere in town"
 	elseif id == "GoldenCore" then

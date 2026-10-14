@@ -111,7 +111,7 @@ export type LootDef = {
 	Shape: Enum.PartType?,
 	Upright: boolean?, -- stand a cylinder on its end
 	Jackpot: boolean?,
-	Class: string?, -- "Industrial" (band 2), "Artifact" / "StormHeart" (band 3), "Vault" (band 4)
+	Class: string?, -- "Industrial" (band 2), "Artifact" / "StormHeart" (band 3), "Vault" (band 4), "Mythic" (band 5)
 	License: string?, -- licence needed to pick it up
 	Storm: string?, -- artifacts: the storm type that forms it
 }
@@ -332,6 +332,29 @@ do
 	end
 end
 
+-- V4 band 5: Mythic Cores from the Storm Titan (values and published odds in Bands.luau).
+do
+	local looks = {
+		TitanCore = Color3.fromRGB(120, 200, 255),
+		PrismCore = Color3.fromRGB(255, 120, 230),
+		SingularityCore = Color3.fromRGB(40, 20, 70),
+	}
+	for _, m in Bands.Mythic do
+		Config.Loot[m.Id] = {
+			Name = m.Name,
+			Value = m.Value,
+			Size = Vector3.new(2.2, 2.2, 2.2),
+			Color = looks[m.Id],
+			Material = Enum.Material.Neon,
+			Rarity = "Mythic",
+			Shape = Enum.PartType.Ball,
+			Class = "Mythic",
+			License = Bands.Titan.License,
+			Jackpot = true,
+		}
+	end
+end
+
 -- Storm Cores of any kind (glow, contracts, delivery announcements).
 Config.CoreIds = { StormCore = true, GoldenCore = true }
 
@@ -341,6 +364,7 @@ Config.RarityColors = {
 	Rare = Color3.fromRGB(80, 160, 255),
 	Epic = Color3.fromRGB(190, 90, 255),
 	Legendary = Color3.fromRGB(255, 190, 40),
+	Mythic = Color3.fromRGB(255, 90, 200), -- V4 band 5: the Storm Titan's cores
 }
 
 -- Zone loot pools: Weight = relative spawn chance within the zone.
@@ -436,7 +460,15 @@ Config.Upgrades.Cutter = {
 	Values = Bands.Cutter.Values,
 	License = Bands.Cutter.License,
 }
-Config.UpgradeOrder = { "Backpack", "Boots", "Armor", "Press", "Harness", "Cutter" }
+-- V4 band 5 gear: the Containment Rig (Bands.Rig; needs the Legend licence).
+Config.Upgrades.Rig = {
+	DisplayName = Bands.Rig.DisplayName,
+	Description = Bands.Rig.Description,
+	Costs = Bands.Rig.Costs,
+	Values = Bands.Rig.Values,
+	License = Bands.Rig.License,
+}
+Config.UpgradeOrder = { "Backpack", "Boots", "Armor", "Press", "Harness", "Cutter", "Rig" }
 
 -- V4 movement (Movement.client): run by default, sprint on Shift (keyboard), automatically after
 -- a moment of steady movement (touch and gamepad), with a short ramp so it doesn't snap. Speeds

@@ -26,6 +26,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
+local Bands = require(game:GetService("ReplicatedStorage").Shared.Bands)
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local Wallet = require(game:GetService("ReplicatedStorage").Shared.Wallet)
 local DataService = require(script.Parent.DataService)
@@ -126,6 +127,18 @@ local commands: { [string]: (...any) -> any } = {
 		return PursuitService.takeQaHits()
 	end,
 	-- V4 M3 tests (Studio only, the _STUDIO store): clear licences and Press, or set progress.
+	-- Studio QA: hold a licence without its requirements (the checks have their own tests).
+	grantlicense = function(playerName: string, licenseId: string)
+		local player = Players:FindFirstChild(playerName)
+		local session = player and player:IsA("Player") and PlayerService.get(player)
+		assert(session, "no session")
+		assert(Bands.Licenses[licenseId], "no licence " .. tostring(licenseId))
+		session.Data.Licenses = session.Data.Licenses or {}
+		session.Data.Licenses[licenseId] = true
+		PlayerService.applyCharacterStats(player :: Player)
+		PlayerService.pushState(player :: Player)
+		return Bands.bandOf(session.Data.Licenses)
+	end,
 	clearlicense = function(playerName: string)
 		local player = Players:FindFirstChild(playerName)
 		local session = player and player:IsA("Player") and PlayerService.get(player)
@@ -179,6 +192,19 @@ local commands: { [string]: (...any) -> any } = {
 	end,
 	wreckprogress = function(index: number, progress: number)
 		return require(script.Parent.WreckService).qaProgress(index, progress)
+	end,
+	-- Band 5: a Storm Titan now (skips the band and storm checks); its state; set a siphon.
+	titan = function(seconds: number?)
+		task.spawn(require(script.Parent.TitanService).run, seconds or 40, true)
+		return true
+	end,
+	titanstate = function()
+		return require(script.Parent.TitanService).state()
+	end,
+	titansiphon = function(playerName: string, value: number)
+		local player = Players:FindFirstChild(playerName)
+		assert(player and player:IsA("Player"), "no player")
+		return require(script.Parent.TitanService).qaSiphon(player, value)
 	end,
 	wreckstate = function()
 		return require(script.Parent.WreckService).state()

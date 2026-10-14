@@ -66,7 +66,7 @@ function SalvageLog.progress(collection: Collection, known: { [string]: any }): 
 	return count, total
 end
 
-local RARITY_ORDER = { Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5 }
+local RARITY_ORDER = { Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5, Mythic = 6 }
 
 -- The order the Log shows entries in: by rarity, then by value, then by id (stable).
 -- `known` maps id -> a def with Rarity and Value.

@@ -30,6 +30,7 @@ local EVENTS = {
 	"InspectCard", -- server -> client: that player's public summary
 	"StormEye", -- server -> client: the Storm's Eye (band 3 event) state: active, centre, radius, heart
 	"WreckState", -- server -> client: the Armored Wreck (band 4 event): where, locks cut, ends at
+	"TitanState", -- server -> client: the Storm Titan (band 5 event): centre, radii, your siphon
 }
 
 local folder: Folder

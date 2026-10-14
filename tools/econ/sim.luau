@@ -22,7 +22,7 @@ local Bands = require("../../src/shared/Bands")
 
 local CYCLE_MIN = 2.45
 local EXTRACT_RATE = 0.5
-local MILESTONES = { 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e12 }
+local MILESTONES = { 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e12, 1e15 }
 
 type Band = {
 	Name: string,
@@ -142,8 +142,8 @@ local B = curveFrom("B faster", "licence 25K; band 2 items ~40x band 1", {
 -- C: the shipped bands 1-2 (src/shared/Bands.luau): an early fortune.
 local C = curveFrom(
 	"C early fortune (built)",
-	"Bands.luau: bands 2-4 built (Pro, Storm Hunter, Heavy Salvage); 5 extrapolated",
-	{ Bands.simBand2(), Bands.simBand3(), Bands.simBand4() },
+	"Bands.luau: bands 2-5 built (Pro, Storm Hunter, Heavy Salvage, Storm Legend)",
+	{ Bands.simBand2(), Bands.simBand3(), Bands.simBand4(), Bands.simBand5() },
 	15,
 	120,
 	{ 600, 1800, 4200 }
@@ -265,6 +265,7 @@ local function labelOf(n: number): string
 		[1e9] = "1B",
 		[1e10] = "10B",
 		[1e12] = "1T",
+		[1e15] = "1Qa",
 	}
 	return names[n]
 end

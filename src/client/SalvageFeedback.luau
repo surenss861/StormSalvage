@@ -32,9 +32,9 @@ local UI = require(script.Parent:WaitForChild("UI"))
 local SalvageFeedback = {}
 
 local effects: Folder
-local RANK = { Common = 0, Uncommon = 1, Rare = 2, Epic = 3, Legendary = 4 }
-local TAG = { Rare = "RARE FIND", Epic = "EPIC FIND!", Legendary = "LEGENDARY!" }
-local FIND_SOUND = { Rare = "FindRare", Epic = "FindEpic", Legendary = "FindCore" }
+local RANK = { Common = 0, Uncommon = 1, Rare = 2, Epic = 3, Legendary = 4, Mythic = 5 }
+local TAG = { Rare = "RARE FIND", Epic = "EPIC FIND!", Legendary = "LEGENDARY!", Mythic = "MYTHIC!" }
+local FIND_SOUND = { Rare = "FindRare", Epic = "FindEpic", Legendary = "FindCore", Mythic = "FindCore" }
 
 local function line(parent: Instance, y: number, height: number, props: { [string]: any }): TextLabel
 	props.Parent = parent

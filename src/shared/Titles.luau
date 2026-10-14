@@ -184,6 +184,33 @@ Titles.List = {
 			return v.Found.CrownJewels == true
 		end,
 	},
+	{
+		Id = "StormLegend",
+		Name = "Storm Legend",
+		Category = "Career",
+		How = "Earn the Storm Legend License",
+		earned = function(v)
+			return v.Licenses.Legend == true
+		end,
+	},
+	{
+		Id = "TitanTamer",
+		Name = "Titan Tamer",
+		Category = "Pursuit",
+		How = "Siphon a Mythic Core from the Storm Titan",
+		earned = function(v)
+			return rec(v, "TitanCores") >= 1
+		end,
+	},
+	{
+		Id = "Singularity",
+		Name = "Singularity",
+		Category = "Discovery",
+		How = "Log a Singularity Core (10% of Mythic Cores)",
+		earned = function(v)
+			return v.Found.SingularityCore == true
+		end,
+	},
 } :: { Def }
 
 -- Wealth titles: lifetime-earnings milestones, so spending never takes one away. One per named

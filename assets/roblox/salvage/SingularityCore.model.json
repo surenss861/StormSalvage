@@ -1,0 +1,345 @@
+{
+ "className": "Model",
+ "properties": {
+  "WorldPivotData": {
+   "OptionalCFrame": {
+    "position": [
+     0,
+     0,
+     0
+    ],
+    "orientation": [
+     [
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      1
+     ]
+    ]
+   }
+  }
+ },
+ "children": [
+  {
+   "name": "Plinth",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.4,
+     1.8,
+     1.8
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.2,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.1412,
+     0.1333,
+     0.1804
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Trim",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.12,
+     1.9,
+     1.9
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       0.42,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        -1.0,
+        0
+       ],
+       [
+        1.0,
+        0.0,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.4706,
+     0.4863,
+     0.5412
+    ],
+    "Material": "Metal",
+    "Shape": "Cylinder",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Void",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     1.5,
+     1.5,
+     1.5
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       2.0,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.0392,
+     0.0235,
+     0.0706
+    ],
+    "Material": "SmoothPlastic",
+    "Shape": "Ball",
+    "Transparency": 0.0,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Halo",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     2.2,
+     2.2,
+     2.2
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       2.0,
+       0
+      ],
+      "orientation": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     }
+    },
+    "Color": [
+     0.5882,
+     0.3137,
+     1.0
+    ],
+    "Material": "ForceField",
+    "Shape": "Ball",
+    "Transparency": 0.3,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": true,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "Disc",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.08,
+     3.4,
+     3.4
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       2.0,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        -0.9394,
+        0.3429
+       ],
+       [
+        1.0,
+        0.0,
+        -0.0
+       ],
+       [
+        0,
+        0.3429,
+        0.9394
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.7451,
+     0.2745
+    ],
+    "Material": "Neon",
+    "Shape": "Cylinder",
+    "Transparency": 0.25,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  },
+  {
+   "name": "DiscInner",
+   "className": "Part",
+   "properties": {
+    "Size": [
+     0.1,
+     2.3,
+     2.3
+    ],
+    "CFrame": {
+     "CFrame": {
+      "position": [
+       0,
+       2.0,
+       0
+      ],
+      "orientation": [
+       [
+        0.0,
+        -0.9394,
+        0.3429
+       ],
+       [
+        1.0,
+        0.0,
+        -0.0
+       ],
+       [
+        0,
+        0.3429,
+        0.9394
+       ]
+      ]
+     }
+    },
+    "Color": [
+     1.0,
+     0.9412,
+     0.7843
+    ],
+    "Material": "Neon",
+    "Shape": "Cylinder",
+    "Transparency": 0.4,
+    "Anchored": true,
+    "CanCollide": false,
+    "CanQuery": false,
+    "CanTouch": false,
+    "CastShadow": false,
+    "TopSurface": "Smooth",
+    "BottomSurface": "Smooth"
+   }
+  }
+ ]
+}

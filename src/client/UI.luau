@@ -817,6 +817,32 @@ function UI.cutterIcon(parent: Instance, size: number): Frame
 	return holder
 end
 
+-- A containment rig: a ring with a glowing core held in it.
+function UI.rigIcon(parent: Instance, size: number): Frame
+	local holder = UI.new("Frame", {
+		Name = "RigIcon",
+		Parent = parent,
+		Size = UDim2.fromOffset(size, size),
+		BackgroundTransparency = 1,
+	})
+	UI.new("Frame", {
+		Parent = holder,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.86, 0.86),
+		BackgroundTransparency = 1,
+	}, { UI.corner(size), UI.stroke(Color3.fromRGB(110, 110, 130), 4) })
+	UI.new("Frame", {
+		Parent = holder,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.42, 0.42),
+		BackgroundColor3 = Color3.fromRGB(255, 90, 200),
+		BorderSizePixel = 0,
+	}, { UI.corner(size), UI.stroke(UI.Mat.Marker, 2) })
+	return holder
+end
+
 function UI.upgradeIcon(id: string, parent: Instance, size: number): Frame
 	if id == "Press" then
 		return UI.pressIcon(parent, size)
@@ -824,6 +850,8 @@ function UI.upgradeIcon(id: string, parent: Instance, size: number): Frame
 		return UI.harnessIcon(parent, size)
 	elseif id == "Cutter" then
 		return UI.cutterIcon(parent, size)
+	elseif id == "Rig" then
+		return UI.rigIcon(parent, size)
 	elseif id == "Boots" then
 		return UI.bootIcon(parent, size)
 	elseif id == "Armor" then

@@ -250,6 +250,11 @@ function PlayerService.applyCharacterStats(player: Player)
 			"WindResist",
 			if PlayerService.hasLicense(session, "Hunter") then upgradeValue(session, "Harness") else 0
 		)
+		-- Band 5: the Containment Rig resists the Storm Titan's pull (client TitanHud reads this).
+		character:SetAttribute(
+			"TitanResist",
+			if PlayerService.hasLicense(session, "Legend") then 1 - 1 / upgradeValue(session, "Rig") else 0
+		)
 	end
 end
 

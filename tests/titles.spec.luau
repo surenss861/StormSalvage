@@ -175,7 +175,54 @@ return {
 			assert(Bands.Cutter.Values[i] > Bands.Cutter.Values[i - 1], "cutter speeds rise")
 		end
 		eq(#Bands.Cutter.Values, #Bands.Cutter.Costs + 1, "a value per level")
-		eq(#Bands.EventBonus, 4, "a bonus row per band")
+	end,
+	["titles: band 5 titles"] = function()
+		local got = Titles.earned(view({ TitanCores = 1 }, { SingularityCore = true }, 0, { Legend = true }))
+		for _, id in { "StormLegend", "TitanTamer", "Singularity" } do
+			assert(has(got, id), id)
+		end
+	end,
+	["bands: legend licence needs the vaults"] = function()
+		local base = {
+			Rank = 7,
+			Extractions = 50,
+			Coins = "20000000000",
+			Owned = false,
+			Found = { Vault = 2 },
+			Records = { VaultsOpened = 3 },
+		}
+		eq(Bands.checkLicense("Legend", base).Ok, true, "all met")
+		local p = table.clone(base)
+		p.Records = { VaultsOpened = 2 }
+		eq(Bands.checkLicense("Legend", p).Reason, "requirements", "two vaults")
+		eq(Bands.bandOf({ Pro = true, Hunter = true, Heavy = true, Legend = true }), 5, "band 5")
+	end,
+	["bands: mythic odds are published, sum to one and are the real draw"] = function()
+		local total = 0
+		for _, m in Bands.Mythic do
+			total += m.Odds
+			assert(m.Value > Bands.Vault.CrownJewels.Value, m.Id .. " beats the Crown Jewels")
+		end
+		assert(math.abs(total - 1) < 1e-9, "odds sum to 1")
+		-- The draw follows the odds exactly at the boundaries.
+		eq(Bands.drawMythic(0).Id, "TitanCore", "lowest roll")
+		eq(Bands.drawMythic(0.5999).Id, "TitanCore", "just under 60%")
+		eq(Bands.drawMythic(0.6).Id, "PrismCore", "60%")
+		eq(Bands.drawMythic(0.8999).Id, "PrismCore", "just under 90%")
+		eq(Bands.drawMythic(0.9).Id, "SingularityCore", "top 10%")
+		eq(Bands.drawMythic(0.99999).Id, "SingularityCore", "top roll")
+		-- And over many even rolls the shares match.
+		local n, counts = 10000, {}
+		for i = 0, n - 1 do
+			local id = Bands.drawMythic(i / n).Id
+			counts[id] = (counts[id] or 0) + 1
+		end
+		eq(counts.TitanCore, 6000, "60%")
+		eq(counts.PrismCore, 3000, "30%")
+		eq(counts.SingularityCore, 1000, "10%")
+		assert(Bands.Titan.InnerRadius < Bands.Titan.OuterRadius, "a ring to hold")
+		eq(#Bands.Rig.Values, #Bands.Rig.Costs + 1, "a value per level")
+		eq(#Bands.EventBonus, 5, "a bonus row per band")
 	end,
 	["titles: bad records never grant"] = function()
 		local got = Titles.earned(view({ Extractions = 0 / 0, BestExtract = -5, BestStreak = "9" }))
