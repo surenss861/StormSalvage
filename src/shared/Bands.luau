@@ -208,10 +208,21 @@ Bands.Titan = {
 	Legs = 5,
 	InnerRadius = 16,
 	OuterRadius = 40,
-	SiphonSeconds = 12, -- in the ring at Containment Rig level 0
+	SiphonSeconds = 16, -- in the charge node at Rig level 0 (RingRate of that elsewhere); 9 gave a bot 2-3 cores a storm
+	-- The charge node: where the Titan's energy pours onto its ring. It sweeps round the ring
+	-- (and sometimes reverses), so siphoning means running the ring after it, not standing still.
+	NodeRadius = 28,
+	NodeHit = 8, -- studs from the node's centre
+	NodeSpeed = 0.32, -- radians/s (about 9 studs/s along the ring: catchable at a run)
+	RingRate = 0.2, -- siphon rate in the ring away from the node
+	-- The inhale: telegraphed, then the pull spikes. Sprint or dodge outward.
+	InhaleEvery = 10,
+	InhaleWarn = 1.5,
+	InhaleSeconds = 2.2,
+	InhalePull = 3, -- pull multiplier while it inhales
 	CoreDamagePerSecond = 18, -- inside the inner radius
 	DrainPerSecond = 0.15, -- siphon lost per second inside the inner radius
-	Pull = 80, -- studs/s² at the inner edge, a quarter at the outer (steady wind 30, gust 150; 120 sucked players straight in)
+	Pull = 45, -- studs/s² at the inner edge, a quarter at the outer (80 dragged a player at the node into the core; the inhale is the drag moment)
 	StrikeEvery = 3,
 	StrikeWarn = 1.4,
 	StrikeRadius = 8,

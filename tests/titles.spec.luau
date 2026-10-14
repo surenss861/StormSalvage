@@ -224,6 +224,16 @@ return {
 		eq(#Bands.Rig.Values, #Bands.Rig.Costs + 1, "a value per level")
 		eq(#Bands.EventBonus, 5, "a bonus row per band")
 	end,
+	["bands: the titan's charge node is catchable and worth chasing"] = function()
+		local T = Bands.Titan
+		local nodeStudsPerSecond = T.NodeSpeed * T.NodeRadius
+		assert(nodeStudsPerSecond < 20, "slower than a run (20)")
+		assert(nodeStudsPerSecond > 4, "fast enough that you have to move")
+		assert(T.NodeRadius - T.NodeHit > T.InnerRadius, "the node sits clear of the deadly core")
+		assert(T.NodeRadius + T.NodeHit <= T.OuterRadius + 0.01, "and inside the ring")
+		assert(T.RingRate < 0.5, "standing anywhere in the ring is much slower than the node")
+		assert(T.InhaleWarn >= 1, "the inhale is telegraphed")
+	end,
 	["titles: bad records never grant"] = function()
 		local got = Titles.earned(view({ Extractions = 0 / 0, BestExtract = -5, BestStreak = "9" }))
 		eq(#got, 0, "nothing from garbage")

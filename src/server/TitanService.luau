@@ -5,8 +5,11 @@
 -- @see [[TitanHud.luau]]
 -- During a storm, when someone in the server holds the Storm Legend licence, a colossal twister
 -- forms and roams town along straight legs between open-ground points. Legend holders siphon it
--- with the Containment Rig simply by holding the ring around it:
---   * between InnerRadius and OuterRadius you siphon (Rig level = speed);
+-- with the Containment Rig by working the ring around it:
+--   * between InnerRadius and OuterRadius you siphon (Rig level = speed), fast only in the
+--     charge node, the spot where its energy pours onto the ring; the node sweeps round the
+--     ring and sometimes reverses, so you run after it;
+--   * every few seconds it inhales (telegraphed): the pull spikes and the core hurts double;
 --   * inside InnerRadius it hurts and drains your siphon;
 --   * the pull drags you inward (drawn and applied on your client, like the storm's wind; the
 --     Rig resists it), and telegraphed debris strikes fall where siphoners are heading.
@@ -40,6 +43,10 @@ type Titan = {
 	Siphon: { [Player]: number },
 	Formed: number,
 	Rng: Random,
+	NodeAngle: number,
+	NodeDir: number,
+	FlipAt: number,
+	InhaleAt: number, -- server time the next inhale starts (its warning runs before it)
 }
 local current: Titan? = nil
 local rngSeed = os.time()
@@ -56,6 +63,10 @@ local function broadcast()
 		Inner = T.InnerRadius,
 		Outer = T.OuterRadius,
 		Pull = T.Pull,
+		NodeAngle = t.NodeAngle,
+		NodeDir = t.NodeDir,
+		SentAt = workspace:GetServerTimeNow(),
+		InhaleAt = t.InhaleAt,
 	})
 end
 
@@ -141,7 +152,17 @@ function TitanService.run(duration: number, force: boolean?)
 		return
 	end
 	rngSeed += 1
-	local t: Titan = { Center = start, Siphon = {}, Formed = 0, Rng = Random.new(rngSeed) }
+	local rng = Random.new(rngSeed)
+	local t: Titan = {
+		Center = start,
+		Siphon = {},
+		Formed = 0,
+		Rng = rng,
+		NodeAngle = rng:NextNumber() * math.pi * 2,
+		NodeDir = if rng:NextNumber() < 0.5 then -1 else 1,
+		FlipAt = os.clock() + rng:NextNumber(6, 11),
+		InhaleAt = workspace:GetServerTimeNow() + T.InhaleEvery,
+	}
 	current = t
 	broadcast()
 	PlayerService.notifyAll("THE STORM TITAN has formed! Storm Legends: hold its ring to siphon it.", COLOR)
@@ -169,19 +190,41 @@ function TitanService.run(duration: number, force: boolean?)
 				t.Center += flat.Unit * step
 			end
 		end
+		-- The charge node sweeps round the ring, now and then reversing.
+		t.NodeAngle += t.NodeDir * T.NodeSpeed * dt
+		if os.clock() >= t.FlipAt then
+			t.FlipAt = os.clock() + t.Rng:NextNumber(6, 11)
+			if t.Rng:NextNumber() < 0.5 then
+				t.NodeDir = -t.NodeDir
+				broadcast()
+			end
+		end
+		local node = t.Center + Vector3.new(math.cos(t.NodeAngle), 0, math.sin(t.NodeAngle)) * T.NodeRadius
+		local now = workspace:GetServerTimeNow()
+		local inhaling = now >= t.InhaleAt and now < t.InhaleAt + T.InhaleSeconds
+		if now >= t.InhaleAt + T.InhaleSeconds then
+			t.InhaleAt = now + T.InhaleEvery
+			broadcast()
+		end
 		for _, player in Players:GetPlayers() do
 			local root = rootOf(player)
 			local licensed = PlayerService.licensed(player, T.License)
 			local d = if root
 				then ((root.Position - t.Center) * Vector3.new(1, 0, 1)).Magnitude
 				else math.huge
+			local inNode = root ~= nil
+				and ((root.Position - node) * Vector3.new(1, 0, 1)).Magnitude <= T.NodeHit
+			if licensed then
+				player:SetAttribute("TitanInNode", inNode or nil)
+			end
 			if root and d < T.InnerRadius then
-				PlayerService.damage(player, T.CoreDamagePerSecond * dt)
+				PlayerService.damage(player, T.CoreDamagePerSecond * dt * (if inhaling then 2 else 1))
 				if licensed and t.Siphon[player] then
 					t.Siphon[player] = math.max(0, t.Siphon[player] - T.DrainPerSecond * dt)
 				end
 			elseif root and licensed and d <= T.OuterRadius then
-				local s = (t.Siphon[player] or 0) + dt * rigSpeed(player) / T.SiphonSeconds
+				local rate = rigSpeed(player) / T.SiphonSeconds * (if inNode then 1 else T.RingRate)
+				local s = (t.Siphon[player] or 0) + dt * rate
 				if s >= 1 then
 					s = 0
 					formCore(t, player, root.Position)
@@ -209,6 +252,7 @@ function TitanService.run(duration: number, force: boolean?)
 		current = nil
 		for _, player in Players:GetPlayers() do
 			player:SetAttribute("TitanSiphon", nil)
+			player:SetAttribute("TitanInNode", nil)
 		end
 		broadcast()
 		print(("[TitanService] titan over, %d Mythic Cores formed"):format(t.Formed))
@@ -224,7 +268,8 @@ function TitanService.state(): { [string]: any }?
 	for player, s in t.Siphon do
 		siphon[player.Name] = s
 	end
-	return { Center = t.Center, Siphon = siphon, Formed = t.Formed }
+	local node = t.Center + Vector3.new(math.cos(t.NodeAngle), 0, math.sin(t.NodeAngle)) * T.NodeRadius
+	return { Center = t.Center, Siphon = siphon, Formed = t.Formed, Node = node, NodeDir = t.NodeDir }
 end
 
 -- Studio QA: set a player's siphon so the formation path can be checked quickly.
