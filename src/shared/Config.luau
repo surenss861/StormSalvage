@@ -326,11 +326,12 @@ Config.Pursuit = {
 	ExtractXP = 40,
 	-- The twister. It is route-bound: it paths along streets like a player (PathfindingService
 	-- with a wide agent), so narrow alleys and fenced yards are real escapes; on roofs it waits.
-	SpawnBehind = 16, -- studs behind the first carrier, back toward the cache
-	SpeedStart = 25,
-	SpeedRamp = 0.8, -- studs/s gained per second of chase
-	SpeedMax = 31,
+	SpawnBehind = 14, -- studs behind the first carrier, back toward the cache
+	SpeedStart = 27,
+	SpeedRamp = 1.0, -- studs/s gained per second of chase
+	SpeedMax = 32, -- below a max-Boots sprint (34)
 	AgentRadius = 5, -- path width: gaps narrower than ~10 studs are too tight for it
+	SearchSpeedFactor = 0.5, -- with no route to you it pushes straight at you, at this share of its speed
 	RepathSeconds = 0.6,
 	CatchRadius = 7,
 	CatchHeight = 6, -- only catches within this height (a roof is out of reach)

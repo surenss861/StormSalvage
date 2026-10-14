@@ -173,3 +173,68 @@ Engineering bugs found and fixed along the way:
 2. Play, wait about 6 s into a calm, and the cache drops.
 3. Sprint with Shift.
 4. To trigger an event any time: `ServerStorage.StormSalvageDebug:Invoke("pursuit")`.
+
+---
+
+# Milestone M1: the pursuit system (2026-10-14, complete-game directive)
+
+Built on the first slice. Code: `EventService`, `PursuitService`, `Pursuit` (shared rules), `PursuitHud`, `Movement`.
+
+## What changed
+
+- **Event catalog and director (B5).** After each storm passes there's one opportunity, in rotation, **never the same kind or site twice in a row** (unit-tested over 200 picks). Every event ends before the next storm hits.
+  - **Storm Pursuit:** the twister chase.
+  - **Dangerous Extraction:** no pursuer. The core is unstable and telegraphed **surges** erupt 25–45 studs ahead on the straight line home (cyan, 9-stud radius, 25 damage, 1.6 s warning), so the obvious road is the dangerous one. 35 s window, 120 bonus.
+  - **Salvage Rush:** six valuable finds (2 Engines, 2 Registers, a Safe, a Jukebox) spread round the site for 30 s, at normal sale values plus 6 XP each. The announcement names the top salvager at the end.
+- **Five sites (B4):** Warehouse 7 (difficulty 2), Super Saver (1), Fuel & Go (1), the Houses (2), Starlite Motel (3).
+  - Each spot **checks itself at runtime**: open sky, solid ground, and a walkable route home.
+  - If something is in the way, it nudges to the nearest good spot (the Motel's did).
+  - Rush finds pick distinct open spots.
+- **Route-bound twister (B3).** It no longer passes through buildings.
+  - It paths along the streets with a wide agent (radius 5), re-planning every 0.6 s.
+  - Gaps narrower than about 10 studs and roofs are real escapes. With no route it pushes straight at you at half speed, so a gap buys time but nowhere is safe for good.
+  - It spawns only on open ground, never on a dock or a roof.
+  - Speed starts at 27, gains 1 per second, and caps at 32: below a max-Boots sprint (34), so Boots matter.
+- **The pursuer's look and states (B2).** A tapered funnel, dark at the base and paler up top, with orbiting debris. It leans toward where it's heading and has a red catch ring at its exact radius. States the player can read:
+  - **Forming:** grows out of the ground.
+  - **Chasing**
+  - **WindUp:** the base glows red and spins faster just before a debris strike.
+  - **Stunned:** shrinks and pales after a catch.
+  - **Searching:** no route to you.
+
+  Debris strikes have their **own visuals** (a brown dust ring, chunks slamming down, a dust puff). Surges are a cyan ring with an electric pulse. **Neither reuses the storm's lightning.** Audio uses existing licensed cues only.
+- **Records (B7):**
+  - total extractions and best time
+  - **streak**: clean extractions in a row, never caught that event
+  - **best streak**
+  - **hardest site** extracted from
+  - **rush finds**
+
+  Old profiles are reconciled. The extraction card calls out "NEW PERSONAL BEST", "N IN A ROW" and "HARDEST SITE YET".
+- **Controls (A2):**
+  - With Roblox's Shift Lock on, sprint moves to **Ctrl** (a one-time tip says so).
+  - **No sprinting while climbing, swimming or seated.**
+  - The field of view snaps back on death.
+  - Held keys are cleared when the window loses focus, so sprint can't stick on.
+
+## Evidence (Studio, base speeds: run 20, sprint 28; scripted runner with real prompts and pathfinding)
+
+| Event | Site (difficulty) | Result | Notes |
+| --- | --- | --- | --- |
+| Pursuit, first route-bound build | Warehouse 7 (2) | Extracted 12.7 s, twister never moved | **Bug:** spawned on the loading dock, so no route ever. Fixed: spawns only on open ground, never stuck. |
+| Pursuit | Warehouse 7 (2) | Extracted 12.2 s | Gap only grew. **Bug:** paths ended where the runner *was*, so it idled at the end. Fixed: with a good route it charges at full speed past the end of its path. |
+| **Pursuit (final)** | **Warehouse 7 (2)** | **Extracted 12.3 s, 0 catches** | Gap held at 15–22 studs the whole chase; 2 strikes dodged |
+| **Pursuit (final)** | **Starlite Motel (3)** | **Extracted 13.9 s, 0 catches, 69 HP** | Race 19 s from the Scrapyard. Gap closed 20 → **10.8** before the safe line; 1 of 3 strikes hit |
+| **Extraction** | **Fuel & Go (1)** | **Extracted 10.2 s, 77 HP** | 4 surges on the line home, 1 hit |
+| **Rush** | **Super Saver** | Finds spread over 6 open spots | Grab counted (5 left), XP and record. First build stacked 3 finds on one spot: fixed. |
+| Site checks | all 5 | All resolve | The Motel's nudged to (−6, 139) |
+
+Captures: `docs/art/v4/pursuit/05` (the route-bound twister chasing), `06` (stunned after a catch), `07` (Rush banner).
+
+## Still open in Phase A/B
+
+- **Multiplayer (B6)** with real clients: two racing for one cache, simultaneous grabs, 4/8/12 players. Studio's two-client test wouldn't start (2 attempts in M0). The rules are server-side and player-agnostic (one `taken` flag per item; one transition to Done), but this **needs a real-server session with people**.
+- **Phones:** real-device controls and performance.
+- **Cooperative Recovery** (the fourth event idea): deferred. Three solid kinds first, as directed.
+- **Evasive action (A3)** and **custom animations (A4)**: animations need uploaded assets (owner); the evasive action is next, with M2.
+- The pursuer still uses part-built visuals. A modelled creature or funnel asset belongs in Phase E art.

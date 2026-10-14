@@ -32,8 +32,8 @@ Core experience → gameplay systems → world and content → reliability → p
 
 | # | Phase | Depends on | Status |
 | --- | --- | --- | --- |
-| A | Movement and controls (run/sprint, conflicts, one evasive action, animations) | none | **In progress.** Run/sprint built. Shift Lock and state fixes in milestone 1. Evasive action next. Custom animations blocked: they need uploaded animation assets (see Blockers). |
-| B | Signature pursuit system (pursuer, routes, locations, event catalog, multiplayer, records) | A | **In progress, milestone 1.** Route-bound pursuer, 5 locations, 3 event types with a scheduler, pursuer states and visuals, records. |
+| A | Movement and controls (run/sprint, conflicts, one evasive action, animations) | none | **M1 done:** run/sprint plus the Shift Lock, state and focus fixes. **Next:** the evasive action (M2). Animations blocked on uploads (see Blockers). |
+| B | Signature pursuit system (pursuer, routes, locations, event catalog, multiplayer, records) | A | **M1 done in Studio:** route-bound twister, 5 self-checking sites, Pursuit/Extraction/Rush with a scheduler, pursuer states and visuals, own strike VFX, records. **Open:** real multi-client play (B6). |
 | C | High-value salvage and reward moments (rarity ladder, opportunities, feedback, fairness) | B (events carry the big rewards) | Next |
 | D | World and traversal (audit Gale Hollow, district hooks, routes, then new districts) | B, C (routes serve events) | Planned |
 | E | Weather, VFX, GFX and sound (storm identities, pursuit effects, audio hierarchy, quality tiers) | B, D | Planned |
@@ -45,8 +45,8 @@ Core experience → gameplay systems → world and content → reliability → p
 
 ## Milestones (each ends with a private RC candidate and a report)
 
-1. **M1: Controls and the pursuit system.** A fixes, B1–B5, B7, and B6 as far as Studio allows. *Current.*
-2. **M2: Rewards worth chasing.** C, plus the A3 evasive action.
+1. **M1: Controls and the pursuit system.** A fixes, B1–B5, B7. **Done (Studio), 2026-10-14**; B6 needs real clients.
+2. **M2: Rewards worth chasing.** C, plus the A3 evasive action. *Next.*
 3. **M3: Gale Hollow alive.** D1, D2, D5, plus E for pursuits and storms.
 4. **M4: The long chase.** F bands 1–2, plus G slice (titles and inspect card).
 5. **M5: Shop and polish.** H review, I pass, and E quality tiers.

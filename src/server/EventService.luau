@@ -157,11 +157,34 @@ local function startRush(site: any): boolean
 		rushRunning = false
 		lastKind = "Rush"
 	end
+	local used: { Vector3 } = {}
+	local function freeSpot(i: number): Vector3
+		-- Try angles and distances round the site until open ground clear of the other finds.
+		for attempt = 0, 15 do
+			local a = (i / #R.Items) * math.pi * 2 + attempt * 0.7
+			local r = R.Spread * (0.4 + (attempt % 4) * 0.2)
+			local x, z = site.Spot.X + math.cos(a) * r, site.Spot.Z + math.sin(a) * r
+			local ground = openGround(x, z)
+			if ground then
+				local clear = true
+				for _, u in used do
+					if (u - ground).Magnitude < 4 then
+						clear = false
+						break
+					end
+				end
+				if clear then
+					table.insert(used, ground)
+					return ground
+				end
+			end
+		end
+		local fallback = site.Spot + Vector3.new(i * 3 - 10, 0, 0)
+		table.insert(used, fallback)
+		return fallback
+	end
 	for i, lootId in R.Items do
-		local a = (i / #R.Items) * math.pi * 2 + rng:NextNumber(-0.3, 0.3)
-		local r = rng:NextNumber(R.Spread * 0.4, R.Spread)
-		local x, z = site.Spot.X + math.cos(a) * r, site.Spot.Z + math.sin(a) * r
-		local ground = openGround(x, z) or site.Spot
+		local ground = freeSpot(i)
 		local item = LootService.spawnSpecial(
 			lootId,
 			ground + Vector3.new(0, 5, 0),

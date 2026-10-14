@@ -56,6 +56,7 @@ type Event = {
 	Twister: BasePart?,
 	Waypoints: { Vector3 },
 	WaypointIndex: number,
+	PathOk: boolean, -- the last route search found a way to the carrier
 	StunnedUntil: number,
 	NextStrike: number,
 	NextSurge: number,
@@ -79,6 +80,28 @@ local function rootOf(player: Player?): BasePart?
 		return nil
 	end
 	return character:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+-- Open ground near y = 0 at (x, z) (not a dock, roof, crate or vehicle), or nil.
+local function groundAt(x: number, z: number): Vector3?
+	local params = RaycastParams.new()
+	local exclude: { Instance } = {}
+	for _, pl in Players:GetPlayers() do
+		if pl.Character then
+			table.insert(exclude, pl.Character)
+		end
+	end
+	local loot = LootService.folder()
+	if loot then
+		table.insert(exclude, loot)
+	end
+	params.FilterDescendantsInstances = exclude
+	params.IgnoreWater = true
+	local hit = workspace:Raycast(Vector3.new(x, 120, z), Vector3.new(0, -160, 0), params)
+	if hit and hit.Position.Y < 2 and hit.Normal.Y > 0.8 then
+		return hit.Position
+	end
+	return nil
 end
 
 local function onPlateau(position: Vector3): boolean
@@ -168,7 +191,21 @@ local function takeCore(e: Event, player: Player)
 		if e.Kind == "Pursuit" then
 			local root = rootOf(player)
 			local from = if root then root.Position else e.Site.Spot
-			local spawn = Pursuit.spawnPoint(flat(from), flat(e.Site.Spot), P.SpawnBehind)
+			-- Behind the carrier toward the cache, on open street: rotate round the carrier until
+			-- the spot is open ground (a dock or a roof would leave it with no route).
+			local base = Pursuit.spawnPoint(flat(from), flat(e.Site.Spot), P.SpawnBehind)
+			local start = Vector3.new(base.X, from.Y - 3, base.Z)
+			local dx, dz = base.X - from.X, base.Z - from.Z
+			for step = 0, 11 do
+				local a = math.pi / 6 * math.ceil(step / 2) * (if step % 2 == 1 then 1 else -1)
+				local x = from.X + dx * math.cos(a) - dz * math.sin(a)
+				local z = from.Z + dx * math.sin(a) + dz * math.cos(a)
+				local g = groundAt(x, z)
+				if g then
+					start = g
+					break
+				end
+			end
 			local twister = Instance.new("Part")
 			twister.Name = "PursuitTwister"
 			twister.Anchored = true
@@ -177,7 +214,7 @@ local function takeCore(e: Event, player: Player)
 			twister.CanTouch = false
 			twister.Transparency = 1
 			twister.Size = Vector3.new(1, 1, 1)
-			twister.Position = Vector3.new(spawn.X, from.Y - 3, spawn.Z)
+			twister.Position = start
 			twister:SetAttribute("State", "Forming")
 			twister:SetAttribute("FormSeconds", P.FormSeconds)
 			twister.Parent = workspace
@@ -292,7 +329,7 @@ end
 local function planPaths(e: Event)
 	local path = PathfindingService:CreatePath({
 		AgentRadius = P.AgentRadius,
-		AgentHeight = 12,
+		AgentHeight = 8,
 		AgentCanJump = false,
 		AgentCanClimb = false,
 	})
@@ -319,8 +356,10 @@ local function planPaths(e: Event)
 				end
 				e.Waypoints = list
 				e.WaypointIndex = 1
+				e.PathOk = true
 			else
 				e.Waypoints = {}
+				e.PathOk = false
 			end
 		end
 		task.wait(P.RepathSeconds)
@@ -400,7 +439,15 @@ local function tick(e: Event, dt: number)
 	end
 	local speed = Pursuit.speedAt(now - (e.StartedAt :: number), P.SpeedStart, P.SpeedRamp, P.SpeedMax)
 	if #e.Waypoints == 0 or e.WaypointIndex > #e.Waypoints then
-		setTwisterState(e, "Searching")
+		-- Out of route. If the last search found one, the carrier is just past its end: charge
+		-- at them at full speed. With no route (somewhere too narrow or high for it) it pushes
+		-- straight at them at reduced speed, so a gap buys real time but nowhere is safe for good.
+		local factor = if e.PathOk then 1 else P.SearchSpeedFactor
+		setTwisterState(e, if e.PathOk then "Chasing" else "Searching")
+		local pos = Pursuit.step(flat(twister.Position), flat(root.Position), speed * factor, dt)
+		local z = math.max(pos.Z, map.SafeZoneZ + P.SafeLine)
+		local g = groundAt(pos.X, z)
+		twister.Position = Vector3.new(pos.X, if g then g.Y else twister.Position.Y, z)
 	else
 		moveTwister(e, twister, speed, dt)
 		setTwisterState(e, if now >= e.NextStrike - P.StrikeWindUp then "WindUp" else "Chasing")
@@ -472,6 +519,7 @@ function PursuitService.start(kind: string, site: Site): boolean
 		Caught = {},
 		Waypoints = {},
 		WaypointIndex = 1,
+		PathOk = false,
 		StunnedUntil = 0,
 		NextStrike = 0,
 		NextSurge = 0,

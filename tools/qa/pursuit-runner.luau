@@ -27,7 +27,7 @@ remotes:WaitForChild("PursuitState").OnClientEvent:Connect(function(m)
 		onState(m)
 	end
 end)
-remotes:WaitForChild("LightningWarning").OnClientEvent:Connect(function()
+remotes:WaitForChild("PursuitStrike").OnClientEvent:Connect(function()
 	strikes += 1
 end)
 
@@ -123,9 +123,17 @@ local function runEvent(timeout: number): string
 			raceSeconds = os.clock() - t0
 		end
 	end
+	local lastBranch = ""
+	local function branch(name: string)
+		if name ~= lastBranch then
+			lastBranch = name
+			note("branch " .. name)
+		end
+	end
 	while os.clock() - t0 < timeout do
 		local s = state or { Phase = "?" }
 		local item0 = cacheItem()
+		branch(("phase=%s item=%s"):format(tostring(s.Phase), tostring(item0 ~= nil)))
 		if s.Phase == "Done" and not item0 and os.clock() - t0 > 2 then
 			break
 		end
@@ -133,9 +141,10 @@ local function runEvent(timeout: number): string
 			s = { Phase = s.Phase }
 			local item = cacheItem()
 			if item then
-				walk(item.Position, 7, function()
+				local okWalk = walk(item.Position, 7, function()
 					return item.Parent == nil
 				end)
+				branch("walked to item: " .. tostring(okWalk))
 				if item.Parent then
 					grab(item)
 				end
