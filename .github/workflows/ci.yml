@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, v3-art-direction]
+    branches: [main, v3-art-direction, v4-gameplay]
   pull_request:
 
 jobs:
